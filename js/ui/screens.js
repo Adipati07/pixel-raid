@@ -457,14 +457,8 @@ const UI = {
 
         this.updateHeader();
         
-        // Show pack opening animation
-        let msg = `📦 ${cost.name} Opened!\n\n`;
-        cards.forEach(card => {
-            msg += `${RARITIES[card.rarity].name} ${card.name} (${CLASSES[card.class].name}) — PWR ${getCardPower(card)}\n`;
-        });
-        
-        this.toast(msg, 'success');
-        this.renderShopContent('summon');
+        // Show pack opening animation modal
+        PackAnimation.show(cost.name, cards);
     },
 
     buyMarketItem(index) {
