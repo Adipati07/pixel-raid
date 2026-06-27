@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIXEL RAID — Play</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<body>
+    <!-- Nav -->
+    <nav>
+        <div class="nav-logo">PIXEL<span>RAID</span></div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#heroes">Heroes</a>
+            <a href="#howto">How to Play</a>
+            <a href="#roadmap">Roadmap</a>
+        </div>
+        <a href="game.html" class="nav-play">▶ PLAY NOW</a>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-badge">🎮 BETA LIVE ON BNB CHAIN</div>
+        <h1 class="hero-title">PIXEL RAID</h1>
+        <p class="hero-sub">Collect pixel heroes. Build your deck. Battle rivals.<br>A retro card collector RPG where every card is a warrior.</p>
+        <div class="hero-buttons">
+            <a href="game.html" class="btn-primary">⚔️ START PLAYING</a>
+            <a href="#features" class="btn-secondary">LEARN MORE</a>
+        </div>
+
+        <!-- Pixel card previews -->
+        <div class="pixel-showcase">
+            <div class="pixel-card-preview rarity-common">
+                <canvas class="pixel-card-sprite" id="preview-iron-knight" width="64" height="64"></canvas>
+                <div class="pixel-card-name">Iron Knight</div>
+            </div>
+            <div class="pixel-card-preview rarity-rare">
+                <canvas class="pixel-card-sprite" id="preview-fire-mage" width="64" height="64"></canvas>
+                <div class="pixel-card-name">Fire Mage</div>
+            </div>
+            <div class="pixel-card-preview rarity-epic">
+                <canvas class="pixel-card-sprite" id="preview-phantom-blade" width="64" height="64"></canvas>
+                <div class="pixel-card-name">Phantom Blade</div>
+            </div>
+            <div class="pixel-card-preview rarity-legendary">
+                <canvas class="pixel-card-sprite" id="preview-void-sorcerer" width="64" height="64"></canvas>
+                <div class="pixel-card-name">Void Sorcerer</div>
+            </div>
+            <div class="pixel-card-preview rarity-mythic">
+                <canvas class="pixel-card-sprite" id="preview-reaper" width="64" height="64"></canvas>
+                <div class="pixel-card-name">Reaper</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value">20+</div>
+            <div class="stat-label">UNIQUE HEROES</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">5</div>
+            <div class="stat-label">HERO CLASSES</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">5</div>
+            <div class="stat-label">RARITY TIERS</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">∞</div>
+            <div class="stat-label">BATTLES</div>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <h2 class="section-title fade-in">GAME <span>FEATURES</span></h2>
+        <div class="features-grid">
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🃏</div>
+                <div class="feature-title">CARD COLLECTING</div>
+                <div class="feature-desc">Collect 20+ unique pixel heroes across 5 classes — Warriors, Mages, Archers, Healers, Assassins. Each card has unique stats and skills.</div>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">⚔️</div>
+                <div class="feature-title">AUTO BATTLES</div>
+                <div class="feature-desc">Build your deck, deploy your formation, and watch your heroes fight in real-time. Strategic positioning wins battles.</div>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🔗</div>
+                <div class="feature-title">SYNERGY SYSTEM</div>
+                <div class="feature-desc">Stack class combos for powerful buffs. 2 Warriors = +20% DEF. 3 Mages = +30% ATK. Cross-class combos unlock even stronger effects.</div>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">📦</div>
+                <div class="feature-title">CARD PACKS</div>
+                <div class="feature-desc">Buy packs with gold or gems. Animated opening reveals your new cards. Higher rarity = better stats and rarer skills.</div>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">📈</div>
+                <div class="feature-title">PROGRESSION</div>
+                <div class="feature-desc">Level up to unlock new heroes, earn gold and gems. Every 2 levels unlocks a new hero card for your collection.</div>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🏪</div>
+                <div class="feature-title">MARKETPLACE</div>
+                <div class="feature-desc">Trade cards with other players. Buy from AI sellers or list your own cards. Build the perfect deck through trading.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Heroes Showcase -->
+    <section class="heroes-section" id="heroes">
+        <h2 class="section-title fade-in">MEET THE <span>HEROES</span></h2>
+        <div class="heroes-grid">
+            <div class="hero-card fade-in">
+                <canvas class="hero-sprite" id="hero-iron-knight" width="80" height="80"></canvas>
+                <div class="hero-name">Iron Knight</div>
+                <div class="hero-class">⚔️ Warrior</div>
+                <div class="hero-stats"><span>HP 120</span><span>ATK 18</span><span>DEF 22</span></div>
+            </div>
+            <div class="hero-card fade-in">
+                <canvas class="hero-sprite" id="hero-fire-mage" width="80" height="80"></canvas>
+                <div class="hero-name">Fire Mage</div>
+                <div class="hero-class">🔮 Mage</div>
+                <div class="hero-stats"><span>HP 75</span><span>ATK 28</span><span>SPD 14</span></div>
+            </div>
+            <div class="hero-card fade-in">
+                <canvas class="hero-sprite" id="hero-wind-ranger" width="80" height="80"></canvas>
+                <div class="hero-name">Wind Ranger</div>
+                <div class="hero-class">🏹 Archer</div>
+                <div class="hero-stats"><span>HP 80</span><span>ATK 22</span><span>SPD 18</span></div>
+            </div>
+            <div class="hero-card fade-in">
+                <canvas class="hero-sprite" id="hero-holy-priest" width="80" height="80"></canvas>
+                <div class="hero-name">Holy Priest</div>
+                <div class="hero-class">💚 Healer</div>
+                <div class="hero-stats"><span>HP 70</span><span>ATK 10</span><span>DEF 12</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Play -->
+    <section class="howto" id="howto">
+        <h2 class="section-title fade-in">HOW TO <span>PLAY</span></h2>
+        <div class="steps">
+            <div class="step fade-in">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h3>GET YOUR STARTER CARDS</h3>
+                    <p>Begin with 3 heroes — Iron Knight, Fire Mage, and Holy Priest. These form your first battle deck.</p>
+                </div>
+            </div>
+            <div class="step fade-in">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h3>BUILD YOUR FORMATION</h3>
+                    <p>Place your heroes on a 2x3 grid. Front row takes more damage but deals more. Back row is safer for mages and healers.</p>
+                </div>
+            </div>
+            <div class="step fade-in">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h3>BATTLE & EARN</h3>
+                    <p>Fight PvE stages to earn gold, gems, and XP. Win battles to unlock new heroes and level up your collection.</p>
+                </div>
+            </div>
+            <div class="step fade-in">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h3>COLLECT & UPGRADE</h3>
+                    <p>Open card packs, trade on the marketplace, and build the ultimate deck. Unlock all 20+ heroes!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rarity -->
+    <section class="rarity-section">
+        <h2 class="section-title fade-in">RARITY <span>TIERS</span></h2>
+        <div class="rarity-grid">
+            <div class="rarity-item common fade-in">
+                <div class="rarity-label">COMMON</div>
+                <div class="rarity-chance">40% drop</div>
+            </div>
+            <div class="rarity-item rare fade-in">
+                <div class="rarity-label">RARE</div>
+                <div class="rarity-chance">30% drop</div>
+            </div>
+            <div class="rarity-item epic fade-in">
+                <div class="rarity-label">EPIC</div>
+                <div class="rarity-chance">18% drop</div>
+            </div>
+            <div class="rarity-item legendary fade-in">
+                <div class="rarity-label">LEGENDARY</div>
+                <div class="rarity-chance">10% drop</div>
+            </div>
+            <div class="rarity-item mythic fade-in">
+                <div class="rarity-label">MYTHIC</div>
+                <div class="rarity-chance">2% drop</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section class="roadmap" id="roadmap">
+        <h2 class="section-title fade-in">ROAD<span>MAP</span></h2>
+        <div class="roadmap-grid">
+            <div class="roadmap-card fade-in">
+                <div class="roadmap-phase">PHASE 1 — NOW</div>
+                <div class="roadmap-title">Core Gameplay</div>
+                <ul class="roadmap-items">
+                    <li>Card collecting & deck building</li>
+                    <li>Auto-battle PvE</li>
+                    <li>Level progression</li>
+                    <li>Card pack opening</li>
+                </ul>
+            </div>
+            <div class="roadmap-card fade-in">
+                <div class="roadmap-phase">PHASE 2 — SOON</div>
+                <div class="roadmap-title">Multiplayer</div>
+                <ul class="roadmap-items">
+                    <li>PvP ranked battles</li>
+                    <li>Marketplace trading</li>
+                    <li>Guild system</li>
+                    <li>Tournaments</li>
+                </ul>
+            </div>
+            <div class="roadmap-card fade-in">
+                <div class="roadmap-phase">PHASE 3 — FUTURE</div>
+                <div class="roadmap-title">Blockchain</div>
+                <ul class="roadmap-items">
+                    <li>NFT card minting</li>
+                    <li>BNB Chain integration</li>
+                    <li>Token rewards</li>
+                    <li>Cross-chain bridges</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <h2 class="cta-title fade-in">READY TO RAID?</h2>
+        <p class="cta-desc fade-in">Join the battle. Collect pixel heroes. Build the ultimate deck.</p>
+        <a href="game.html" class="btn-primary fade-in">⚔️ PLAY NOW — IT'S FREE</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="game.html">Play</a>
+            <a href="https://github.com/Adipati07/pixel-raid">GitHub</a>
+            <a href="#features">Features</a>
+            <a href="#roadmap">Roadmap</a>
+        </div>
+        <div class="footer-copy">
+            Built for the Renaiss Hackathon by <a href="https://github.com/Adipati07">Adipati07</a> & <a href="https://github.com/brebros">brebros</a>
+        </div>
+    </footer>
+
+    <!-- Pixel Art Generator (same as game) -->
+    <script src="js/core/heroes.js"></script>
+    <script>
+        // Render pixel art previews on landing page canvases
+        function renderLandingPreview(canvasId, heroName, scale) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            
+            const template = CARD_TEMPLATES.find(t => t.name === heroName);
+            if (!template) return;
+            
+            // Use the same pixel art generation from card-renderer
+            const pixels = generatePixelCharacter(template.cls, template.name);
+            const size = scale || 4;
+            const offsetX = Math.floor((canvas.width - pixels[0].length * size) / 2);
+            const offsetY = Math.floor((canvas.height - pixels.length * size) / 2);
+            
+            pixels.forEach((row, y) => {
+                row.forEach((color, x) => {
+                    if (color) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(offsetX + x * size, offsetY + y * size, size, size);
+                    }
+                });
+            });
+        }
+        
+        // Generate pixel character (simplified version)
+        function generatePixelCharacter(cls, name) {
+            const palettes = {
+                warrior: { primary: '#c0c0c0', secondary: '#808080', accent: '#ff4444', skin: '#ffcc99' },
+                mage:    { primary: '#6c63ff', secondary: '#4a42cc', accent: '#ff6b6b', skin: '#ffcc99' },
+                archer:  { primary: '#22c55e', secondary: '#16a34a', accent: '#f59e0b', skin: '#deb887' },
+                healer:  { primary: '#f0f0f0', secondary: '#e0e0e0', accent: '#ff69b4', skin: '#ffcc99' },
+                assassin:{ primary: '#1a1a2e', secondary: '#2d2d44', accent: '#e94560', skin: '#deb887' }
+            };
+            const p = palettes[cls] || palettes.warrior;
+            
+            const templates = {
+                warrior: [
+                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.accent,p.secondary,p.primary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.secondary,0,p.secondary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,p.secondary,0,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0]
+                ],
+                mage: [
+                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.accent,p.primary,p.primary,p.primary,p.accent,0,0,0,0,0,0,0,0,0],
+                    [0,p.accent,p.primary,p.primary,p.primary,p.primary,p.primary,p.accent,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0],
+                    [0,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,0,0,0,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
+                ],
+                archer: [
+                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.secondary,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
+                ],
+                healer: [
+                    [0,0,0,'#ffd700','#ffd700','#ffd700',0,0,0,0,0,0,0,0,0,0],
+                    [0,0,'#ffd700',p.primary,p.primary,p.primary,'#ffd700',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.accent,p.accent,p.accent,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,0,p.primary,p.primary,0,0,0,0,0,0,0,0,0]
+                ],
+                assassin: [
+                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
+                    [0,p.accent,p.secondary,p.secondary,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,p.skin,'#fff',p.skin,'#fff',0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.secondary,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
+                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0],
+                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
+                ]
+            };
+            return templates[cls] || templates.warrior;
+        }
+
+        // Render all previews
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLandingPreview('preview-iron-knight', 'Iron Knight', 4);
+            renderLandingPreview('preview-fire-mage', 'Fire Mage', 4);
+            renderLandingPreview('preview-phantom-blade', 'Phantom Blade', 4);
+            renderLandingPreview('preview-void-sorcerer', 'Void Sorcerer', 4);
+            renderLandingPreview('preview-reaper', 'Reaper', 4);
+            
+            renderLandingPreview('hero-iron-knight', 'Iron Knight', 5);
+            renderLandingPreview('hero-fire-mage', 'Fire Mage', 5);
+            renderLandingPreview('hero-wind-ranger', 'Wind Ranger', 5);
+            renderLandingPreview('hero-holy-priest', 'Holy Priest', 5);
+            
+            // Scroll fade-in animation
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+        });
+    </script>
