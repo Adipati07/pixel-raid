@@ -1133,7 +1133,8 @@
             'hero-holy-priest': 'healer'
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Run immediately since script is at bottom of body
+        (function initPixelRaid() {
             // Render all pixel characters
             Object.entries(heroClassMap).forEach(([id, cls]) => {
                 const scale = id.startsWith('hero-') ? 6 : 4;
@@ -1215,7 +1216,7 @@
             }, { threshold: 0.1 });
             
             document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-        });
+        })();
     </script>
 </body>
 </html>
