@@ -225,11 +225,11 @@
         @keyframes tutorial-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* Stat Bars in Cards */
-        .stat-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
-        .stat-label { width:22px; font-size:6px; color:#888; text-align:right; }
-        .stat-bar-bg { flex:1; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
-        .stat-bar-fill { height:100%; border-radius:2px; transition: width 0.5s ease; }
-        .stat-val { width:22px; font-size:7px; font-weight:700; text-align:right; }
+        .card-stat-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
+        .card-stat-label { width:22px; font-size:6px; color:#888; text-align:right; }
+        .card-stat-bar-bg { flex:1; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; overflow:hidden; }
+        .card-stat-bar-fill { height:100%; border-radius:2px; transition: width 0.5s ease; }
+        .card-stat-val { width:22px; font-size:7px; font-weight:700; text-align:right; }
         .card-power { text-align:center; margin-top:4px; font-size:7px; color:var(--gold); font-weight:700; }
 
         /* Pack Opening — Premium */
@@ -444,7 +444,7 @@
     <div class="screen" id="screen-heroes">
         <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🃏 YOUR COLLECTION</h2>
         <div class="heroes-grid" id="hero-list"></div>
-        <div class="hero-detail" id="hero-detail"></div>
+        <div class="hero-detail" id="hero-detail"><div id="hero-detail-content"></div></div>
     </div>
 
     <!-- ====== FORMATION SCREEN ====== -->

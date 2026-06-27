@@ -234,10 +234,10 @@ const UI = {
                 { label: 'SPD', val: card.stats.spd, max: maxSPD, color: '#ffaa00' },
             ];
             stats.innerHTML = statData.map(s => `
-                <div class="stat-row">
-                    <span class="stat-label">${s.label}</span>
-                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
-                    <span class="stat-val" style="color:${s.color}">${s.val}</span>
+                <div class="card-stat-row">
+                    <span class="card-stat-label">${s.label}</span>
+                    <div class="card-stat-bar-bg"><div class="card-stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
+                    <span class="card-stat-val" style="color:${s.color}">${s.val}</span>
                 </div>
             `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>`;
 
