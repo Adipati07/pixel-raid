@@ -5,407 +5,440 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PIXEL RAID — Play</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ========== GAME UI STYLES ========== */
+        :root {
+            --bg: #0a0a1a;
+            --bg-card: #141428;
+            --bg-panel: #1a1a2e;
+            --gold: #f0c040;
+            --gold-dark: #b8860b;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --rarity-common: #aaaaaa;
+            --rarity-rare: #4488ff;
+            --rarity-epic: #aa44ff;
+            --rarity-legendary: #ff8800;
+            --rarity-mythic: #ff4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Silkscreen', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed; inset: 0; z-index: 10000;
+            background: var(--bg); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+            transition: opacity 0.5s;
+        }
+        .loading-screen.hide { opacity: 0; pointer-events: none; }
+        .loading-title { font-family: 'Press Start 2P'; font-size: 24px; color: var(--gold); }
+        .loading-bar { width: 200px; height: 8px; background: #222; border-radius: 4px; overflow: hidden; }
+        .loading-fill { height: 100%; width: 0%; background: var(--gold); transition: width 0.3s; }
+        .loading-text { font-size: 10px; color: var(--text-dim); }
+
+        /* Game Header */
+        .game-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 20px; background: var(--bg-panel);
+            border-bottom: 2px solid rgba(240,192,64,0.2);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .game-logo { font-family: 'Press Start 2P'; font-size: 12px; color: var(--gold); }
+        .game-logo span { color: #ff4444; }
+        .header-info { display: flex; gap: 16px; align-items: center; font-size: 10px; }
+        .header-stat { display: flex; align-items: center; gap: 4px; }
+        .header-stat .emoji { font-size: 14px; }
+        .header-stat .value { color: var(--gold); font-weight: 700; }
+        .level-badge {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #000; padding: 2px 8px; border-radius: 4px;
+            font-weight: 700; font-size: 9px;
+        }
+
+        /* Nav Tabs */
+        .game-nav {
+            display: flex; gap: 4px; padding: 8px 16px;
+            background: #0d0d1f; border-bottom: 1px solid rgba(255,255,255,0.05);
+            overflow-x: auto;
+        }
+        .nav-btn {
+            font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+            color: var(--text-dim); background: none; border: none;
+            padding: 8px 14px; cursor: pointer; border-radius: 6px;
+            transition: all 0.2s; white-space: nowrap;
+        }
+        .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .nav-btn.active { color: var(--gold); background: rgba(240,192,64,0.1); }
+
+        /* Screen container */
+        .screen { display: none; padding: 16px; max-width: 900px; margin: 0 auto; }
+        .screen.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card); border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 8px; padding: 12px; cursor: pointer;
+            transition: all 0.2s; position: relative;
+        }
+        .card:hover { transform: translateY(-2px); border-color: rgba(240,192,64,0.3); }
+        .card.common { border-color: var(--rarity-common); }
+        .card.rare { border-color: var(--rarity-rare); }
+        .card.epic { border-color: var(--rarity-epic); }
+        .card.legendary { border-color: var(--rarity-legendary); }
+        .card.mythic { border-color: var(--rarity-mythic); }
+        .card-name { font-family: 'Press Start 2P'; font-size: 8px; margin-top: 6px; }
+        .card-class { font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+        .card-stats { font-size: 9px; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* Buttons */
+        .btn {
+            font-family: 'Press Start 2P'; font-size: 8px; padding: 10px 20px;
+            border: 2px solid var(--gold-dark); cursor: pointer; border-radius: 4px;
+            transition: all 0.15s; text-transform: uppercase;
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #000; font-weight: 700;
+        }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(240,192,64,0.3); }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-dim); border-color: rgba(255,255,255,0.1); }
+        .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+        /* Battle Screen */
+        .battle-canvas-wrap { position: relative; margin-bottom: 12px; }
+        #battle-canvas { width: 100%; max-width: 600px; display: block; margin: 0 auto; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); image-rendering: pixelated; }
+        .battle-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        .speed-controls { display: flex; gap: 4px; margin-left: auto; }
+        .speed-btn { font-size: 8px; padding: 6px 10px; background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; }
+        .speed-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+        .battle-progress { margin-bottom: 12px; }
+        .progress-bar { width: 100%; height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #ff8800); transition: width 0.3s; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 4px; }
+        .battle-log {
+            background: #0d0d1f; border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto;
+            font-size: 9px; line-height: 1.6;
+        }
+        .battle-log:empty::after { content: 'Battle log will appear here...'; color: var(--text-dim); }
+        .log-win { color: #44cc44; }
+        .log-lose { color: #ff4444; }
+        .log-damage { color: #ff8800; }
+        .log-heal { color: #44cc44; }
+        .log-skill { color: #aa44ff; }
+        .log-drop { color: var(--gold); }
+
+        /* Heroes Screen */
+        .heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .hero-detail {
+            background: var(--bg-panel); border: 2px solid rgba(240,192,64,0.2);
+            border-radius: 8px; padding: 16px; display: none;
+        }
+        .hero-detail.show { display: block; }
+        .hero-detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .hero-detail-name { font-family: 'Press Start 2P'; font-size: 12px; }
+        .hero-detail-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 10px; margin-bottom: 12px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px; }
+        .stat-label { color: var(--text-dim); }
+        .stat-value { color: var(--gold); font-weight: 700; }
+        .hero-detail-skill { background: rgba(170,68,255,0.1); border: 1px solid rgba(170,68,255,0.2); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
+        .hero-detail-actions { display: flex; gap: 8px; }
+
+        /* Formation Screen */
+        .formation-legend {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 9px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        #formation-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .grid-cell {
+            width: 100px; min-height: 110px; background: var(--bg-card);
+            border: 2px dashed rgba(255,255,255,0.1); border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; transition: all 0.2s; cursor: pointer;
+        }
+        .grid-cell.occupied { border-style: solid; border-color: rgba(240,192,64,0.3); }
+        .grid-cell.drag-over { border-color: var(--gold); background: rgba(240,192,64,0.1); }
+        .row-label { font-size: 7px; color: var(--text-dim); margin-bottom: 4px; }
+        .cell-sprite { image-rendering: pixelated; }
+        .cell-name { font-size: 7px; color: var(--text); margin-top: 2px; }
+        .bench-section { margin-top: 16px; }
+        .bench-title { font-family: 'Press Start 2P'; font-size: 8px; color: var(--text-dim); margin-bottom: 8px; }
+        #bench-heroes { display: flex; gap: 8px; flex-wrap: wrap; }
+        .bench-card {
+            width: 70px; padding: 8px; background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+            text-align: center; cursor: grab; transition: all 0.2s;
+        }
+        .bench-card:hover { border-color: rgba(240,192,64,0.3); }
+        .synergies-section { margin-top: 16px; }
+        .synergy-title { font-family: 'Press Start 2P'; font-size: 8px; color: var(--text-dim); margin-bottom: 8px; }
+        #synergy-list { display: flex; gap: 8px; flex-wrap: wrap; }
+        .synergy-tag {
+            font-size: 9px; padding: 4px 10px; border-radius: 4px;
+            background: rgba(68,204,68,0.1); border: 1px solid rgba(68,204,68,0.3); color: #44cc44;
+        }
+
+        /* Inventory Screen */
+        .inv-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+        .inv-tab { font-size: 9px; padding: 6px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; color: var(--text-dim); }
+        .inv-tab.active { background: rgba(240,192,64,0.1); border-color: var(--gold); color: var(--gold); }
+        #inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+
+        /* Shop Screen */
+        .shop-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+        .shop-tab { font-size: 9px; padding: 6px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; color: var(--text-dim); }
+        .shop-tab.active { background: rgba(240,192,64,0.1); border-color: var(--gold); color: var(--gold); }
+        #shop-content { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+
+        /* Blockchain / Wallet Section */
+        .wallet-section {
+            background: var(--bg-panel); border: 2px solid rgba(240,192,64,0.15);
+            border-radius: 8px; padding: 16px; margin-top: 16px;
+        }
+        .wallet-title { font-family: 'Press Start 2P'; font-size: 10px; color: var(--gold); margin-bottom: 8px; }
+        .wallet-desc { font-size: 10px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.6; }
+        .wallet-info { font-size: 9px; color: var(--text-dim); margin-top: 8px; }
+        .wallet-address { font-family: monospace; color: var(--gold); }
+
+        /* Tutorial Overlay */
+        .tutorial-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+        .tutorial-overlay.active { opacity: 1; }
+        .tutorial-overlay.fade-out { opacity: 0; }
+        .tutorial-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.7); }
+        .tutorial-tooltip {
+            position: relative; z-index: 1; background: var(--bg-panel);
+            border: 2px solid var(--gold); border-radius: 12px; padding: 24px;
+            max-width: 380px; text-align: center;
+        }
+        .tutorial-step-count { font-size: 8px; color: var(--text-dim); margin-bottom: 8px; }
+        .tutorial-title { font-family: 'Press Start 2P'; font-size: 12px; color: var(--gold); margin-bottom: 12px; }
+        .tutorial-text { font-size: 11px; color: var(--text); line-height: 1.7; margin-bottom: 16px; }
+        .tutorial-buttons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .tutorial-btn-back, .tutorial-btn-next, .tutorial-btn-finish, .tutorial-btn-skip {
+            font-size: 8px; padding: 8px 16px; border-radius: 4px; cursor: pointer;
+        }
+        .tutorial-btn-skip { background: none; border: 1px solid rgba(255,255,255,0.2); color: var(--text-dim); }
+        .tutorial-highlight { position: relative; z-index: 10000; box-shadow: 0 0 0 4px var(--gold), 0 0 20px rgba(240,192,64,0.4); border-radius: 8px; }
+        .tutorial-ring { position: absolute; z-index: 9999; border: 3px solid var(--gold); border-radius: 8px; pointer-events: none; animation: tutorial-pulse 1.5s ease-in-out infinite; }
+        @keyframes tutorial-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Pack Opening Modal */
+        #pack-modal {
+            position: fixed; inset: 0; z-index: 9998; background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+        }
+        #pack-modal.show { display: flex; }
+        #pack-title { font-family: 'Press Start 2P'; font-size: 14px; color: var(--gold); }
+        #pack-box {
+            width: 180px; height: 240px; background: linear-gradient(135deg, #2a1f4e, #1a1a3e);
+            border: 3px solid var(--gold); border-radius: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.3s; box-shadow: 0 0 30px rgba(240,192,64,0.3);
+        }
+        #pack-box:hover { transform: scale(1.05); }
+        #pack-box.opened { transform: scale(0.8) rotateY(180deg); opacity: 0; pointer-events: none; }
+        #pack-hint { font-size: 10px; color: var(--text-dim); }
+        #pack-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        #pack-close-btn { display: none; }
+
+        /* Unlock Popup */
+        .unlock-popup {
+            position: fixed; inset: 0; z-index: 9997; background: rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .unlock-content {
+            background: var(--bg-panel); border: 2px solid var(--gold);
+            border-radius: 12px; padding: 24px; text-align: center; max-width: 300px;
+        }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 16px; right: 16px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            font-size: 10px; padding: 10px 16px; border-radius: 6px;
+            background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toastIn 0.3s ease-out;
+        }
+        .toast.success { border-color: #44cc44; color: #44cc44; }
+        .toast.error { border-color: #ff4444; color: #ff4444; }
+        .toast.warning { border-color: #ffaa00; color: #ffaa00; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Hero detail lock overlay */
+        .hero-locked { opacity: 0.5; position: relative; }
+        .hero-locked::after {
+            content: '🔒 Lv.' attr(data-unlock-level);
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.6); font-size: 10px; color: var(--gold);
+            font-family: 'Press Start 2P';
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .game-header { flex-wrap: wrap; gap: 8px; }
+            .header-info { flex-wrap: wrap; }
+            #formation-grid { justify-content: center; }
+            .heroes-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+        }
+    </style>
 </head>
 <body>
-<body>
-    <!-- Nav -->
-    <nav>
-        <div class="nav-logo">PIXEL<span>RAID</span></div>
-        <div class="nav-links">
-            <a href="#features">Features</a>
-            <a href="#heroes">Heroes</a>
-            <a href="#howto">How to Play</a>
-            <a href="#roadmap">Roadmap</a>
-        </div>
-        <a href="game.html" class="nav-play">▶ PLAY NOW</a>
-    </nav>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-title">PIXEL RAID</div>
+        <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+        <div class="loading-text" id="loading-text">Loading game...</div>
+    </div>
 
-    <!-- Hero -->
-    <section class="hero">
-        <div class="hero-badge">🎮 BETA LIVE ON BNB CHAIN</div>
-        <h1 class="hero-title">PIXEL RAID</h1>
-        <p class="hero-sub">Collect pixel heroes. Build your deck. Battle rivals.<br>A retro card collector RPG where every card is a warrior.</p>
-        <div class="hero-buttons">
-            <a href="game.html" class="btn-primary">⚔️ START PLAYING</a>
-            <a href="#features" class="btn-secondary">LEARN MORE</a>
-        </div>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 
-        <!-- Pixel card previews -->
-        <div class="pixel-showcase">
-            <div class="pixel-card-preview rarity-common">
-                <canvas class="pixel-card-sprite" id="preview-iron-knight" width="64" height="64"></canvas>
-                <div class="pixel-card-name">Iron Knight</div>
-            </div>
-            <div class="pixel-card-preview rarity-rare">
-                <canvas class="pixel-card-sprite" id="preview-fire-mage" width="64" height="64"></canvas>
-                <div class="pixel-card-name">Fire Mage</div>
-            </div>
-            <div class="pixel-card-preview rarity-epic">
-                <canvas class="pixel-card-sprite" id="preview-phantom-blade" width="64" height="64"></canvas>
-                <div class="pixel-card-name">Phantom Blade</div>
-            </div>
-            <div class="pixel-card-preview rarity-legendary">
-                <canvas class="pixel-card-sprite" id="preview-void-sorcerer" width="64" height="64"></canvas>
-                <div class="pixel-card-name">Void Sorcerer</div>
-            </div>
-            <div class="pixel-card-preview rarity-mythic">
-                <canvas class="pixel-card-sprite" id="preview-reaper" width="64" height="64"></canvas>
-                <div class="pixel-card-name">Reaper</div>
-            </div>
+    <!-- Pack Opening Modal -->
+    <div id="pack-modal">
+        <div id="pack-title">Opening Pack...</div>
+        <div id="pack-box" onclick="PackAnimation.open()">
+            <span style="font-size:40px">📦</span>
         </div>
-    </section>
+        <div id="pack-hint">Click the box to open!</div>
+        <div id="pack-cards"></div>
+        <button id="pack-close-btn" class="btn btn-gold" onclick="PackAnimation.close()">Continue</button>
+    </div>
 
-    <!-- Stats -->
-    <div class="stats-bar">
-        <div class="stat-item">
-            <div class="stat-value">20+</div>
-            <div class="stat-label">UNIQUE HEROES</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">5</div>
-            <div class="stat-label">HERO CLASSES</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">5</div>
-            <div class="stat-label">RARITY TIERS</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">∞</div>
-            <div class="stat-label">BATTLES</div>
+    <!-- Game Header -->
+    <div class="game-header">
+        <a href="index.html" class="game-logo">PIXEL<span>RAID</span></a>
+        <div class="header-info">
+            <div class="header-stat"><span class="emoji">👤</span> <span id="player-name" class="value">Adventurer</span></div>
+            <div class="header-stat"><span class="emoji">🪙</span> <span id="gold-display" class="value">100</span></div>
+            <div class="header-stat"><span class="emoji">💎</span> <span id="gem-display" class="value">5</span></div>
+            <div class="header-stat"><span class="level-badge">Lv.<span id="player-level">1</span></span></div>
         </div>
     </div>
 
-    <!-- Features -->
-    <section class="features" id="features">
-        <h2 class="section-title fade-in">GAME <span>FEATURES</span></h2>
-        <div class="features-grid">
-            <div class="feature-card fade-in">
-                <div class="feature-icon">🃏</div>
-                <div class="feature-title">CARD COLLECTING</div>
-                <div class="feature-desc">Collect 20+ unique pixel heroes across 5 classes — Warriors, Mages, Archers, Healers, Assassins. Each card has unique stats and skills.</div>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">⚔️</div>
-                <div class="feature-title">AUTO BATTLES</div>
-                <div class="feature-desc">Build your deck, deploy your formation, and watch your heroes fight in real-time. Strategic positioning wins battles.</div>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">🔗</div>
-                <div class="feature-title">SYNERGY SYSTEM</div>
-                <div class="feature-desc">Stack class combos for powerful buffs. 2 Warriors = +20% DEF. 3 Mages = +30% ATK. Cross-class combos unlock even stronger effects.</div>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">📦</div>
-                <div class="feature-title">CARD PACKS</div>
-                <div class="feature-desc">Buy packs with gold or gems. Animated opening reveals your new cards. Higher rarity = better stats and rarer skills.</div>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">📈</div>
-                <div class="feature-title">PROGRESSION</div>
-                <div class="feature-desc">Level up to unlock new heroes, earn gold and gems. Every 2 levels unlocks a new hero card for your collection.</div>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">🏪</div>
-                <div class="feature-title">MARKETPLACE</div>
-                <div class="feature-desc">Trade cards with other players. Buy from AI sellers or list your own cards. Build the perfect deck through trading.</div>
+    <!-- Nav Tabs -->
+    <div class="game-nav">
+        <button class="nav-btn active" data-screen="battle">⚔️ Battle</button>
+        <button class="nav-btn" data-screen="heroes">🃏 Heroes</button>
+        <button class="nav-btn" data-screen="formation">📐 Formation</button>
+        <button class="nav-btn" data-screen="inventory">🎒 Inventory</button>
+        <button class="nav-btn" data-screen="shop">🏪 Shop</button>
+    </div>
+
+    <!-- ====== BATTLE SCREEN ====== -->
+    <div class="screen active" id="screen-battle">
+        <div class="battle-canvas-wrap">
+            <canvas id="battle-canvas" width="600" height="300"></canvas>
+        </div>
+
+        <div class="battle-progress">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="progress-info">
+                <span>Stage <span id="stage-number">1</span> — Wave <span id="wave-number">1</span>/3</span>
+                <span id="progress-text"></span>
             </div>
         </div>
-    </section>
 
-    <!-- Heroes Showcase -->
-    <section class="heroes-section" id="heroes">
-        <h2 class="section-title fade-in">MEET THE <span>HEROES</span></h2>
-        <div class="heroes-grid">
-            <div class="hero-card fade-in">
-                <canvas class="hero-sprite" id="hero-iron-knight" width="80" height="80"></canvas>
-                <div class="hero-name">Iron Knight</div>
-                <div class="hero-class">⚔️ Warrior</div>
-                <div class="hero-stats"><span>HP 120</span><span>ATK 18</span><span>DEF 22</span></div>
-            </div>
-            <div class="hero-card fade-in">
-                <canvas class="hero-sprite" id="hero-fire-mage" width="80" height="80"></canvas>
-                <div class="hero-name">Fire Mage</div>
-                <div class="hero-class">🔮 Mage</div>
-                <div class="hero-stats"><span>HP 75</span><span>ATK 28</span><span>SPD 14</span></div>
-            </div>
-            <div class="hero-card fade-in">
-                <canvas class="hero-sprite" id="hero-wind-ranger" width="80" height="80"></canvas>
-                <div class="hero-name">Wind Ranger</div>
-                <div class="hero-class">🏹 Archer</div>
-                <div class="hero-stats"><span>HP 80</span><span>ATK 22</span><span>SPD 18</span></div>
-            </div>
-            <div class="hero-card fade-in">
-                <canvas class="hero-sprite" id="hero-holy-priest" width="80" height="80"></canvas>
-                <div class="hero-name">Holy Priest</div>
-                <div class="hero-class">💚 Healer</div>
-                <div class="hero-stats"><span>HP 70</span><span>ATK 10</span><span>DEF 12</span></div>
+        <div class="battle-controls">
+            <button class="btn btn-gold" id="btn-start-battle">⚔️ Start Battle</button>
+            <button class="btn btn-secondary" id="btn-auto-next">🔄 Auto Next Stage</button>
+            <div class="speed-controls">
+                <button class="speed-btn active" data-speed="1">1x</button>
+                <button class="speed-btn" data-speed="2">2x</button>
+                <button class="speed-btn" data-speed="3">3x</button>
             </div>
         </div>
-    </section>
 
-    <!-- How to Play -->
-    <section class="howto" id="howto">
-        <h2 class="section-title fade-in">HOW TO <span>PLAY</span></h2>
-        <div class="steps">
-            <div class="step fade-in">
-                <div class="step-num">1</div>
-                <div class="step-content">
-                    <h3>GET YOUR STARTER CARDS</h3>
-                    <p>Begin with 3 heroes — Iron Knight, Fire Mage, and Holy Priest. These form your first battle deck.</p>
-                </div>
+        <div class="battle-log" id="battle-log"></div>
+
+        <!-- Wallet Section (in Battle screen for visibility) -->
+        <div class="wallet-section">
+            <div class="wallet-title">🔗 Web3 Wallet</div>
+            <div class="wallet-desc">
+                Connect your MetaMask wallet to mint your hero cards as NFTs on BNB Chain.
+                Your cards become blockchain assets you truly own — trade, sell, or keep them forever.
+                <br><br>
+                <strong>What you can do:</strong><br>
+                • 🖼️ <strong>Mint cards</strong> as NFTs (costs gas)<br>
+                • 🏪 <strong>List cards</strong> on the on-chain marketplace<br>
+                • 🔄 <strong>Trade</strong> with other players via smart contract
+                <br><br>
+                <em style="font-size:9px;color:var(--text-dim);">Note: Game works fully without wallet — connecting is optional for blockchain features.</em>
             </div>
-            <div class="step fade-in">
-                <div class="step-num">2</div>
-                <div class="step-content">
-                    <h3>BUILD YOUR FORMATION</h3>
-                    <p>Place your heroes on a 2x3 grid. Front row takes more damage but deals more. Back row is safer for mages and healers.</p>
-                </div>
+            <button class="btn btn-secondary" id="btn-connect-wallet">🦊 Connect Wallet</button>
+            <div class="wallet-info" id="wallet-info" style="display:none;">
+                <span id="wallet-address" class="wallet-address"></span>
             </div>
-            <div class="step fade-in">
-                <div class="step-num">3</div>
-                <div class="step-content">
-                    <h3>BATTLE & EARN</h3>
-                    <p>Fight PvE stages to earn gold, gems, and XP. Win battles to unlock new heroes and level up your collection.</p>
-                </div>
-            </div>
-            <div class="step fade-in">
-                <div class="step-num">4</div>
-                <div class="step-content">
-                    <h3>COLLECT & UPGRADE</h3>
-                    <p>Open card packs, trade on the marketplace, and build the ultimate deck. Unlock all 20+ heroes!</p>
-                </div>
-            </div>
+            <div class="wallet-info" id="wallet-status">Not connected — game works fine without it!</div>
         </div>
-    </section>
+    </div>
 
-    <!-- Rarity -->
-    <section class="rarity-section">
-        <h2 class="section-title fade-in">RARITY <span>TIERS</span></h2>
-        <div class="rarity-grid">
-            <div class="rarity-item common fade-in">
-                <div class="rarity-label">COMMON</div>
-                <div class="rarity-chance">40% drop</div>
-            </div>
-            <div class="rarity-item rare fade-in">
-                <div class="rarity-label">RARE</div>
-                <div class="rarity-chance">30% drop</div>
-            </div>
-            <div class="rarity-item epic fade-in">
-                <div class="rarity-label">EPIC</div>
-                <div class="rarity-chance">18% drop</div>
-            </div>
-            <div class="rarity-item legendary fade-in">
-                <div class="rarity-label">LEGENDARY</div>
-                <div class="rarity-chance">10% drop</div>
-            </div>
-            <div class="rarity-item mythic fade-in">
-                <div class="rarity-label">MYTHIC</div>
-                <div class="rarity-chance">2% drop</div>
-            </div>
+    <!-- ====== HEROES SCREEN ====== -->
+    <div class="screen" id="screen-heroes">
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🃏 YOUR COLLECTION</h2>
+        <div class="heroes-grid" id="hero-list"></div>
+        <div class="hero-detail" id="hero-detail"></div>
+    </div>
+
+    <!-- ====== FORMATION SCREEN ====== -->
+    <div class="screen" id="screen-formation">
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">📐 FORMATION</h2>
+        <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px;">Drag heroes from your bench to the grid. Position matters!</p>
+        <div id="formation-grid"></div>
+        <div class="bench-section">
+            <div class="bench-title">📋 BENCH (drag to deploy)</div>
+            <div id="bench-heroes"></div>
         </div>
-    </section>
-
-    <!-- Roadmap -->
-    <section class="roadmap" id="roadmap">
-        <h2 class="section-title fade-in">ROAD<span>MAP</span></h2>
-        <div class="roadmap-grid">
-            <div class="roadmap-card fade-in">
-                <div class="roadmap-phase">PHASE 1 — NOW</div>
-                <div class="roadmap-title">Core Gameplay</div>
-                <ul class="roadmap-items">
-                    <li>Card collecting & deck building</li>
-                    <li>Auto-battle PvE</li>
-                    <li>Level progression</li>
-                    <li>Card pack opening</li>
-                </ul>
-            </div>
-            <div class="roadmap-card fade-in">
-                <div class="roadmap-phase">PHASE 2 — SOON</div>
-                <div class="roadmap-title">Multiplayer</div>
-                <ul class="roadmap-items">
-                    <li>PvP ranked battles</li>
-                    <li>Marketplace trading</li>
-                    <li>Guild system</li>
-                    <li>Tournaments</li>
-                </ul>
-            </div>
-            <div class="roadmap-card fade-in">
-                <div class="roadmap-phase">PHASE 3 — FUTURE</div>
-                <div class="roadmap-title">Blockchain</div>
-                <ul class="roadmap-items">
-                    <li>NFT card minting</li>
-                    <li>BNB Chain integration</li>
-                    <li>Token rewards</li>
-                    <li>Cross-chain bridges</li>
-                </ul>
-            </div>
+        <div class="synergies-section">
+            <div class="synergy-title">🔗 ACTIVE SYNERGIES</div>
+            <div id="synergy-list"></div>
         </div>
-    </section>
+    </div>
 
-    <!-- CTA -->
-    <section class="cta">
-        <h2 class="cta-title fade-in">READY TO RAID?</h2>
-        <p class="cta-desc fade-in">Join the battle. Collect pixel heroes. Build the ultimate deck.</p>
-        <a href="game.html" class="btn-primary fade-in">⚔️ PLAY NOW — IT'S FREE</a>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="footer-links">
-            <a href="game.html">Play</a>
-            <a href="https://github.com/Adipati07/pixel-raid">GitHub</a>
-            <a href="#features">Features</a>
-            <a href="#roadmap">Roadmap</a>
+    <!-- ====== INVENTORY SCREEN ====== -->
+    <div class="screen" id="screen-inventory">
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🎒 INVENTORY</h2>
+        <div class="inv-tabs">
+            <button class="inv-tab active" data-tab="equipment">⚔️ Equipment</button>
+            <button class="inv-tab" data-tab="consumables">🧪 Consumables</button>
         </div>
-        <div class="footer-copy">
-            Built for the Renaiss Hackathon by <a href="https://github.com/Adipati07">Adipati07</a> & <a href="https://github.com/brebros">brebros</a>
-        </div>
-    </footer>
+        <div id="inventory-grid"></div>
+    </div>
 
-    <!-- Pixel Art Generator (same as game) -->
+    <!-- ====== SHOP SCREEN ====== -->
+    <div class="screen" id="screen-shop">
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🏪 SHOP</h2>
+        <div class="shop-tabs">
+            <button class="shop-tab active" data-tab="summon">📦 Card Packs</button>
+            <button class="shop-tab" data-tab="marketplace">🏪 Marketplace</button>
+        </div>
+        <div id="shop-content"></div>
+    </div>
+
+    <!-- ====== SCRIPTS (load order matters!) ====== -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
     <script src="js/core/heroes.js"></script>
-    <script>
-        // Render pixel art previews on landing page canvases
-        function renderLandingPreview(canvasId, heroName, scale) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false;
-            
-            const template = CARD_TEMPLATES.find(t => t.name === heroName);
-            if (!template) return;
-            
-            // Use the same pixel art generation from card-renderer
-            const pixels = generatePixelCharacter(template.cls, template.name);
-            const size = scale || 4;
-            const offsetX = Math.floor((canvas.width - pixels[0].length * size) / 2);
-            const offsetY = Math.floor((canvas.height - pixels.length * size) / 2);
-            
-            pixels.forEach((row, y) => {
-                row.forEach((color, x) => {
-                    if (color) {
-                        ctx.fillStyle = color;
-                        ctx.fillRect(offsetX + x * size, offsetY + y * size, size, size);
-                    }
-                });
-            });
-        }
-        
-        // Generate pixel character (simplified version)
-        function generatePixelCharacter(cls, name) {
-            const palettes = {
-                warrior: { primary: '#c0c0c0', secondary: '#808080', accent: '#ff4444', skin: '#ffcc99' },
-                mage:    { primary: '#6c63ff', secondary: '#4a42cc', accent: '#ff6b6b', skin: '#ffcc99' },
-                archer:  { primary: '#22c55e', secondary: '#16a34a', accent: '#f59e0b', skin: '#deb887' },
-                healer:  { primary: '#f0f0f0', secondary: '#e0e0e0', accent: '#ff69b4', skin: '#ffcc99' },
-                assassin:{ primary: '#1a1a2e', secondary: '#2d2d44', accent: '#e94560', skin: '#deb887' }
-            };
-            const p = palettes[cls] || palettes.warrior;
-            
-            const templates = {
-                warrior: [
-                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.accent,p.secondary,p.primary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.secondary,0,p.secondary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,p.secondary,0,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0]
-                ],
-                mage: [
-                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.accent,p.primary,p.primary,p.primary,p.accent,0,0,0,0,0,0,0,0,0],
-                    [0,p.accent,p.primary,p.primary,p.primary,p.primary,p.primary,p.accent,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0],
-                    [0,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,0,0,0,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
-                ],
-                archer: [
-                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.secondary,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
-                ],
-                healer: [
-                    [0,0,0,'#ffd700','#ffd700','#ffd700',0,0,0,0,0,0,0,0,0,0],
-                    [0,0,'#ffd700',p.primary,p.primary,p.primary,'#ffd700',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,'#000',p.skin,'#000',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.accent,p.accent,p.accent,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,0,p.primary,p.primary,0,0,0,0,0,0,0,0,0]
-                ],
-                assassin: [
-                    [0,0,0,p.accent,p.accent,p.accent,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.accent,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0,0],
-                    [0,p.accent,p.secondary,p.secondary,p.secondary,p.secondary,p.secondary,p.accent,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.skin,p.skin,p.skin,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,p.skin,'#fff',p.skin,'#fff',0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.secondary,p.secondary,p.secondary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,p.skin,p.primary,p.primary,p.primary,p.primary,p.primary,p.skin,0,0,0,0,0,0,0,0],
-                    [0,0,p.primary,p.primary,p.accent,p.primary,p.primary,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,p.primary,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,p.primary,0,p.primary,0,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0],
-                    [0,0,p.secondary,0,0,0,p.secondary,0,0,0,0,0,0,0,0,0]
-                ]
-            };
-            return templates[cls] || templates.warrior;
-        }
-
-        // Render all previews
-        document.addEventListener('DOMContentLoaded', () => {
-            renderLandingPreview('preview-iron-knight', 'Iron Knight', 4);
-            renderLandingPreview('preview-fire-mage', 'Fire Mage', 4);
-            renderLandingPreview('preview-phantom-blade', 'Phantom Blade', 4);
-            renderLandingPreview('preview-void-sorcerer', 'Void Sorcerer', 4);
-            renderLandingPreview('preview-reaper', 'Reaper', 4);
-            
-            renderLandingPreview('hero-iron-knight', 'Iron Knight', 5);
-            renderLandingPreview('hero-fire-mage', 'Fire Mage', 5);
-            renderLandingPreview('hero-wind-ranger', 'Wind Ranger', 5);
-            renderLandingPreview('hero-holy-priest', 'Holy Priest', 5);
-            
-            // Scroll fade-in animation
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            }, { threshold: 0.1 });
-            
-            document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-        });
-    </script>
+    <script src="js/core/items.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/systems/battle.js"></script>
+    <script src="js/systems/economy.js"></script>
+    <script src="js/systems/formation.js"></script>
+    <script src="js/systems/blockchain.js"></script>
+    <script src="js/ui/renderer.js"></script>
+    <script src="js/ui/animations.js"></script>
+    <script src="js/ui/tutorial.js"></script>
+    <script src="js/ui/screens.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

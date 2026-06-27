@@ -88,10 +88,29 @@ const Formation = {
         if (!grid) return;
         grid.innerHTML = '';
 
+        // Row impact legend
+        const legend = document.createElement('div');
+        legend.className = 'formation-legend';
+        legend.innerHTML = `
+            <div class="legend-item"><span class="legend-dot" style="background:#ff4444"></span> <b>Front</b> — Takes most damage, high threat</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ffaa00"></span> <b>Mid</b> — Balanced risk, good for DPS</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#44cc44"></span> <b>Back</b> — Safest spot, ideal for healers/rangers</div>
+            <div style="font-size:7px;color:var(--text-dim);margin-top:6px;">💡 Tip: Place tanks in Front, healers/rangers in Back</div>
+        `;
+        grid.appendChild(legend);
+
         this.positions.forEach((pos, i) => {
             const cell = document.createElement('div');
             cell.className = 'grid-cell' + (pos.cardId ? ' occupied' : '');
             cell.dataset.position = i;
+            cell.dataset.row = pos.row;
+
+            // Row color indicator
+            const rowColors = { front: '#ff4444', mid: '#ffaa00', back: '#44cc44' };
+            const rowBar = document.createElement('div');
+            rowBar.className = 'row-bar';
+            rowBar.style.cssText = `position:absolute;top:0;left:0;right:0;height:3px;background:${rowColors[pos.row]};border-radius:4px 4px 0 0;`;
+            cell.appendChild(rowBar);
 
             const rowLabel = document.createElement('span');
             rowLabel.className = 'row-label';

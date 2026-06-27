@@ -82,8 +82,18 @@ const UI = {
                 document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 GameState.battleSpeed = parseInt(btn.dataset.speed);
+                localStorage.setItem('pixelraid_speed', GameState.battleSpeed);
             });
         });
+
+        // Restore saved speed
+        const savedSpeed = parseInt(localStorage.getItem('pixelraid_speed'));
+        if (savedSpeed && [1, 2, 3].includes(savedSpeed)) {
+            GameState.battleSpeed = savedSpeed;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.speed) === savedSpeed);
+            });
+        }
     },
 
     startBattle() {
