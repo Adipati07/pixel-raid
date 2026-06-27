@@ -99,6 +99,12 @@ const Economy = {
             GameState.player.exp -= expNeeded;
             GameState.player.level++;
             rewards.leveledUp = true;
+            
+            // Process level unlock — new hero + rewards
+            const unlockResult = processLevelUnlock(GameState.player.level);
+            if (unlockResult) {
+                rewards.unlock = unlockResult;
+            }
         }
 
         // Random pack drop

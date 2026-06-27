@@ -10,19 +10,17 @@
     const hasSave = GameState.load();
     
     if (!hasSave) {
-        // Give starter cards
+        // Give starter cards — 3 basic heroes for onboarding
         console.log('🎮 New game! Generating starter cards...');
-        const starters = [
-            CARD_TEMPLATES.find(t => t.name === 'Iron Knight'),
-            CARD_TEMPLATES.find(t => t.name === 'Fire Mage'),
-            CARD_TEMPLATES.find(t => t.name === 'Holy Priest'),
-        ];
         
-        starters.forEach(tmpl => {
-            const card = generateCard(tmpl, 'common');
-            GameState.addToCollection(card);
-            GameState.deck.push(card.id);
-            card.inDeck = true;
+        STARTER_HEROES.forEach(heroName => {
+            const tmpl = CARD_TEMPLATES.find(t => t.name === heroName);
+            if (tmpl) {
+                const card = generateCard(tmpl, 'common');
+                GameState.addToCollection(card);
+                GameState.deck.push(card.id);
+                card.inDeck = true;
+            }
         });
 
         // Give starter items

@@ -68,6 +68,71 @@ const CARD_TEMPLATES = [
     { name: 'Reaper',           cls: 'assassin', hp: 60,  atk: 38, def: 5,  spd: 24, crit: 30, skill: { name: 'Execute', type: 'execute', val: 0.3, chance: 0.15 } },
 ];
 
+// ===== STARTER PACK — 3 heroes untuk onboarding =====
+const STARTER_HEROES = ['Iron Knight', 'Fire Mage', 'Holy Priest'];
+
+// ===== LEVEL UNLOCK SYSTEM =====
+// Setiap level unlock hero baru (rarity common)
+const LEVEL_UNLOCKS = {
+    1:  { hero: null,                    reward: null,              desc: 'Welcome to Pixel Raid!' },
+    2:  { hero: 'Berserker',            reward: null,              desc: '⚔️ Berserker unlocked!' },
+    3:  { hero: null,                    reward: { gold: 200 },    desc: '💰 200 Gold bonus!' },
+    4:  { hero: 'Wind Ranger',          reward: null,              desc: '🏹 Wind Ranger unlocked!' },
+    5:  { hero: 'Druid',                reward: { gems: 3 },      desc: '💚 Druid + 3 Gems!' },
+    6:  { hero: 'Shadow Sniper',        reward: null,              desc: '🏹 Shadow Sniper unlocked!' },
+    7:  { hero: 'Ice Witch',            reward: null,              desc: '🔮 Ice Witch unlocked!' },
+    8:  { hero: 'Phantom Blade',        reward: { gold: 500 },    desc: '🗡️ Phantom Blade + 500 Gold!' },
+    9:  { hero: 'Paladin',              reward: null,              desc: '⚔️ Paladin unlocked!' },
+    10: { hero: 'Beast Tamer',          reward: { gems: 5 },      desc: '🏹 Beast Tamer + 5 Gems!' },
+    11: { hero: 'Battle Medic',         reward: null,              desc: '💚 Battle Medic unlocked!' },
+    12: { hero: 'Lightning Lord',       reward: null,              desc: '🔮 Lightning Lord unlocked!' },
+    13: { hero: 'Venom Dancer',         reward: { gold: 800 },    desc: '🗡️ Venom Dancer + 800 Gold!' },
+    14: { hero: 'Dark Knight',          reward: null,              desc: '⚔️ Dark Knight unlocked!' },
+    15: { hero: 'Necromancer',          reward: { gems: 8 },      desc: '💚 Necromancer + 8 Gems!' },
+    16: { hero: 'Storm Archer',         reward: null,              desc: '🏹 Storm Archer unlocked!' },
+    17: { hero: 'Void Sorcerer',        reward: null,              desc: '🔮 Void Sorcerer unlocked!' },
+    18: { hero: 'Shadow Monk',          reward: { gold: 1200 },   desc: '🗡️ Shadow Monk + 1200 Gold!' },
+    19: { hero: 'Berserker',            reward: { gems: 10 },     desc: '⚔️ Berserker (Rare!) + 10 Gems!' },
+    20: { hero: 'Reaper',               reward: { gold: 2000, gems: 15 }, desc: '🗡️ REAPER UNLOCKED! + 2000 Gold + 15 Gems!' },
+};
+
+function getTemplateByName(name) {
+    return CARD_TEMPLATES.find(t => t.name === name);
+}
+
+function processLevelUnlock(level) {
+    const unlock = LEVEL_UNLOCKS[level];
+    if (!unlock) return null;
+
+    const result = { desc: unlock.desc, cards: [], rewards: {} };
+
+    // Unlock hero card
+    if (unlock.hero) {
+        const tmpl = getTemplateByName(unlock.hero);
+        if (tmpl) {
+            const rarity = level >= 19 ? 'rare' : 'common';
+            const card = generateCard(tmpl, rarity);
+            GameState.addToCollection(card);
+            result.cards.push(card);
+        }
+    }
+
+    // Give rewards
+    if (unlock.reward) {
+        if (unlock.reward.gold) {
+            GameState.player.gold += unlock.reward.gold;
+            result.rewards.gold = unlock.reward.gold;
+        }
+        if (unlock.reward.gems) {
+            GameState.player.gems += unlock.reward.gems;
+            result.rewards.gems = unlock.reward.gems;
+        }
+    }
+
+    GameState.save();
+    return result;
+}
+
 let _nextCardId = 1;
 
 function generateCard(template, rarity) {

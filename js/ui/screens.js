@@ -121,6 +121,11 @@ const UI = {
                     
                     if (rewards.leveledUp) {
                         this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
+                        
+                        // Show unlock notification
+                        if (rewards.unlock) {
+                            setTimeout(() => this.showUnlockPopup(rewards.unlock), 800);
+                        }
                     }
                 }
             } else {
@@ -476,6 +481,48 @@ const UI = {
         this.toast(`Bought ${listing.card.name}!`, 'success');
         this.updateHeader();
         this.renderShopContent('items');
+    },
+
+    // ===== UNLOCK POPUP =====
+    showUnlockPopup(unlock) {
+        const overlay = document.createElement('div');
+        overlay.className = 'unlock-overlay';
+        
+        let cardHTML = '';
+        if (unlock.cards.length > 0) {
+            const card = unlock.cards[0];
+            const r = RARITIES[card.rarity];
+            const cls = CLASSES[card.class];
+            cardHTML = `
+                <div class="unlock-card" style="border-color: ${r.color}; box-shadow: 0 0 30px ${r.color}44">
+                    <div class="unlock-rarity" style="color: ${r.color}">${r.name}</div>
+                    <div class="unlock-art">${cls.emoji}</div>
+                    <div class="unlock-name">${card.name}</div>
+                    <div class="unlock-class">${cls.emoji} ${cls.name}</div>
+                    <div class="unlock-stats">HP:${card.stats.hp} ATK:${card.stats.atk} DEF:${card.stats.def}</div>
+                    <div class="unlock-skill">✨ ${card.skill.name}</div>
+                </div>
+            `;
+        }
+        
+        let rewardHTML = '';
+        if (unlock.rewards.gold) rewardHTML += `<span class="unlock-reward">💰 ${unlock.rewards.gold} Gold</span>`;
+        if (unlock.rewards.gems) rewardHTML += `<span class="unlock-reward">💎 ${unlock.rewards.gems} Gems</span>`;
+        
+        overlay.innerHTML = `
+            <div class="unlock-modal">
+                <div class="unlock-title">🎊 LEVEL ${GameState.player.level} UNLOCK!</div>
+                <div class="unlock-desc">${unlock.desc}</div>
+                ${cardHTML}
+                ${rewardHTML ? `<div class="unlock-rewards">${rewardHTML}</div>` : ''}
+                <button class="btn btn-gold unlock-btn" onclick="this.closest('.unlock-overlay').remove()">✨ AWESOME!</button>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Auto-close after 8s
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
     },
 
     // ===== TOAST =====
