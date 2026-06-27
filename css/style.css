@@ -986,6 +986,83 @@ body {
     transform: scale(1.1);
 }
 
+.tutorial-trigger:hover {
+    transform: scale(1.1);
+}
+
+/* Wallet Connection */
+.wallet-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+}
+
+.wallet-btn {
+    background: linear-gradient(135deg, #f6851b, #e2761b);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wallet-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(246, 133, 27, 0.5);
+}
+
+.wallet-addr {
+    color: var(--gem);
+    font-size: 7px;
+    background: rgba(68, 204, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(68, 204, 255, 0.3);
+}
+
+/* Card Mint Button */
+.mint-btn {
+    background: linear-gradient(135deg, #44cc88, #22aa66);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: var(--font-pixel);
+    font-size: 9px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+}
+
+.mint-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(68, 204, 136, 0.5);
+}
+
+.mint-btn:disabled {
+    background: #444;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Chain Badge */
+.chain-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(243, 186, 47, 0.15);
+    color: #f3ba2f;
+    font-size: 7px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(243, 186, 47, 0.3);
+}
+
 /* Mobile responsive */
 @media (max-width: 600px) {
     .nav-btn { font-size: 7px; padding: 8px 4px; }

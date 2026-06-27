@@ -16,6 +16,12 @@
                 <span id="player-name">Adventurer</span>
                 <span class="gold">💰 <span id="gold-display">0</span></span>
                 <span class="gem">💎 <span id="gem-display">0</span></span>
+                <div class="wallet-section">
+                    <button id="btn-connect-wallet" class="wallet-btn" onclick="BlockchainBridge.connect()">🦊 Connect Wallet</button>
+                    <span id="wallet-info" style="display:none">
+                        <span id="wallet-address" class="wallet-addr"></span>
+                    </span>
+                </div>
             </div>
         </header>
 
@@ -130,6 +136,11 @@
     <button class="tutorial-trigger" id="tutorial-trigger" title="Tutorial" onclick="Tutorial.start()">❓</button>
 
     <!-- Scripts -->
+    <!-- Ethers.js for blockchain -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <!-- Blockchain Bridge -->
+    <script src="js/systems/blockchain.js"></script>
+
     <script src="js/core/heroes.js"></script>
     <script src="js/core/items.js"></script>
     <script src="js/core/game.js"></script>

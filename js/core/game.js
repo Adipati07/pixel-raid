@@ -173,4 +173,126 @@ const GameState = {
         }
         return enemies;
     },
+    // ===== BLOCKCHAIN INTEGRATION =====
+
+    /**
+     * Mint a card as NFT on BNB Chain
+     * @param {Object} card - The card object to mint
+     * @returns {Promise<number|null>} Token ID if successful, null if failed
+     */
+    async mintCardToChain(card) {
+        if (!BlockchainBridge.isConnected) {
+            console.warn('⚠️ Wallet not connected');
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast('Connect wallet first!', 'warning');
+            }
+            return null;
+        }
+
+        try {
+            const tokenId = await BlockchainBridge.syncCardToChain(card);
+            if (tokenId) {
+                this.save(); // Save with tokenId
+                if (typeof UI !== 'undefined' && UI.toast) {
+                    UI.toast(`✅ Card minted as NFT #${tokenId}!`, 'success');
+                }
+            }
+            return tokenId;
+        } catch (error) {
+            console.error('❌ Mint failed:', error);
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast('Mint failed: ' + error.message, 'error');
+            }
+            return null;
+        }
+    },
+
+    /**
+     * Sync an existing card to blockchain
+     * @param {number} cardId - The local card ID
+     * @returns {Promise<number|null>} Token ID if successful
+     */
+    async syncCardToChain(cardId) {
+        const card = this.getCardById(cardId);
+        if (!card) {
+            console.error('Card not found:', cardId);
+            return null;
+        }
+
+        if (card.onChain) {
+            console.log('Card already on chain:', card.tokenId);
+            return card.tokenId;
+        }
+
+        return await this.mintCardToChain(card);
+    },
+
+    /**
+     * Level up a card on-chain (after local level up)
+     * @param {number} cardId - The local card ID
+     * @returns {Promise<boolean>} Success status
+     */
+    async levelUpCardOnChain(cardId) {
+        const card = this.getCardById(cardId);
+        if (!card || !card.onChain || !card.tokenId) {
+            return false;
+        }
+
+        if (!BlockchainBridge.isConnected) {
+            return false;
+        }
+
+        try {
+            await BlockchainBridge.levelUpCard(card.tokenId);
+            return true;
+        } catch (error) {
+            console.error('On-chain level up failed:', error);
+            return false;
+        }
+    },
+
+    /**
+     * List a card for sale on the marketplace
+     * @param {number} cardId - The local card ID
+     * @param {number} priceInBnb - Price in BNB
+     * @returns {Promise<boolean>} Success status
+     */
+    async listCardOnMarketplace(cardId, priceInBnb) {
+        const card = this.getCardById(cardId);
+        if (!card || !card.onChain || !card.tokenId) {
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast('Card must be minted first!', 'warning');
+            }
+            return false;
+        }
+
+        if (!BlockchainBridge.isConnected) {
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast('Connect wallet first!', 'warning');
+            }
+            return false;
+        }
+
+        try {
+            await BlockchainBridge.listCard(card.tokenId, priceInBnb);
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast(`Card listed for ${priceInBnb} BNB!`, 'success');
+            }
+            return true;
+        } catch (error) {
+            console.error('List failed:', error);
+            if (typeof UI !== 'undefined' && UI.toast) {
+                UI.toast('List failed: ' + error.message, 'error');
+            }
+            return false;
+        }
+    },
+
+    /**
+     * Get count of on-chain cards
+     * @returns {number} Number of minted cards
+     */
+    getOnChainCardCount() {
+        return this.collection.filter(c => c.onChain).length;
+    },
 };
