@@ -14,7 +14,7 @@ const BattleEngine = {
     isRunning: false,
 
     startBattle(allyCards, enemyCards, onComplete) {
-        this.allyTeam = allyCards.map(c => ({
+        this.allyTeam = allyCards.map((c, i) => ({
             ...c,
             stats: { ...c.stats },
             buffs: [],
@@ -22,8 +22,11 @@ const BattleEngine = {
             shield: 0,
             dodgeBuff: 0,
             dotDmg: 0,
+            hotHeal: 0,        // FIX: heal-over-time tracking
+            critBuff: 0,       // FIX: temporary crit buff
+            position: i,       // FIX: formation position (0=front, 1-2=mid, 3-4=back)
         }));
-        this.enemyTeam = enemyCards.map(c => ({
+        this.enemyTeam = enemyCards.map((c, i) => ({
             ...c,
             stats: { ...c.stats },
             buffs: [],
@@ -31,14 +34,19 @@ const BattleEngine = {
             shield: 0,
             dodgeBuff: 0,
             dotDmg: 0,
+            hotHeal: 0,
+            critBuff: 0,
+            position: i,
         }));
         this.log = [];
         this.currentTurn = 0;
         this.onComplete = onComplete;
         this.isRunning = true;
 
-        // Apply synergies to ally team
+        // Apply synergies to BOTH teams
         this.applySynergies(this.allyTeam, GameState.getDeckCards());
+        // FIX: Apply synergies to enemy team too
+        this.applySynergies(this.enemyTeam, enemyCards);
 
         // Calculate turn order by SPD
         this.buildTurnOrder();
@@ -127,6 +135,12 @@ const BattleEngine = {
             return;
         }
 
+        // FIX: Apply HOT heal at start of turn
+        if (attacker.hotHeal > 0) {
+            attacker.stats.hp = Math.min(attacker.stats.maxHp, attacker.stats.hp + attacker.hotHeal);
+            this.addLog(`💚 ${attacker.name} regenerates ${attacker.hotHeal} HP`, 'heal');
+        }
+
         // Apply DOT damage
         if (attacker.dotDmg > 0) {
             attacker.stats.hp -= attacker.dotDmg;
@@ -140,6 +154,9 @@ const BattleEngine = {
                 return;
             }
         }
+
+        // FIX: Expire buffs at start of turn
+        this.expireBuffs(attacker);
 
         // Determine target
         const isAlly = this.allyTeam.includes(attacker);
@@ -173,9 +190,40 @@ const BattleEngine = {
         this.battleTimer = setTimeout(() => this.runNextTurn(), delay);
     },
 
+    // FIX: Expire buffs after their duration
+    expireBuffs(unit) {
+        unit.buffs = unit.buffs.filter(buff => {
+            buff.duration--;
+            if (buff.duration <= 0) {
+                // Revert the stat change
+                if (buff.type === 'stat') {
+                    unit.stats[buff.stat] = Math.floor(unit.stats[buff.stat] / buff.multiplier);
+                }
+                this.addLog(`⏳ ${unit.name}'s ${buff.name} wore off`, 'info');
+                return false;
+            }
+            return true;
+        });
+    },
+
+    // FIX: Add buff with duration
+    addBuff(unit, name, stat, multiplier, duration) {
+        unit.buffs.push({ name, type: 'stat', stat, multiplier, duration });
+        unit.stats[stat] = Math.floor(unit.stats[stat] * multiplier);
+    },
+
     selectTarget(attacker, targets) {
-        // Target lowest HP first (focus fire)
-        return targets.reduce((best, t) => t.stats.hp < best.stats.hp ? t : best, targets[0]);
+        // FIX: Position-based targeting (front row takes priority, then lowest HP)
+        const frontRow = targets.filter(t => t.position <= 1);
+        const midRow = targets.filter(t => t.position >= 2 && t.position <= 3);
+        const backRow = targets.filter(t => t.position >= 4);
+        
+        // Prioritize front > mid > back
+        const priorityTargets = frontRow.length > 0 ? frontRow : 
+                                midRow.length > 0 ? midRow : backRow;
+        
+        // Within priority row, target lowest HP
+        return priorityTargets.reduce((best, t) => t.stats.hp < best.stats.hp ? t : best, priorityTargets[0]);
     },
 
     executeAttack(attacker, target, isAlly) {
@@ -188,9 +236,10 @@ const BattleEngine = {
         // Calculate damage
         let dmg = Math.max(1, attacker.stats.atk - Math.floor(target.stats.def * 0.5));
         
-        // Check crit
+        // Check crit (with buff)
         let isCrit = false;
-        if (Math.random() * 100 < attacker.stats.crit) {
+        const critChance = attacker.stats.crit + attacker.critBuff;
+        if (Math.random() * 100 < critChance) {
             dmg = Math.floor(dmg * 1.8);
             isCrit = true;
         }
@@ -228,12 +277,14 @@ const BattleEngine = {
 
         switch (skill.type) {
             case 'buff_def':
-                attacker.stats.def = Math.floor(attacker.stats.def * (1 + skill.val));
-                this.addLog(`✨ ${attacker.name} uses ${skill.name}! DEF up!`, 'info');
+                // FIX: Add buff with 3-turn duration
+                this.addBuff(attacker, skill.name, 'def', 1 + skill.val, 3);
+                this.addLog(`✨ ${attacker.name} uses ${skill.name}! DEF up for 3 turns!`, 'info');
                 break;
             case 'buff_atk':
-                attacker.stats.atk = Math.floor(attacker.stats.atk * (1 + skill.val));
-                this.addLog(`✨ ${attacker.name} uses ${skill.name}! ATK up!`, 'info');
+                // FIX: Add buff with 3-turn duration
+                this.addBuff(attacker, skill.name, 'atk', 1 + skill.val, 3);
+                this.addLog(`✨ ${attacker.name} uses ${skill.name}! ATK up for 3 turns!`, 'info');
                 break;
             case 'shield':
                 attacker.shield += skill.val;
@@ -264,10 +315,11 @@ const BattleEngine = {
                 break;
             }
             case 'hot': {
-                const lowest = allies.filter(c => c.alive).reduce((b, c) => c.stats.hp < b.stats.hp ? c : b, allies[0]);
-                if (lowest) {
-                    lowest.dotDmg = -Math.floor(lowest.stats.maxHp * skill.val); // negative = heal
-                    this.addLog(`✨ ${attacker.name} uses ${skill.name}! ${lowest.name} regenerating!`, 'heal');
+                // FIX: Apply HOT to target (lowest HP ally), not caster
+                const hotTarget = allies.filter(c => c.alive).reduce((b, c) => c.stats.hp < b.stats.hp ? c : b, allies[0]);
+                if (hotTarget) {
+                    hotTarget.hotHeal = Math.floor(hotTarget.stats.maxHp * skill.val);
+                    this.addLog(`✨ ${attacker.name} uses ${skill.name}! ${hotTarget.name} regenerating ${hotTarget.hotHeal}/turn!`, 'heal');
                 }
                 break;
             }
@@ -284,12 +336,16 @@ const BattleEngine = {
                 this.addLog(`✨ ${attacker.name} uses ${skill.name}! ${target.name} stunned!`, 'info');
                 break;
             case 'dodge_buff':
+                // FIX: Add dodge buff with 2-turn duration
                 attacker.dodgeBuff = skill.val;
-                this.addLog(`✨ ${attacker.name} uses ${skill.name}! Evasion up!`, 'info');
+                attacker.buffs.push({ name: 'Evasion', type: 'dodge', duration: 2 });
+                this.addLog(`✨ ${attacker.name} uses ${skill.name}! Evasion up for 2 turns!`, 'info');
                 break;
             case 'crit_boost':
-                // Already applied via damage calc
-                this.addLog(`✨ ${attacker.name} uses ${skill.name}! Critical strike!`, 'crit');
+                // FIX: Actually boost crit temporarily (3 turns)
+                attacker.critBuff = skill.val;
+                attacker.buffs.push({ name: 'Crit Boost', type: 'crit', duration: 3 });
+                this.addLog(`✨ ${attacker.name} uses ${skill.name}! CRIT +${skill.val}% for 3 turns!`, 'crit');
                 break;
             case 'true_dmg':
                 target.stats.hp = Math.max(0, target.stats.hp - skill.val);
