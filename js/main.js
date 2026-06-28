@@ -17,7 +17,7 @@
 
         // Give 3 starter heroes immediately (don't depend on tutorial)
         GameState.player.name = GameState.player.name || 'Adventurer';
-        const starterNames = ['Iron Knight', 'Fire Mage', 'Holy Priest'];
+        const starterNames = ['Silver Knight', 'Fire Wielder', 'Princess'];
         starterNames.forEach(heroName => {
             const tmpl = CARD_TEMPLATES.find(t => t.name === heroName);
             if (tmpl) {

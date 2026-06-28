@@ -85,7 +85,7 @@ const Tutorial = {
         {
             id: 'level_up',
             title: '📈 Level Up to Unlock',
-            text: 'Win battles → earn EXP → level up!\n\nEach level unlocks new heroes and rewards:\n• Lv2: Berserker\n• Lv5: Druid + 3 Gems\n• Lv10: Beast Tamer + 5 Gems\n• Lv20: REAPER + 2000 Gold + 15 Gems\n\nLevel up to collect them all!',
+            text: 'Win battles → earn EXP → level up!\n\nEach level unlocks new heroes and rewards:\n• Lv2: Forest Warrior\n• Lv5: Golem + 3 Gems\n• Lv10: Frost Giant + 5 Gems\n• Lv20: GOLDEN PALADIN + 2000 Gold + 15 Gems\n\nLevel up to collect them all!',
             target: null,
             position: 'center',
         },
@@ -467,7 +467,7 @@ const Tutorial = {
         // If collection is empty (user skipped character creation), give default starters
         if (!GameState.collection || GameState.collection.length === 0) {
             GameState.player.name = GameState.player.name || 'Adventurer';
-            const starterNames = ['Iron Knight', 'Fire Mage', 'Holy Priest'];
+            const starterNames = ['Silver Knight', 'Fire Wielder', 'Princess'];
             starterNames.forEach(heroName => {
                 const tmpl = CARD_TEMPLATES.find(t => t.name === heroName);
                 if (tmpl) {
