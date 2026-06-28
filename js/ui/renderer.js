@@ -325,7 +325,7 @@ const BattleRenderer = {
             // Try to draw character image sprite
             const spriteSize = 40;
             const template = getTemplateByName(card.templateId || card.name);
-            
+
             if (template && template.image) {
                 const img = _loadImage(template.image);
                 if (img.complete && img.naturalWidth > 0 && !img._failed) {
@@ -342,6 +342,29 @@ const BattleRenderer = {
                 const spriteCanvas = document.createElement('canvas');
                 CardRenderer.drawCardSprite(spriteCanvas, card, spriteSize);
                 ctx.drawImage(spriteCanvas, x - spriteSize/2, y - spriteSize/2);
+            }
+
+            // Death overlay: grey tint + skull
+            if (!card.alive) {
+                // Grey overlay
+                ctx.fillStyle = 'rgba(30, 30, 30, 0.5)';
+                ctx.fillRect(x - spriteSize/2, y - spriteSize/2, spriteSize, spriteSize);
+                // Red X mark
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x - spriteSize/3, y - spriteSize/3);
+                ctx.lineTo(x + spriteSize/3, y + spriteSize/3);
+                ctx.moveTo(x + spriteSize/3, y - spriteSize/3);
+                ctx.lineTo(x - spriteSize/3, y + spriteSize/3);
+                ctx.stroke();
+                // Skull emoji text
+                ctx.globalAlpha = 0.8;
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.fillText('💀', x, y + 4);
+                ctx.globalAlpha = 0.3;
             }
 
             // HP bar

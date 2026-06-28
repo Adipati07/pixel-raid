@@ -22,6 +22,7 @@
 
     // Init UI
     UI.init();
+    if (typeof Sound !== 'undefined') Sound.init();
 
     // Show loading screen animation
     LoadingScreen.show();

@@ -33,6 +33,7 @@ const PackAnimation = {
     open() {
         if (this.isOpening) return;
         this.isOpening = true;
+        if (typeof Sound !== 'undefined') Sound.packOpen();
 
         const box = document.getElementById('pack-box');
         const hint = document.getElementById('pack-hint');
@@ -58,6 +59,11 @@ const PackAnimation = {
 
             // Reveal cards one by one with staggered animation
             this.currentCards.forEach((card, i) => {
+                // Play card reveal sound with stagger
+                setTimeout(() => {
+                    if (typeof Sound !== 'undefined') Sound.cardReveal(card.rarity);
+                }, i * 250 + 200);
+
                 const cardEl = document.createElement('div');
                 cardEl.className = `card ${card.rarity}`;
                 cardEl.style.cssText = 'animation: card-reveal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; animation-delay: ' + (i * 0.25) + 's;';

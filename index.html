@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <style>
         /* ========== RESET & BASE ========== */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -354,6 +355,14 @@
             .nav-links { display: none; }
             .features-grid { grid-template-columns: 1fr; }
         }
+
+        /* Scanline overlay */
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(10,10,20,0.3); }
+        ::-webkit-scrollbar-thumb { background: rgba(240,192,64,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(240,192,64,0.5); }
+        * { scrollbar-width: thin; scrollbar-color: rgba(240,192,64,0.3) rgba(10,10,20,0.3); }
 
         /* Scanline overlay */
         .scanlines {

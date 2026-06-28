@@ -144,6 +144,51 @@ const Economy = {
         return price;
     },
 
+    // Daily deals — refresh every 24h
+    getDailyDeals() {
+        const saved = localStorage.getItem('pixelraid_daily_deals');
+        const now = Date.now();
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (now - data.timestamp < 24 * 60 * 60 * 1000) {
+                return data.deals;
+            }
+        }
+        // Generate new deals
+        const deals = [];
+        const dealTypes = [
+            { type: 'pack', packType: 'premium', discount: 0.3, name: '30% Off Premium Pack' },
+            { type: 'pack', packType: 'elite', discount: 0.2, name: '20% Off Elite Pack' },
+            { type: 'gold', amount: 500, gems: 3, name: 'Starter Bundle: 500g + 3💎' },
+        ];
+        // Pick 2-3 random deals
+        const shuffled = dealTypes.sort(() => Math.random() - 0.5);
+        deals.push(...shuffled.slice(0, 2 + Math.floor(Math.random() * 2)));
+        localStorage.setItem('pixelraid_daily_deals', JSON.stringify({ timestamp: now, deals }));
+        return deals;
+    },
+
+    buyDailyDeal(index) {
+        const deals = this.getDailyDeals();
+        const deal = deals[index];
+        if (!deal) return false;
+
+        if (deal.type === 'pack') {
+            const cost = { ...this.PACK_COSTS[deal.packType] };
+            cost.gold = Math.floor(cost.gold * (1 - deal.discount));
+            cost.gems = Math.floor(cost.gems * (1 - deal.discount));
+            if (!this.canAfford(cost)) return false;
+            this.spend(cost);
+            return this.buyPack(deal.packType);
+        } else if (deal.type === 'gold') {
+            if (GameState.player.gems < deal.gems) return false;
+            GameState.player.gems -= deal.gems;
+            this.addGold(deal.amount);
+            return true;
+        }
+        return false;
+    },
+
     // Marketplace — simulated for MVP (real prices based on rarity + power)
     getMarketPrice(card) {
         const base = { common: 20, rare: 60, epic: 200, legendary: 600, mythic: 2000 };

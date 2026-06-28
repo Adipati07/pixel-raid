@@ -19,6 +19,7 @@ const UI = {
     bindNav() {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                if (typeof Sound !== 'undefined') Sound.click();
                 this.showScreen(btn.dataset.screen);
             });
         });
@@ -69,7 +70,10 @@ const UI = {
     },
 
     bindBattleControls() {
-        document.getElementById('btn-start-battle').addEventListener('click', () => this.startBattle());
+        document.getElementById('btn-start-battle').addEventListener('click', () => {
+            if (typeof Sound !== 'undefined') Sound.click();
+            this.startBattle();
+        });
         document.getElementById('btn-auto-next').addEventListener('click', () => {
             GameState.autoNext = !GameState.autoNext;
             const btn = document.getElementById('btn-auto-next');
@@ -113,25 +117,31 @@ const UI = {
 
         BattleEngine.startBattle(deckCards, enemies, (result, log, turns) => {
             document.getElementById('btn-start-battle').disabled = false;
-            
+
             if (result === 'win') {
                 GameState.stats.battlesWon++;
-                
+
                 // Process wave
                 if (GameState.player.wave < GameState.player.maxWave) {
                     GameState.player.wave++;
+                    // Show wave transition overlay for next wave
+                    setTimeout(() => BattleEngine.showWaveOverlay(GameState.player.wave), 300);
                 } else {
                     // Stage complete!
+                    // Show stage clear celebration
+                    BattleEngine.showStageClearOverlay();
                     const rewards = Economy.processStageReward(stage);
                     GameState.player.stage++;
                     GameState.player.wave = 1;
                     GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
-                    
-                    this.showRewards(rewards);
-                    
+
+                    // Show stage clear modal with rewards
+                    setTimeout(() => this.showStageClearModal(rewards, stage), 800);
+
                     if (rewards.leveledUp) {
                         this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
-                        
+                        if (typeof Sound !== 'undefined') Sound.levelUp();
+
                         // Show unlock notification
                         if (rewards.unlock) {
                             setTimeout(() => this.showUnlockPopup(rewards.unlock), 800);
@@ -140,15 +150,18 @@ const UI = {
                 }
             } else {
                 GameState.stats.battlesLost++;
+                // Show defeat modal
+                setTimeout(() => this.showDefeatModal(), 800);
             }
-            
+
             GameState.save();
             this.updateHeader();
             this.renderBattleScreen();
 
             // Auto next
             if (GameState.autoNext && result === 'win') {
-                setTimeout(() => this.startBattle(), 1500);
+                const delay = GameState.player.wave === 1 ? 2500 : 1500;
+                setTimeout(() => this.startBattle(), delay);
             }
         });
     },
@@ -164,6 +177,69 @@ const UI = {
             msg += `🎁 Item: ${rewards.items.map(i => i.name).join(', ')}`;
         }
         this.toast(msg, 'success');
+    },
+
+    // ===== STAGE CLEAR MODAL =====
+    showStageClearModal(rewards, stageNum) {
+        const modal = document.createElement('div');
+        modal.className = 'battle-result-modal';
+
+        let rewardsHTML = '';
+        rewardsHTML += `<div>💰 <strong>+${rewards.gold}</strong> Gold</div>`;
+        rewardsHTML += `<div>⭐ <strong>+${rewards.exp}</strong> EXP</div>`;
+        if (rewards.cards && rewards.cards.length > 0) {
+            rewardsHTML += `<div>🃏 New Card: <strong style="color:${RARITIES[rewards.cards[0].rarity].color}">${rewards.cards.map(c => c.name).join(', ')}</strong></div>`;
+        }
+        if (rewards.items && rewards.items.length > 0) {
+            rewardsHTML += `<div>🎁 Item: <strong>${rewards.items.map(i => i.name).join(', ')}</strong></div>`;
+        }
+        if (rewards.leveledUp) {
+            rewardsHTML += `<div>🎉 <strong style="color:var(--gold)">LEVEL UP!</strong></div>`;
+        }
+
+        modal.innerHTML = `
+            <div class="battle-result-content">
+                <div class="battle-result-title" style="color:var(--gold);">🏆 STAGE ${stageNum} CLEAR!</div>
+                <div class="battle-result-rewards">${rewardsHTML}</div>
+                <div class="battle-result-buttons">
+                    <button class="btn btn-gold" onclick="UI.closeBattleResultModal(this); UI.startBattle();">⚔️ Next Stage</button>
+                    <button class="btn btn-secondary" onclick="UI.closeBattleResultModal(this)">OK</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        // Auto-close after 8s if not interacted
+        setTimeout(() => { if (modal.parentNode) modal.remove(); }, 8000);
+    },
+
+    // ===== DEFEAT MODAL =====
+    showDefeatModal() {
+        const modal = document.createElement('div');
+        modal.className = 'battle-result-modal';
+
+        modal.innerHTML = `
+            <div class="battle-result-content" style="border-color:#ff4444;">
+                <div class="battle-result-title" style="color:#ff4444;">💀 DEFEATED</div>
+                <div class="battle-result-rewards" style="color:var(--text-dim);">
+                    <div>Your heroes fell in battle...</div>
+                    <div>Stage ${GameState.player.stage} — Wave ${GameState.player.wave}/3</div>
+                    <div style="margin-top:8px;font-size:8px;">💡 Tip: Upgrade your cards or change formation!</div>
+                </div>
+                <div class="battle-result-buttons">
+                    <button class="btn btn-gold" onclick="UI.closeBattleResultModal(this); UI.startBattle();">🔄 Retry</button>
+                    <button class="btn btn-secondary" onclick="UI.closeBattleResultModal(this)">Back</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        setTimeout(() => { if (modal.parentNode) modal.remove(); }, 10000);
+    },
+
+    closeBattleResultModal(btn) {
+        const modal = btn.closest('.battle-result-modal');
+        if (modal) modal.remove();
     },
 
     // ===== HEROES SCREEN =====
@@ -456,12 +532,31 @@ const UI = {
         const content = document.getElementById('shop-content');
         
         if (tab === 'summon') {
+            // Daily deals banner
+            const deals = Economy.getDailyDeals();
+            const dealsHtml = deals.length > 0 ? `
+                <div style="background:linear-gradient(135deg,#2D1B00,#4a2800);border:2px solid var(--gold);border-radius:8px;padding:12px;margin-bottom:16px;">
+                    <div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⭐ Daily Deals (resets in 24h)</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${deals.map((deal, i) => `
+                            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:8px;flex:1;min-width:140px;cursor:pointer;" onclick="UI.buyDailyDeal(${i})">
+                                <div style="font-size:8px;color:var(--accent);">${deal.name}</div>
+                                <div style="font-size:7px;color:var(--text-dim);margin-top:4px;">
+                                    ${deal.type === 'pack' ? `💰 ${Math.floor(Economy.PACK_COSTS[deal.packType].gold * (1 - deal.discount))}` : `💎 ${deal.gems}`}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
             content.innerHTML = `
                 <div class="summon-portal">
                     <div style="font-size:40px;margin-bottom:16px;">🎴</div>
                     <h3>Card Pack Shop</h3>
                     <p style="font-size:7px;color:var(--text-dim);margin-bottom:16px;">Open packs to collect powerful battle cards!</p>
                 </div>
+                ${dealsHtml}
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
                     ${Object.entries(Economy.PACK_COSTS).map(([key, pack]) => `
                         <div class="card ${key === 'legendary' ? 'legendary' : key === 'elite' ? 'epic' : key === 'premium' ? 'rare' : 'common'}" onclick="UI.openPack('${key}')">
@@ -540,6 +635,17 @@ const UI = {
         this.toast(`Bought ${listing.card.name}!`, 'success');
         this.updateHeader();
         this.renderShopContent('items');
+    },
+
+    buyDailyDeal(index) {
+        const result = Economy.buyDailyDeal(index);
+        if (result) {
+            this.toast('Daily deal purchased!', 'success');
+            this.updateHeader();
+            this.renderShopContent('summon');
+        } else {
+            this.toast('Not enough currency!', 'error');
+        }
     },
 
     // ===== UNLOCK POPUP =====

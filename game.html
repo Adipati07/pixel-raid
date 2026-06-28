@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PIXEL RAID — Play</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* ========== GAME UI STYLES ========== */
@@ -26,12 +28,19 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', 'Silkscreen', sans-serif;
+            font-family: 'Inter', 'Nunito', 'Silkscreen', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
         }
+
+        /* ===== CUSTOM SCROLLBARS ===== */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(139,105,20,0.06); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(212,130,10,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(212,130,10,0.5); }
+        * { scrollbar-width: thin; scrollbar-color: rgba(212,130,10,0.3) rgba(139,105,20,0.06); }
 
         /* Loading Screen — see #loading-screen styles below */
 
@@ -61,13 +70,22 @@
             overflow-x: auto;
         }
         .nav-btn {
-            font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+            font-family: 'Press Start 2P', 'Inter', sans-serif; font-size: 8px; font-weight: 600;
             color: var(--text-dim); background: none; border: none;
-            padding: 8px 14px; cursor: pointer; border-radius: 6px;
-            transition: all 0.2s; white-space: nowrap;
+            padding: 10px 16px; cursor: pointer; border-radius: 6px 6px 0 0;
+            transition: all 0.25s ease; white-space: nowrap;
+            border-bottom: 3px solid transparent; position: relative;
         }
         .nav-btn:hover { color: var(--text); background: rgba(139,105,20,0.08); }
-        .nav-btn.active { color: var(--gold); background: rgba(212,130,10,0.1); }
+        .nav-btn.active {
+            color: var(--gold); background: rgba(212,130,10,0.12);
+            border-bottom-color: var(--gold);
+            box-shadow: 0 2px 8px rgba(212,130,10,0.15);
+        }
+        .nav-btn.active::after {
+            content: ''; position: absolute; bottom: -3px; left: 20%; right: 20%;
+            height: 3px; background: var(--gold); border-radius: 2px 2px 0 0;
+        }
 
         /* Screen container */
         .screen { display: none; padding: 16px; max-width: 900px; margin: 0 auto; }
@@ -75,16 +93,27 @@
 
         /* Cards */
         .card {
-            background: var(--bg-card); border: 2px solid rgba(139,105,20,0.15);
-            border-radius: 8px; padding: 12px; cursor: pointer;
-            transition: all 0.2s; position: relative;
+            background: var(--bg-card); border: 3px solid rgba(139,105,20,0.2);
+            border-radius: 4px; padding: 12px; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+            box-shadow: 3px 3px 0 rgba(139,105,20,0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+            image-rendering: pixelated;
         }
-        .card:hover { transform: translateY(-2px); border-color: rgba(212,130,10,0.3); }
+        .card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 4px 6px 0 rgba(139,105,20,0.15), 0 0 20px rgba(212,130,10,0.15);
+        }
+        .card:active { transform: translateY(-1px) scale(0.99); }
         .card.common { border-color: var(--rarity-common); }
+        .card.common:hover { box-shadow: 4px 6px 0 rgba(170,170,170,0.15), 0 0 16px rgba(170,170,170,0.25); }
         .card.rare { border-color: var(--rarity-rare); }
+        .card.rare:hover { box-shadow: 4px 6px 0 rgba(68,136,255,0.15), 0 0 20px rgba(68,136,255,0.3); }
         .card.epic { border-color: var(--rarity-epic); }
+        .card.epic:hover { box-shadow: 4px 6px 0 rgba(170,68,255,0.15), 0 0 22px rgba(170,68,255,0.35); }
         .card.legendary { border-color: var(--rarity-legendary); }
+        .card.legendary:hover { box-shadow: 4px 6px 0 rgba(255,136,0,0.2), 0 0 28px rgba(255,136,0,0.4); }
         .card.mythic { border-color: var(--rarity-mythic); }
+        .card.mythic:hover { box-shadow: 4px 6px 0 rgba(255,68,68,0.2), 0 0 30px rgba(255,68,68,0.4); }
         .card-name { font-family: 'Press Start 2P'; font-size: 8px; margin-top: 6px; }
         .card-class { font-size: 9px; color: var(--text-dim); margin-top: 2px; }
         .card-stats { font-size: 9px; margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -93,20 +122,37 @@
         .btn {
             font-family: 'Press Start 2P'; font-size: 8px; padding: 10px 20px;
             border: 2px solid var(--gold-dark); cursor: pointer; border-radius: 4px;
-            transition: all 0.15s; text-transform: uppercase;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-transform: uppercase;
+            position: relative; overflow: hidden;
         }
+        .btn::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .btn:active { transform: scale(0.96); }
         .btn-gold {
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: #000; font-weight: 700;
+            box-shadow: 0 2px 0 #8B5E00, 0 4px 8px rgba(212,130,10,0.2);
         }
-        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(212,130,10,0.3); }
+        .btn-gold:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 4px 0 #8B5E00, 0 8px 16px rgba(212,130,10,0.35); }
         .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-secondary { background: rgba(139,105,20,0.08); color: var(--text-dim); border-color: rgba(139,105,20,0.15); }
-        .btn-secondary:hover { color: var(--text); border-color: rgba(139,105,20,0.25); }
+        .btn-secondary {
+            background: transparent; color: var(--gold-dark);
+            border: 2px solid rgba(212,130,10,0.3);
+            box-shadow: 0 2px 0 rgba(139,105,20,0.1);
+        }
+        .btn-secondary:hover { color: var(--gold); border-color: var(--gold); background: rgba(212,130,10,0.06); transform: translateY(-1px); }
 
         /* Battle Screen */
         .battle-canvas-wrap { position: relative; margin-bottom: 12px; }
-        #battle-canvas { width: 100%; max-width: 600px; display: block; margin: 0 auto; border-radius: 8px; border: 2px solid rgba(139,105,20,0.15); image-rendering: pixelated; }
+        #battle-canvas {
+            width: 100%; max-width: 600px; display: block; margin: 0 auto;
+            border-radius: 8px; image-rendering: pixelated;
+            border: 3px solid rgba(212,130,10,0.25);
+            box-shadow: 0 4px 16px rgba(60,30,0,0.15), inset 0 0 40px rgba(212,130,10,0.03);
+        }
         .battle-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
         .speed-controls { display: flex; gap: 4px; margin-left: auto; }
         .speed-btn { font-size: 8px; padding: 6px 10px; background: rgba(139,105,20,0.08); color: var(--text-dim); border: 1px solid rgba(139,105,20,0.15); border-radius: 4px; cursor: pointer; }
@@ -127,6 +173,161 @@
         .log-heal { color: #44cc44; }
         .log-skill { color: #aa44ff; }
         .log-drop { color: var(--gold); }
+
+        /* Battle animation classes */
+        .battle-shake { animation: battleShake 0.3s ease-in-out; }
+        .battle-shake-crit { animation: battleShakeCrit 0.5s ease-in-out; }
+        .battle-flash-red { animation: flashRed 0.3s ease-out; }
+        .battle-flash-yellow { animation: flashYellow 0.4s ease-out; }
+        .battle-heal-glow { animation: healGlow 0.5s ease-out; }
+        .battle-skill-highlight { animation: skillHighlight 0.8s ease-out; }
+
+        @keyframes battleShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(2px); }
+        }
+        @keyframes battleShakeCrit {
+            0%, 100% { transform: translateX(0); }
+            15% { transform: translateX(-8px); }
+            30% { transform: translateX(8px); }
+            45% { transform: translateX(-6px); }
+            60% { transform: translateX(6px); }
+            75% { transform: translateX(-3px); }
+            90% { transform: translateX(3px); }
+        }
+        @keyframes flashRed {
+            0% { background-color: rgba(255, 0, 0, 0.4); }
+            100% { background-color: transparent; }
+        }
+        @keyframes flashYellow {
+            0% { background-color: rgba(255, 215, 0, 0.5); }
+            100% { background-color: transparent; }
+        }
+        @keyframes healGlow {
+            0% { box-shadow: 0 0 20px rgba(68, 204, 68, 0.8); }
+            100% { box-shadow: none; }
+        }
+        @keyframes skillHighlight {
+            0% { filter: brightness(2) drop-shadow(0 0 10px gold); }
+            50% { filter: brightness(1.5) drop-shadow(0 0 5px gold); }
+            100% { filter: none; }
+        }
+
+        /* Floating damage numbers */
+        .battle-damage-num {
+            position: absolute;
+            font-family: 'Press Start 2P';
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 50;
+            animation: floatUp 1.2s ease-out forwards;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            white-space: nowrap;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            20% { transform: translateY(-10px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+        }
+
+        /* Battle overlays */
+        .battle-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+            pointer-events: none;
+        }
+        .battle-overlay-text {
+            font-family: 'Press Start 2P';
+            font-size: 28px;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.8), 2px 2px 0 #000;
+            animation: overlayPulse 1.5s ease-in-out forwards;
+        }
+        @keyframes overlayPulse {
+            0% { opacity: 0; transform: scale(0.5); }
+            20% { opacity: 1; transform: scale(1.2); }
+            40% { transform: scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.1); }
+        }
+        .battle-overlay-wave { color: #88ccff; text-shadow: 0 0 15px rgba(136,204,255,0.8), 2px 2px 0 #000; }
+        .battle-overlay-clear { color: #ffd700; font-size: 32px; text-shadow: 0 0 30px rgba(255,215,0,1), 2px 2px 0 #000; }
+        .battle-overlay-defeat { color: #ff4444; text-shadow: 0 0 20px rgba(255,68,68,0.8), 2px 2px 0 #000; }
+
+        /* Stage clear / Defeat modals */
+        .battle-result-modal {
+            position: fixed; inset: 0; z-index: 9996;
+            background: rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .battle-result-content {
+            background: var(--bg-panel);
+            border: 3px solid var(--gold);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            max-width: 360px;
+            animation: resultPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes resultPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .battle-result-title {
+            font-family: 'Press Start 2P';
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .battle-result-rewards {
+            font-size: 10px;
+            margin-bottom: 16px;
+            line-height: 2;
+        }
+        .battle-result-buttons {
+            display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+        }
+        .skill-name-popup {
+            position: absolute;
+            font-family: 'Press Start 2P';
+            font-size: 10px;
+            color: #ffd700;
+            text-shadow: 1px 1px 0 #000, 0 0 8px rgba(255,215,0,0.6);
+            pointer-events: none;
+            z-index: 55;
+            animation: skillPop 1.5s ease-out forwards;
+            white-space: nowrap;
+        }
+        @keyframes skillPop {
+            0% { opacity: 0; transform: translateY(5px); }
+            15% { opacity: 1; transform: translateY(-5px); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Log timestamp styling */
+        .log-turn-num {
+            color: #666;
+            font-size: 7px;
+            margin-right: 4px;
+        }
+        .log-entry { padding: 1px 0; }
+        .log-death { color: #888; font-style: italic; }
+        .log-dmg { color: #ff6644; }
+        .log-crit { color: #ffaa00; font-weight: bold; }
+        .log-synergy { color: #44ffaa; }
+        .log-info { color: #aaa; }
+        /* Canvas wrapper needs relative for overlays */
+        .battle-canvas-wrap { position: relative; }
 
         /* Heroes Screen */
         .heroes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
@@ -342,17 +543,33 @@
             .game-header { flex-wrap: wrap; gap: 8px; }
             .header-info { flex-wrap: wrap; }
             #formation-grid { justify-content: center; }
-            .heroes-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+            .heroes-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .nav-btn { font-size: 7px; padding: 8px 10px; }
+            .card { padding: 8px; }
+            .card-name { font-size: 7px; }
+            #battle-canvas { height: 200px; }
+            .btn { font-size: 7px; padding: 8px 14px; }
         }
+        @media (max-width: 380px) {
+            .heroes-grid { grid-template-columns: 1fr; }
+            #inventory-grid { grid-template-columns: 1fr; }
+            #shop-content { grid-template-columns: 1fr; }
+        }
+
+        /* Screen transitions */
+        .screen { animation: screenFadeIn 0.3s ease-out; }
+        @keyframes screenFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <div class="logo-text">◆ PIXEL RAID ◆</div>
-        <div style="font-size:8px;color:var(--text-dim);margin-bottom:20px;">Collect. Battle. Conquer.</div>
+        <div class="logo-text" style="letter-spacing:3px;">◆ PIXEL RAID ◆</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:4px;">Collect. Battle. Conquer.</div>
+        <div style="font-size:10px;margin-bottom:20px;letter-spacing:2px;">⚔️ 🗡️ 🛡️</div>
         <div id="loading-bar-outer"><div id="loading-bar-inner"></div></div>
         <div id="loading-tip">Gathering heroes from the frontier...</div>
+        <div style="font-size:6px;color:var(--text-dim);margin-top:16px;opacity:0.5;">TIP: Position your tanks in the front row!</div>
     </div>
 
     <!-- Toast Container -->
@@ -380,6 +597,7 @@
             <div class="header-stat"><span class="emoji">🪙</span> <span id="gold-display" class="value">100</span></div>
             <div class="header-stat"><span class="emoji">💎</span> <span id="gem-display" class="value">5</span></div>
             <div class="header-stat"><span class="level-badge">Lv.<span id="player-level">1</span></span></div>
+            <button id="btn-sound-toggle" class="header-stat" style="cursor:pointer;background:none;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:12px;" title="Toggle Sound">🔊</button>
         </div>
     </div>
 
@@ -484,6 +702,7 @@
 
     <!-- ====== SCRIPTS (load order matters!) ====== -->
     <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="js/core/sound.js?v=2"></script>
     <script src="js/core/heroes.js?v=2"></script>
     <script src="js/core/items.js?v=2"></script>
     <script src="js/core/game.js?v=2"></script>
