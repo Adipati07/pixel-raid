@@ -284,8 +284,8 @@ style.textContent = `
     80% { transform: translateX(4px) rotate(1.5deg); }
 }
 @keyframes pack-flash {
-    0% { background: rgba(255,215,0,0.3); }
-    100% { background: rgba(0,0,0,0.95); }
+    0% { background: rgba(212,160,23,0.3); }
+    100% { background: rgba(10,31,10,0.95); }
 }
 `;
 document.head.appendChild(style);
