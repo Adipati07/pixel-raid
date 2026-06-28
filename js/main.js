@@ -9,7 +9,7 @@
     // Load save or init new game
     const hasSave = GameState.load();
     
-    if (!hasSave) {
+    if (!hasSave || GameState.collection.length === 0) {
         console.log('🎮 New game! Giving starter heroes...');
 
         // Init empty inventory if needed
