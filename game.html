@@ -56,8 +56,44 @@
             border-bottom: 2px solid rgba(212,160,23,0.2);
             position: sticky; top: 0; z-index: 100;
         }
-        .game-logo { font-family: 'Press Start 2P'; font-size: 12px; color: var(--gold); }
-        .game-logo span { color: #ff4444; }
+        .game-logo {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            color: var(--gold);
+            text-decoration: none;
+            text-shadow:
+                2px 2px 0 #000,
+                3px 3px 0 rgba(0,0,0,0.5),
+                0 0 10px rgba(212,160,23,0.4),
+                0 0 30px rgba(212,160,23,0.15);
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+        .game-logo::before {
+            content: '⚔';
+            font-size: 20px;
+            filter: drop-shadow(0 0 6px rgba(212,160,23,0.6));
+            animation: logoSword 2s ease-in-out infinite;
+        }
+        .game-logo span {
+            color: #ff4444;
+            text-shadow:
+                2px 2px 0 #000,
+                0 0 10px rgba(255,68,68,0.5),
+                0 0 25px rgba(255,68,68,0.2);
+        }
+        @keyframes logoGlow {
+            0%, 100% { text-shadow: 2px 2px 0 #000, 3px 3px 0 rgba(0,0,0,0.5), 0 0 10px rgba(212,160,23,0.4), 0 0 30px rgba(212,160,23,0.15); }
+            50% { text-shadow: 2px 2px 0 #000, 3px 3px 0 rgba(0,0,0,0.5), 0 0 20px rgba(212,160,23,0.7), 0 0 50px rgba(212,160,23,0.3); }
+        }
+        @keyframes logoSword {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
         .header-info { display: flex; gap: 16px; align-items: flex-start; font-size: 10px; }
         .header-stat { display: flex; align-items: center; gap: 4px; }
         .header-stat .emoji { font-size: 14px; }
@@ -167,17 +203,58 @@
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #ff8800); transition: width 0.3s; }
         .progress-info { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 4px; }
         .battle-log {
-            background: rgba(76,175,80,0.15); border: 1px solid rgba(76,175,80,0.2);
-            border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto;
-            font-size: 9px; line-height: 1.6;
+            display: none; /* Hidden — battle log stored internally for rewards only */
         }
-        .battle-log:empty::after { content: 'Battle log will appear here...'; color: var(--text-dim); }
         .log-win { color: #44cc44; }
         .log-lose { color: #ff4444; }
         .log-damage { color: #ff8800; }
         .log-heal { color: #44cc44; }
         .log-skill { color: #aa44ff; }
         .log-drop { color: var(--gold); }
+
+        /* Turn order bar */
+        .turn-order-bar {
+            display: flex; gap: 8px; padding: 6px 10px; margin-bottom: 8px;
+            background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 9px;
+            align-items: center; overflow-x: auto; min-height: 24px;
+            font-family: 'Press Start 2P';
+        }
+        .turn-order-bar:empty { display: none; }
+        .turn-order-unit {
+            white-space: nowrap; padding: 2px 6px; border-radius: 4px;
+            background: rgba(255,255,255,0.08); font-size: 8px;
+        }
+        .turn-order-bar::before {
+            content: '⏳'; margin-right: 4px; font-size: 10px;
+        }
+
+        /* Pause overlay */
+        .pause-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10; border-radius: 8px;
+        }
+
+        /* Enemy info popup */
+        .enemy-info-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--panel); border: 2px solid var(--border); border-radius: 12px;
+            padding: 16px; z-index: 1000; min-width: 200px; font-size: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .enemy-info-header { font-family: 'Press Start 2P'; font-size: 12px; color: var(--gold); margin-bottom: 10px; text-align: center; }
+        .enemy-info-stats { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+        .enemy-info-skill { color: #aa44ff; font-size: 9px; text-align: center; padding: 4px; background: rgba(170,68,255,0.1); border-radius: 4px; }
+        .enemy-info-close { position: absolute; top: 8px; right: 10px; cursor: pointer; color: var(--text-dim); font-size: 14px; }
+        .enemy-info-close:hover { color: var(--text); }
+
+        .enemy-info-panel {
+            position: fixed; z-index: 999;
+            background: rgba(20,16,30,0.95); border: 1px solid var(--gold);
+            border-radius: 8px; padding: 10px 12px; min-width: 160px;
+            pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            font-family: 'Press Start 2P'; animation: fadeIn 0.2s ease;
+        }
 
         /* Battle animation classes */
         .battle-shake { animation: battleShake 0.3s ease-in-out; }
@@ -309,8 +386,12 @@
             text-shadow: 1px 1px 0 #000, 0 0 8px rgba(255,215,0,0.6);
             pointer-events: none;
             z-index: 55;
-            animation: skillPop 1.5s ease-out forwards;
+            animation: skillPop 2s ease-out forwards;
             white-space: nowrap;
+        }
+        .skill-desc {
+            font-size: 7px; color: #aaf; margin-top: 2px;
+            text-shadow: 1px 1px 0 #000;
         }
         @keyframes skillPop {
             0% { opacity: 0; transform: translateY(5px); }
@@ -399,7 +480,8 @@
         #shop-content { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 
         /* Blockchain / Wallet Section */
-        .wallet-section {
+        /* wallet-section removed — Web3 not active yet */
+        /* .wallet-section {
             background: var(--bg-panel); border: 2px solid rgba(212,160,23,0.15);
             border-radius: 8px; padding: 16px; margin-top: 16px;
         }
@@ -407,6 +489,7 @@
         .wallet-desc { font-size: 10px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.6; }
         .wallet-info { font-size: 9px; color: var(--text-dim); margin-top: 8px; }
         .wallet-address { font-family: monospace; color: var(--gold); }
+        */
 
         /* Tutorial Overlay */
         .tutorial-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
@@ -458,6 +541,8 @@
         .card-stat-bar-fill { height:100%; border-radius:2px; transition: width 0.5s ease; }
         .card-stat-val { width:22px; font-size:7px; font-weight:700; text-align:right; }
         .card-power { text-align:center; margin-top:4px; font-size:7px; color:var(--gold); font-weight:700; }
+        .card-exp-bar { height:3px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
+        .card-exp-fill { height:100%; background:linear-gradient(90deg, #aa44ff, #ff44aa); border-radius:2px; transition: width 0.3s; }
 
         /* Pack Opening — Premium */
         #pack-modal {
@@ -517,8 +602,22 @@
         }
         #loading-screen.fade-out { opacity: 0; pointer-events: none; }
         #loading-screen .logo-text {
-            font-family: 'Press Start 2P'; font-size: 20px; color: var(--gold);
-            margin-bottom: 24px; text-shadow: 0 0 20px rgba(212,160,23,0.5);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 24px;
+            color: var(--gold);
+            margin-bottom: 24px;
+            letter-spacing: 4px;
+            text-shadow:
+                3px 3px 0 #000,
+                0 0 20px rgba(212,160,23,0.6),
+                0 0 60px rgba(212,160,23,0.3),
+                0 0 100px rgba(212,160,23,0.15);
+            animation: loadingPulse 2s ease-in-out infinite;
+        }
+        #loading-screen .logo-text .red { color: #ff4444; text-shadow: 3px 3px 0 #000, 0 0 20px rgba(255,68,68,0.5); }
+        @keyframes loadingPulse {
+            0%, 100% { text-shadow: 3px 3px 0 #000, 0 0 20px rgba(212,160,23,0.6), 0 0 60px rgba(212,160,23,0.3); }
+            50% { text-shadow: 3px 3px 0 #000, 0 0 40px rgba(212,160,23,0.9), 0 0 100px rgba(212,160,23,0.5); }
         }
         #loading-bar-outer {
             width: 260px; height: 8px; background: rgba(76,175,80,0.15);
@@ -586,11 +685,12 @@
         .screen { animation: screenFadeIn 0.3s ease-out; }
         @keyframes screenFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
+    <link rel="stylesheet" href="css/retro-ui.css?v=2">
 </head>
 <body>
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <div class="logo-text" style="letter-spacing:3px;">◆ PIXEL RAID ◆</div>
+        <div class="logo-text">⚔ PIXEL <span class="red">RAID</span> ⚔</div>
         <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:4px;">Collect. Battle. Conquer.</div>
         <div style="font-size:10px;margin-bottom:20px;letter-spacing:2px;">⚔️ 🗡️ 🛡️</div>
         <div id="loading-bar-outer"><div id="loading-bar-inner"></div></div>
@@ -619,7 +719,7 @@
     <div class="game-header">
         <a href="index.html" class="game-logo">PIXEL<span>RAID</span></a>
         <div class="header-info">
-            <div class="header-stat"><span class="emoji">👤</span> <span id="player-name" class="value">Adventurer</span></div>
+            <div class="header-stat"><span class="emoji">👤</span> <span id="player-name" class="value" onclick="UI.changePlayerName()" style="cursor:pointer;text-decoration:underline dotted rgba(255,255,255,0.3);" title="Click to change name">Adventurer</span></div>
             <div class="header-stat"><span class="emoji">🪙</span> <span id="gold-display" class="value">100</span></div>
             <div class="header-stat"><span class="emoji">💎</span> <span id="gem-display" class="value">5</span></div>
             <div class="header-stat"><span class="level-badge">Lv.<span id="player-level">1</span></span></div>
@@ -652,6 +752,7 @@
 
         <div class="battle-controls">
             <button class="btn btn-gold" id="btn-start-battle">⚔️ Start Battle</button>
+            <button class="btn btn-secondary" id="btn-pause" style="display:none">⏸ Pause</button>
             <button class="btn btn-secondary" id="btn-auto-next">🔄 Auto Next Stage</button>
             <div class="speed-controls">
                 <button class="speed-btn active" data-speed="1">1x</button>
@@ -660,35 +761,18 @@
             </div>
         </div>
 
+        <div class="turn-order-bar" id="turn-order-display"></div>
+
         <div class="battle-log" id="battle-log"></div>
 
-        <!-- Wallet Section — HIDDEN (Web3 not active yet) -->
-        <div class="wallet-section" style="display:none;">
-            <div class="wallet-title">🔗 Web3 Wallet</div>
-            <div class="wallet-desc">
-                Connect your MetaMask wallet to mint your hero cards as NFTs on BNB Chain.
-                Your cards become blockchain assets you truly own — trade, sell, or keep them forever.
-                <br><br>
-                <strong>What you can do:</strong><br>
-                • 🖼️ <strong>Mint cards</strong> as NFTs (costs gas)<br>
-                • 🏪 <strong>List cards</strong> on the on-chain marketplace<br>
-                • 🔄 <strong>Trade</strong> with other players via smart contract
-                <br><br>
-                <em style="font-size:9px;color:var(--text-dim);">Note: Game works fully without wallet — connecting is optional for blockchain features.</em>
-            </div>
-            <button class="btn btn-secondary" id="btn-connect-wallet">🦊 Connect Wallet</button>
-            <div class="wallet-info" id="wallet-info" style="display:none;">
-                <span id="wallet-address" class="wallet-address"></span>
-            </div>
-            <div class="wallet-info" id="wallet-status">Not connected — game works fine without it!</div>
-        </div>
+
     </div>
 
     <!-- ====== HEROES SCREEN ====== -->
     <div class="screen" id="screen-heroes">
         <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🃏 YOUR COLLECTION</h2>
         <div class="heroes-grid" id="hero-list"></div>
-        <div class="hero-detail" id="hero-detail"><div id="hero-detail-content"></div></div>
+        <div class="hero-detail hidden" id="hero-detail"><div id="hero-detail-content"></div></div>
     </div>
 
     <!-- ====== FORMATION SCREEN ====== -->
@@ -720,26 +804,26 @@
     <div class="screen" id="screen-shop">
         <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">🏪 SHOP</h2>
         <div class="shop-tabs">
-            <button class="shop-tab active" data-tab="summon">📦 Card Packs</button>
-            <button class="shop-tab" data-tab="marketplace">🏪 Marketplace</button>
+            <button class="shop-tab active" data-tab="tiers">🏆 Tiers</button>
+            <button class="shop-tab" data-tab="classes">⚔️ Classes</button>
+            <button class="shop-tab" data-tab="catalog">📖 Catalog</button>
+            <button class="shop-tab" data-tab="marketplace">🏪 Market</button>
         </div>
         <div id="shop-content"></div>
     </div>
 
     <!-- ====== SCRIPTS (load order matters!) ====== -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" defer></script>
-    <script src="js/core/sound.js?v=5"></script>
-    <script src="js/core/heroes.js?v=4"></script>
-    <script src="js/core/items.js?v=4"></script>
-    <script src="js/core/game.js?v=4"></script>
-    <script src="js/systems/battle.js?v=4"></script>
-    <script src="js/systems/economy.js?v=4"></script>
-    <script src="js/systems/formation.js?v=4"></script>
-    <script src="js/systems/blockchain.js?v=4"></script>
-    <script src="js/ui/renderer.js?v=4"></script>
-    <script src="js/ui/animations.js?v=4"></script>
-    <script src="js/ui/tutorial.js?v=5"></script>
-    <script src="js/ui/screens.js?v=4"></script>
-    <script src="js/main.js?v=4"></script>
+    <script src="js/core/sound.js"></script>
+    <script src="js/core/heroes.js"></script>
+    <script src="js/core/items.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/systems/battle.js"></script>
+    <script src="js/systems/economy.js"></script>
+    <script src="js/systems/formation.js"></script>
+    <script src="js/ui/renderer.js"></script>
+    <script src="js/ui/animations.js"></script>
+    <script src="js/ui/tutorial.js"></script>
+    <script src="js/ui/screens.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

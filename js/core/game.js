@@ -181,7 +181,7 @@ const GameState = {
      * @returns {Promise<number|null>} Token ID if successful, null if failed
      */
     async mintCardToChain(card) {
-        if (!BlockchainBridge.isConnected) {
+        if (typeof BlockchainBridge === 'undefined' || !BlockchainBridge.isConnected) {
             console.warn('⚠️ Wallet not connected');
             if (typeof UI !== 'undefined' && UI.toast) {
                 UI.toast('Connect wallet first!', 'warning');
@@ -190,7 +190,7 @@ const GameState = {
         }
 
         try {
-            const tokenId = await BlockchainBridge.syncCardToChain(card);
+            const tokenId = typeof BlockchainBridge !== 'undefined' ? await BlockchainBridge.syncCardToChain(card) : null;
             if (tokenId) {
                 this.save(); // Save with tokenId
                 if (typeof UI !== 'undefined' && UI.toast) {
@@ -238,7 +238,7 @@ const GameState = {
             return false;
         }
 
-        if (!BlockchainBridge.isConnected) {
+        if (typeof BlockchainBridge === 'undefined' || !BlockchainBridge.isConnected) {
             return false;
         }
 
@@ -266,7 +266,7 @@ const GameState = {
             return false;
         }
 
-        if (!BlockchainBridge.isConnected) {
+        if (typeof BlockchainBridge === 'undefined' || !BlockchainBridge.isConnected) {
             if (typeof UI !== 'undefined' && UI.toast) {
                 UI.toast('Connect wallet first!', 'warning');
             }

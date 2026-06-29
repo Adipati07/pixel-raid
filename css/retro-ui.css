@@ -1,0 +1,629 @@
+/* ================================================================
+   PIXEL RAID — Retro RPG UI Overhaul
+   Looks hand-crafted, not AI-generated
+   Key: noise textures, CRT effects, asymmetry, pixel borders
+   ================================================================ */
+
+/* ===== NOISE TEXTURE OVERLAY (anti-AI magic) ===== */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 256px;
+}
+
+/* ===== CRT SCANLINE EFFECT ===== */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.05) 2px,
+        rgba(0,0,0,0.05) 4px
+    );
+}
+
+/* ===== PIXEL STEP BORDER (actual pixel art feel) ===== */
+.pixel-border {
+    --pb-color: rgba(212,160,23,0.4);
+    --pb-bg: #122812;
+    position: relative;
+    background: var(--pb-bg);
+    border: none;
+    clip-path: polygon(
+        0 4px, 4px 4px, 4px 0,
+        calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+        100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+        4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+    );
+}
+.pixel-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(
+        0 4px, 4px 4px, 4px 0,
+        calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+        100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+        4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+    );
+    background: var(--pb-color);
+    z-index: -1;
+    padding: 2px;
+}
+
+/* ===== RPG PANEL (NES-style dialog box) ===== */
+.rpg-panel {
+    background: #0c1f0c;
+    border: 4px solid;
+    border-image: repeating-linear-gradient(
+        90deg,
+        #D4A017 0px, #D4A017 8px,
+        #A07A00 8px, #A07A00 16px
+    ) 4;
+    padding: 16px;
+    position: relative;
+    image-rendering: pixelated;
+}
+.rpg-panel::before {
+    content: '►';
+    position: absolute;
+    top: 8px; left: 8px;
+    color: #D4A017;
+    font-size: 10px;
+    animation: cursor-blink 1s step-end infinite;
+}
+@keyframes cursor-blink {
+    50% { opacity: 0; }
+}
+
+/* ===== GAME HEADER — retro RPG bar ===== */
+.game-header {
+    background: linear-gradient(180deg, #1a3a1a 0%, #0c1f0c 100%) !important;
+    border-bottom: 4px solid #D4A017 !important;
+    box-shadow: 
+        0 4px 0 #A07A00,
+        0 8px 20px rgba(0,0,0,0.5) !important;
+    padding: 12px 20px 10px !important;
+}
+.game-header::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; left: 0; right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, #D4A017 0 4px, transparent 4px 8px);
+}
+
+/* ===== NAV BUTTONS — RPG tab style ===== */
+.nav-btn {
+    font-family: 'Press Start 2P', monospace !important;
+    background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
+    border: 2px solid #2a5a2a !important;
+    border-bottom: none !important;
+    padding: 10px 20px !important;
+    position: relative;
+    transition: all 0.15s step-end !important;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.8);
+}
+.nav-btn:hover {
+    background: linear-gradient(180deg, #224422, #163016) !important;
+    border-color: #D4A017 !important;
+    color: #D4A017 !important;
+    transform: translateY(-2px) !important;
+}
+.nav-btn.active {
+    background: linear-gradient(180deg, #0c1f0c, #1a3a1a) !important;
+    border-color: #D4A017 !important;
+    border-bottom: 4px solid #0c1f0c !important;
+    color: #D4A017 !important;
+    z-index: 2;
+    box-shadow: 0 -2px 10px rgba(212,160,23,0.2) !important;
+}
+.nav-btn.active::before {
+    content: '▸';
+    margin-right: 4px;
+    font-size: 8px;
+}
+
+/* ===== CARDS — RPG item card ===== */
+.card {
+    background: linear-gradient(145deg, #162816, #0e1a0e) !important;
+    border: 2px solid !important;
+    border-radius: 0 !important;
+    box-shadow: 
+        4px 4px 0 rgba(0,0,0,0.4),
+        inset 0 0 20px rgba(76,175,80,0.03) !important;
+    transition: all 0.1s step-end !important;
+    position: relative;
+    overflow: hidden;
+}
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: currentColor;
+    opacity: 0.4;
+}
+.card:hover {
+    transform: translateY(-6px) scale(1.03) !important;
+    box-shadow: 
+        6px 8px 0 rgba(0,0,0,0.5),
+        0 0 20px rgba(212,160,23,0.2) !important;
+}
+.card:active {
+    transform: translateY(-2px) scale(0.98) !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4) !important;
+}
+.card.common { border-color: #888 !important; }
+.card.rare { border-color: #4488ff !important; }
+.card.epic { border-color: #aa44ff !important; }
+.card.legendary { border-color: #ff8800 !important; }
+.card.mythic { border-color: #ff4444 !important; }
+
+/* Card rarity glow — pulsing effect */
+.card.legendary::after,
+.card.mythic::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid currentColor;
+    opacity: 0;
+    animation: rarity-pulse 2s ease-in-out infinite;
+}
+@keyframes rarity-pulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.6; }
+}
+
+/* ===== BUTTONS — tactile game buttons ===== */
+.btn {
+    font-family: 'Press Start 2P', monospace !important;
+    border: none !important;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.05s step-end !important;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.6);
+    letter-spacing: 1px;
+}
+.btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 40%, rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
+}
+.btn-gold {
+    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    color: #1a1a00 !important;
+    box-shadow: 
+        0 4px 0 #8B5E00,
+        0 6px 12px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+.btn-gold:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 
+        0 6px 0 #8B5E00,
+        0 10px 20px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    background: linear-gradient(180deg, #ffe080, #D4A017) !important;
+}
+.btn-gold:active {
+    transform: translateY(2px) !important;
+    box-shadow: 
+        0 2px 0 #8B5E00,
+        0 3px 6px rgba(0,0,0,0.3),
+        inset 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+.btn-secondary {
+    background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
+    color: #D4A017 !important;
+    border: 2px solid #D4A017 !important;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.3) !important;
+}
+.btn-secondary:hover {
+    background: linear-gradient(180deg, #224422, #163016) !important;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ===== BATTLE CANVAS — CRT TV frame ===== */
+.battle-canvas-wrap {
+    position: relative;
+    border: 6px solid #1a1a1a !important;
+    border-radius: 12px !important;
+    background: #000;
+    box-shadow: 
+        inset 0 0 60px rgba(0,0,0,0.8),
+        0 0 0 2px #333,
+        0 8px 32px rgba(0,0,0,0.6) !important;
+    overflow: hidden;
+}
+.battle-canvas-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.3) 100%);
+    z-index: 10;
+    pointer-events: none;
+}
+.battle-canvas-wrap::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        rgba(255,255,255,0.03) 0%,
+        transparent 2%,
+        transparent 98%,
+        rgba(255,255,255,0.03) 100%
+    );
+    animation: crt-flicker 0.1s linear infinite;
+    z-index: 11;
+    pointer-events: none;
+}
+@keyframes crt-flicker {
+    0% { opacity: 0.97; }
+    50% { opacity: 1; }
+    100% { opacity: 0.98; }
+}
+
+#battle-canvas {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* ===== PROGRESS BARS — chunky pixel style ===== */
+.progress-bar {
+    height: 12px !important;
+    background: #0a0a0a !important;
+    border: 2px solid #2a5a2a !important;
+    border-radius: 0 !important;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.progress-fill {
+    background: repeating-linear-gradient(
+        90deg,
+        #D4A017 0px, #D4A017 6px,
+        #f0c040 6px, #f0c040 8px,
+        #D4A017 8px, #D4A017 10px,
+        #A07A00 10px, #A07A00 12px
+    ) !important;
+    border-radius: 0 !important;
+    image-rendering: pixelated;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+}
+
+/* HP bar variant */
+.hp-bar .progress-fill {
+    background: repeating-linear-gradient(
+        90deg,
+        #4CAF50 0px, #4CAF50 6px,
+        #66BB6A 6px, #66BB6A 8px,
+        #4CAF50 8px, #4CAF50 10px,
+        #388E3C 10px, #388E3C 12px
+    ) !important;
+}
+
+/* ===== HERO DETAIL PANEL ===== */
+.hero-detail {
+    background: linear-gradient(145deg, #0c1f0c, #0a1a0a) !important;
+    border: 3px solid #D4A017 !important;
+    border-radius: 0 !important;
+    box-shadow: 
+        6px 6px 0 rgba(0,0,0,0.4),
+        inset 0 0 30px rgba(212,160,23,0.03) !important;
+    position: relative;
+}
+.hero-detail::before {
+    content: '';
+    position: absolute;
+    top: -3px; left: -3px; right: -3px;
+    height: 6px;
+    background: linear-gradient(90deg, #D4A017, #f0c040, #D4A017);
+}
+
+/* ===== STAT ROWS — retro RPG stat display ===== */
+.stat-row {
+    background: rgba(10,31,10,0.8) !important;
+    border: 1px solid rgba(76,175,80,0.15) !important;
+    border-left: 3px solid #D4A017 !important;
+    border-radius: 0 !important;
+    padding: 6px 10px !important;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+}
+.stat-label {
+    color: #6B8E6B !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.stat-value {
+    color: #D4A017 !important;
+    text-shadow: 0 0 6px rgba(212,160,23,0.3);
+}
+
+/* ===== FORMATION GRID — slot machine feel ===== */
+.grid-cell {
+    background: linear-gradient(145deg, #0a1a0a, #0c1f0c) !important;
+    border: 2px dashed rgba(76,175,80,0.25) !important;
+    border-radius: 0 !important;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.3) !important;
+    transition: all 0.1s step-end !important;
+}
+.grid-cell.occupied {
+    border-style: solid !important;
+    border-color: #D4A017 !important;
+    box-shadow: 
+        inset 0 0 20px rgba(212,160,23,0.05),
+        0 0 10px rgba(212,160,23,0.1) !important;
+}
+.grid-cell.drag-over {
+    background: rgba(212,160,23,0.15) !important;
+    border-color: #f0c040 !important;
+    box-shadow: 
+        inset 0 0 30px rgba(212,160,23,0.1),
+        0 0 20px rgba(212,160,23,0.2) !important;
+}
+
+/* ===== SYNERGY TAGS — chip style ===== */
+.synergy-tag {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 7px !important;
+    background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
+    border: 2px solid #4CAF50 !important;
+    border-radius: 0 !important;
+    padding: 6px 12px !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===== MODAL / DIALOG — RPG text box ===== */
+.battle-result-modal .battle-result-content {
+    background: linear-gradient(180deg, #0c1f0c, #081408) !important;
+    border: 4px solid #D4A017 !important;
+    border-radius: 0 !important;
+    box-shadow: 
+        0 0 0 4px #000,
+        0 0 0 6px #A07A00,
+        0 12px 40px rgba(0,0,0,0.8) !important;
+    position: relative;
+}
+.battle-result-content::before {
+    content: '★';
+    position: absolute;
+    top: -14px; left: 50%;
+    transform: translateX(-50%);
+    background: #D4A017;
+    color: #000;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.battle-result-title {
+    text-shadow: 2px 2px 0 #000, 0 0 10px rgba(212,160,23,0.5) !important;
+}
+
+/* ===== PACK OPENING — premium chest feel ===== */
+#pack-modal {
+    background: rgba(0,0,0,0.92) !important;
+}
+#pack-box {
+    border-radius: 0 !important;
+    border: 4px solid #D4A017 !important;
+    box-shadow: 
+        0 0 0 4px #000,
+        0 0 60px rgba(212,160,23,0.4),
+        inset 0 0 40px rgba(212,160,23,0.1) !important;
+    image-rendering: pixelated;
+}
+#pack-box::before {
+    border-radius: 0 !important;
+}
+#pack-box::after {
+    border-radius: 0 !important;
+}
+
+/* ===== LOADING SCREEN — retro boot sequence ===== */
+#loading-screen {
+    background: #000 !important;
+    font-family: 'Press Start 2P', monospace;
+}
+#loading-screen .loading-text {
+    color: #4CAF50;
+    font-size: 10px;
+    text-shadow: 0 0 8px rgba(76,175,80,0.5);
+    animation: terminal-type 0.05s step-end infinite;
+}
+@keyframes terminal-type {
+    50% { border-right-color: transparent; }
+}
+
+/* ===== INV / SHOP TABS ===== */
+.inv-tab, .shop-tab {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 7px !important;
+    background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
+    border: 2px solid #2a5a2a !important;
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.inv-tab.active, .shop-tab.active {
+    background: linear-gradient(180deg, #224422, #163016) !important;
+    border-color: #D4A017 !important;
+    color: #D4A017 !important;
+    box-shadow: 
+        2px 2px 0 rgba(0,0,0,0.3),
+        0 0 10px rgba(212,160,23,0.15) !important;
+}
+
+/* ===== SCROLLBAR — retro ===== */
+::-webkit-scrollbar {
+    width: 12px !important;
+}
+::-webkit-scrollbar-track {
+    background: #0a1a0a !important;
+    border-left: 2px solid #1a3a1a;
+}
+::-webkit-scrollbar-thumb {
+    background: repeating-linear-gradient(
+        180deg,
+        #2a5a2a 0px, #2a5a2a 4px,
+        #1a3a1a 4px, #1a3a1a 8px
+    ) !important;
+    border: 2px solid #0a1a0a;
+}
+
+/* ===== FLOATING DAMAGE NUMBERS — juicier ===== */
+.battle-damage-num {
+    font-family: 'Press Start 2P', monospace !important;
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 0 8px currentColor !important;
+    animation: floatUpJuicy 1.4s ease-out forwards !important;
+}
+@keyframes floatUpJuicy {
+    0% { opacity: 1; transform: translateY(0) scale(0.5); }
+    15% { transform: translateY(-8px) scale(1.4); }
+    30% { transform: translateY(-16px) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.7); }
+}
+
+/* ===== LEVEL BADGE ===== */
+.level-badge {
+    font-family: 'Press Start 2P', monospace !important;
+    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    color: #1a1a00 !important;
+    border: 2px solid #8B5E00 !important;
+    border-radius: 0 !important;
+    padding: 3px 10px !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+
+/* ===== BENCH CARDS ===== */
+.bench-card {
+    background: linear-gradient(145deg, #162816, #0e1a0e) !important;
+    border: 1px solid #2a5a2a !important;
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+}
+.bench-card:hover {
+    border-color: #D4A017 !important;
+}
+
+/* ===== TUTORIAL OVERLAY ===== */
+.tutorial-tooltip {
+    background: linear-gradient(180deg, #0c1f0c, #081408) !important;
+    border: 4px solid #D4A017 !important;
+    border-radius: 0 !important;
+    box-shadow: 
+        0 0 0 4px #000,
+        0 0 0 6px #A07A00,
+        0 12px 40px rgba(0,0,0,0.8) !important;
+}
+
+/* ===== SCREEN CONTAINER ===== */
+.screen {
+    padding: 20px !important;
+}
+
+/* ===== SELECTION HOVER — pixel glow ===== */
+.card:hover .card-name,
+.hero-detail:hover .hero-detail-name {
+    text-shadow: 0 0 8px rgba(212,160,23,0.5);
+}
+
+/* ===== AMBIENT ANIMATIONS ===== */
+@keyframes subtle-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+/* Legendary & Mythic cards float subtly */
+.card.legendary,
+.card.mythic {
+    animation: subtle-float 3s ease-in-out infinite;
+}
+.card.legendary { animation-delay: 0s; }
+.card.mythic { animation-delay: 0.5s; }
+
+/* ===== TOOLTIP / INFO TEXT ===== */
+.game-header .header-stat {
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 8px !important;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.8);
+}
+.game-header .value {
+    text-shadow: 0 0 6px rgba(212,160,23,0.4) !important;
+}
+
+/* ===== SPEED CONTROLS ===== */
+.speed-btn {
+    font-family: 'Press Start 2P', monospace !important;
+    background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
+    border: 2px solid #2a5a2a !important;
+    border-radius: 0 !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
+    padding: 6px 12px !important;
+}
+.speed-btn.active {
+    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    color: #1a1a00 !important;
+    border-color: #8B5E00 !important;
+}
+
+/* ===== CARD STAT BARS ===== */
+.card-stat-bar-bg {
+    background: #0a0a0a !important;
+    border: 1px solid #1a3a1a !important;
+    height: 6px !important;
+    border-radius: 0 !important;
+}
+.card-stat-bar-fill {
+    border-radius: 0 !important;
+    image-rendering: pixelated;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+    .game-header { padding: 8px 12px 6px !important; }
+    .nav-btn { padding: 8px 12px !important; font-size: 7px !important; }
+    .btn { padding: 8px 14px !important; font-size: 7px !important; }
+    .card { padding: 10px !important; }
+}
+
+/* ===== PRINT-STYLE LOG ===== */
+.battle-log {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    line-height: 2;
+    background: #000;
+    border: 2px solid #1a3a1a;
+    padding: 8px;
+    color: #4CAF50;
+}

@@ -6,6 +6,17 @@
 (function() {
     'use strict';
 
+    // Error boundary — catch and display friendly errors
+    window.addEventListener('error', (e) => {
+        console.error('Game error:', e.error || e.message);
+        // Don't break the game for non-critical errors
+        return true;
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled promise rejection:', e.reason);
+        return true;
+    });
+
     // Load save or init new game
     const hasSave = GameState.load();
     

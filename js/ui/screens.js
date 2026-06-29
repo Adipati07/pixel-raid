@@ -81,6 +81,15 @@ const UI = {
             btn.textContent = GameState.autoNext ? '⏹️ Stop Auto' : '🔄 Auto Next Stage';
         });
 
+        // Pause button
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                BattleEngine.togglePause();
+                pauseBtn.textContent = BattleEngine.isPaused ? '▶️ Resume' : '⏸ Pause';
+            });
+        }
+
         document.querySelectorAll('.speed-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
@@ -115,8 +124,50 @@ const UI = {
         
         document.getElementById('btn-start-battle').disabled = true;
 
+        // Show pause button during battle
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸ Pause'; }
+
+        BattleEngine.onTurnChange = () => {
+            this.renderTurnOrder();
+        };
+
+        // Canvas click for enemy info
+        const canvas = document.getElementById('battle-canvas');
+        canvas.onclick = (e) => {
+            if (!BattleEngine.isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            // Check enemy positions (right side)
+            for (const enemy of BattleEngine.enemyTeam) {
+                if (!enemy.alive) continue;
+                const ex = canvas.width - 80 - enemy.position * 90;
+                const ey = canvas.height * 0.32;
+                if (Math.abs(mx - ex) < 45 && Math.abs(my - ey) < 50) {
+                    this.showEnemyInfo(enemy);
+                    return;
+                }
+            }
+            // Check ally positions (left side)
+            for (const ally of BattleEngine.allyTeam) {
+                if (!ally.alive) continue;
+                const ax = 80 + ally.position * 90;
+                const ay = canvas.height * 0.32;
+                if (Math.abs(mx - ax) < 45 && Math.abs(my - ay) < 50) {
+                    this.showEnemyInfo(ally);
+                    return;
+                }
+            }
+        };
+
         BattleEngine.startBattle(deckCards, enemies, (result, log, turns) => {
             document.getElementById('btn-start-battle').disabled = false;
+            // Hide pause button after battle
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            document.getElementById('turn-order-display').innerHTML = '';
 
             if (result === 'win') {
                 GameState.stats.battlesWon++;
@@ -137,6 +188,14 @@ const UI = {
 
                     // Show stage clear modal with rewards
                     setTimeout(() => this.showStageClearModal(rewards, stage), 800);
+
+                    // Hero EXP distribution
+                    const levelUps = BattleEngine.distributeEXP(true);
+                    if (levelUps.length > 0) {
+                        levelUps.forEach(lu => {
+                            this.toast(`⬆️ ${lu.name} reached Lv.${lu.level}! +${lu.boost} all stats`, 'success');
+                        });
+                    }
 
                     if (rewards.leveledUp) {
                         this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
@@ -293,7 +352,7 @@ const UI = {
             const name = document.createElement('div');
             name.className = 'card-name';
             name.style.color = RARITIES[card.rarity].color;
-            name.textContent = card.name;
+            name.textContent = card.name + (card.level > 1 ? ` Lv.${card.level}` : '');
 
             const cls = document.createElement('div');
             cls.className = 'card-class';
@@ -315,7 +374,8 @@ const UI = {
                     <div class="card-stat-bar-bg"><div class="card-stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
                     <span class="card-stat-val" style="color:${s.color}">${s.val}</span>
                 </div>
-            `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>`;
+            `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>` +
+            (card.level > 1 ? `<div class="card-exp-bar" style="margin-top:3px"><div class="card-exp-fill" style="width:${card.expToNext > 0 ? Math.min(100, (card.exp / card.expToNext) * 100) : 0}%"></div></div>` : '');
 
             el.append(sprite, name, cls, stats);
             grid.appendChild(el);
@@ -335,6 +395,7 @@ const UI = {
                 <div id="detail-sprite-container" style="width:96px;height:96px;margin:0 auto;"></div>
                 <h3 style="color:${RARITIES[card.rarity].color};font-size:12px;margin-top:8px;">${card.name}</h3>
                 <div style="color:${CLASSES[card.class].color};font-size:8px;">${CLASSES[card.class].emoji} ${CLASSES[card.class].name} • ${RARITIES[card.rarity].name}</div>
+                ${card.level > 1 ? `<div style="color:#aa44ff;font-size:8px;margin-top:2px;">⭐ Level ${card.level} — EXP: ${card.exp || 0}/${card.expToNext || '?'}</div>` : ''}
             </div>
             <div style="font-size:8px;margin-bottom:12px;">
                 ${['HP','ATK','DEF','SPD'].map(s => {
@@ -425,6 +486,19 @@ const UI = {
 
     closeHeroDetail() {
         document.getElementById('hero-detail').classList.add('hidden');
+    },
+
+    // ===== PLAYER NAME =====
+    changePlayerName() {
+        const current = GameState.player.name || 'Adventurer';
+        const newName = prompt('Enter your name:', current);
+        if (newName && newName.trim() && newName.trim() !== current) {
+            const name = newName.trim().substring(0, 16);
+            GameState.player.name = name;
+            document.getElementById('player-name').textContent = name;
+            GameState.save();
+            this.toast(`Name changed to ${name}!`, 'success');
+        }
     },
 
     // ===== FORMATION SCREEN =====
@@ -525,83 +599,217 @@ const UI = {
     },
 
     renderShopScreen() {
-        this.renderShopContent('summon');
+        this.renderShopContent('tiers');
     },
 
     renderShopContent(tab) {
         const content = document.getElementById('shop-content');
-        
-        if (tab === 'summon') {
-            // Daily deals banner
-            const deals = Economy.getDailyDeals();
-            const dealsHtml = deals.length > 0 ? `
-                <div style="background:linear-gradient(135deg,#2D1B00,#4a2800);border:2px solid var(--gold);border-radius:8px;padding:12px;margin-bottom:16px;">
-                    <div style="font-size:10px;color:var(--gold);margin-bottom:8px;">⭐ Daily Deals (resets in 24h)</div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        ${deals.map((deal, i) => `
-                            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:8px;flex:1;min-width:140px;cursor:pointer;" onclick="UI.buyDailyDeal(${i})">
-                                <div style="font-size:8px;color:var(--accent);">${deal.name}</div>
-                                <div style="font-size:7px;color:var(--text-dim);margin-top:4px;">
-                                    ${deal.type === 'pack' ? `💰 ${Math.floor(Economy.PACK_COSTS[deal.packType].gold * (1 - deal.discount))}` : `💎 ${deal.gems}`}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : '';
+        if (tab === 'tiers') this.renderTierPacks(content);
+        else if (tab === 'classes') this.renderClassPacks(content);
+        else if (tab === 'catalog') this.renderHeroCatalog(content);
+        else if (tab === 'marketplace') this.renderMarketplace(content);
+    },
 
-            content.innerHTML = `
-                <div class="summon-portal">
-                    <div style="font-size:40px;margin-bottom:16px;">🎴</div>
-                    <h3>Card Pack Shop</h3>
-                    <p style="font-size:7px;color:var(--text-dim);margin-bottom:16px;">Open packs to collect powerful battle cards!</p>
-                </div>
-                ${dealsHtml}
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
-                    ${Object.entries(Economy.PACK_COSTS).map(([key, pack]) => `
-                        <div class="card ${key === 'legendary' ? 'legendary' : key === 'elite' ? 'epic' : key === 'premium' ? 'rare' : 'common'}" onclick="UI.openPack('${key}')">
-                            <div style="text-align:center;font-size:24px;margin-bottom:8px;">📦</div>
-                            <div class="card-name" style="font-size:9px;">${pack.name}</div>
-                            <div class="card-class">${pack.desc}</div>
-                            <div class="summon-cost">
-                                ${pack.gold ? `💰 ${pack.gold}` : ''}
-                                ${pack.gems ? `💎 ${pack.gems}` : ''}
+    // ===== TIER-BASED PACKS =====
+    renderTierPacks(content) {
+        const tierKeys = Object.keys(Economy.TIER_PACKS);
+        content.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:32px;">🏆</div>
+                <h3 style="font-size:11px;margin:8px 0;">Tier Card Packs</h3>
+                <p style="font-size:7px;color:var(--text-dim);">Higher tier = better rarity odds + guarantees!</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+                ${tierKeys.map(key => {
+                    const pack = Economy.TIER_PACKS[key];
+                    const affordable = Economy.canAfford({gold:pack.gold,gems:pack.gems});
+                    const rarityClass = pack.tier >= 5 ? 'mythic' : pack.tier >= 4 ? 'legendary' : pack.tier >= 3 ? 'epic' : pack.tier >= 2 ? 'rare' : 'common';
+                    return `
+                        <div class="card ${rarityClass}" onclick="UI.buyTierPack('${key}')" style="${!affordable ? 'opacity:0.5;cursor:not-allowed;' : ''}">
+                            <div style="text-align:center;font-size:20px;margin-bottom:6px;">
+                                ${pack.tier === 1 ? '🥉' : pack.tier === 2 ? '🥈' : pack.tier === 3 ? '🥇' : pack.tier === 4 ? '💎' : '🔥'}
+                            </div>
+                            <div class="card-name" style="color:${pack.color};font-size:9px;">${pack.name}</div>
+                            <div class="card-class" style="font-size:7px;">${pack.desc}</div>
+                            ${pack.guarantee ? `<div style="font-size:7px;color:#44ff88;margin-top:4px;">✅ Guaranteed ${pack.guarantee}+</div>` : ''}
+                            <div style="font-size:8px;margin-top:8px;color:var(--gold);font-weight:700;">
+                                ${pack.gold ? `💰 ${pack.gold}` : ''}${pack.gold && pack.gems ? ' + ' : ''}${pack.gems ? `💎 ${pack.gems}` : ''}
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            `;
-        } else if (tab === 'items') {
-            this.marketListings = Economy.generateMarketListings(6);
-            content.innerHTML = `
-                <div style="font-size:9px;margin-bottom:12px;color:var(--gem);">🏪 Marketplace</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
-                    ${this.marketListings.map((listing, i) => `
-                        <div class="card ${listing.card.rarity}" onclick="UI.buyMarketItem(${i})">
-                            <div style="text-align:center;">
-                                <canvas id="market-card-${i}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    // ===== CLASS PACKS =====
+    renderClassPacks(content) {
+        const classKeys = Object.keys(Economy.CLASS_PACKS);
+        content.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:32px;">⚔️</div>
+                <h3 style="font-size:11px;margin:8px 0;">Class-Focused Packs</h3>
+                <p style="font-size:7px;color:var(--text-dim);">Target specific hero classes for your strategy!</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+                ${classKeys.map(key => {
+                    const pack = Economy.CLASS_PACKS[key];
+                    const affordable = Economy.canAfford({gold:pack.gold,gems:pack.gems});
+                    const rarityClass = key === 'rainbow' ? 'legendary' : 'rare';
+                    return `
+                        <div class="card ${rarityClass}" onclick="UI.buyClassPack('${key}')" style="${!affordable ? 'opacity:0.5;cursor:not-allowed;' : ''}">
+                            <div style="text-align:center;font-size:20px;margin-bottom:6px;">${pack.name.split(' ')[0]}</div>
+                            <div class="card-name" style="color:${pack.color};font-size:9px;">${pack.name}</div>
+                            <div class="card-class" style="font-size:7px;">${pack.desc}</div>
+                            ${pack.guarantee ? `<div style="font-size:7px;color:#44ff88;margin-top:4px;">✅ Guaranteed ${pack.guarantee}+</div>` : ''}
+                            <div style="font-size:8px;margin-top:8px;color:var(--gold);font-weight:700;">
+                                ${pack.gold ? `💰 ${pack.gold}` : ''}${pack.gold && pack.gems ? ' + ' : ''}${pack.gems ? `💎 ${pack.gems}` : ''}
                             </div>
-                            <div class="card-name" style="color:${RARITIES[listing.card.rarity].color}">${listing.card.name}</div>
-                            <div class="card-class">${CLASSES[listing.card.class].emoji} ${CLASSES[listing.card.class].name}</div>
-                            <div class="card-stats">
-                                <span><span style="color:#888">PWR</span> <span style="color:var(--gold)">${getCardPower(listing.card)}</span></span>
-                            </div>
-                            <div style="font-size:7px;color:var(--text-dim);margin-top:4px;">Seller: ${listing.seller}</div>
-                            <div style="text-align:center;margin-top:8px;">
-                                <button class="btn btn-gold" style="font-size:7px;padding:4px 10px;">💰 ${listing.price}g</button>
+                            <div style="font-size:7px;color:var(--text-dim);margin-top:4px;">
+                                ${key === 'rainbow' ? '🌈 1 of each class' : `${pack.count}x ${CLASSES[pack.classes[0]].name} cards`}
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            `;
-            // Draw market card sprites
-            setTimeout(() => {
-                this.marketListings.forEach((listing, i) => {
-                    const canvas = document.getElementById(`market-card-${i}`);
-                    if (canvas) CardRenderer.drawCardSprite(canvas, listing.card, 48);
-                });
-            }, 50);
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    // ===== HERO CATALOG (all 20 heroes) =====
+    renderHeroCatalog(content) {
+        const classOrder = ['warrior', 'mage', 'archer', 'healer', 'assassin'];
+        const grouped = {};
+        classOrder.forEach(cls => grouped[cls] = []);
+        CARD_TEMPLATES.forEach(t => { if (grouped[t.cls]) grouped[t.cls].push(t); });
+
+        content.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:32px;">📖</div>
+                <h3 style="font-size:11px;margin:8px 0;">Hero Catalog — ${CARD_TEMPLATES.length} Heroes</h3>
+                <p style="font-size:7px;color:var(--text-dim);">All heroes obtainable from card packs!</p>
+            </div>
+            ${classOrder.map(cls => {
+                const heroes = grouped[cls];
+                const clsInfo = CLASSES[cls];
+                return `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:10px;color:${clsInfo.color};margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid ${clsInfo.color}33;">
+                            ${clsInfo.emoji} ${clsInfo.name}s (${heroes.length})
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;">
+                            ${heroes.map(hero => {
+                                const totalStats = hero.hp + hero.atk + hero.def + hero.spd + hero.crit;
+                                const defaultRarity = totalStats > 200 ? 'epic' : totalStats > 160 ? 'rare' : 'common';
+                                const owned = GameState.collection.filter(c => c.templateId === hero.name || c.name === hero.name).length;
+                                return `
+                                    <div class="card ${defaultRarity}" style="cursor:default;">
+                                        <div style="text-align:center;">
+                                            <canvas class="catalog-sprite" data-hero="${hero.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                                        </div>
+                                        <div class="card-name" style="color:${RARITIES[defaultRarity].color};font-size:8px;">${hero.name}</div>
+                                        <div class="card-class" style="font-size:7px;">${clsInfo.emoji} ${clsInfo.name}</div>
+                                        <div style="font-size:7px;display:flex;gap:4px;justify-content:center;margin-top:4px;">
+                                            <span style="color:#44cc44">HP:${hero.hp}</span>
+                                            <span style="color:#ff6644">ATK:${hero.atk}</span>
+                                            <span style="color:#4488ff">DEF:${hero.def}</span>
+                                            <span style="color:#ffaa00">SPD:${hero.spd}</span>
+                                        </div>
+                                        <div style="font-size:7px;color:var(--gem);margin-top:4px;">✨ ${hero.skill.name}</div>
+                                        ${owned > 0 ? `<div style="font-size:7px;color:#44ff88;margin-top:2px;">✅ Owned: ${owned}</div>` : `<div style="font-size:6px;color:var(--text-dim);margin-top:2px;">Not owned</div>`}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        `;
+
+        setTimeout(() => {
+            document.querySelectorAll('.catalog-sprite').forEach(canvas => {
+                const heroName = canvas.dataset.hero;
+                const tmpl = CARD_TEMPLATES.find(t => t.name === heroName);
+                if (tmpl && tmpl.image) {
+                    const img = new Image();
+                    img.onload = () => {
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, 48, 48);
+                    };
+                    img.onerror = () => {
+                        const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
+                        if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
+                    };
+                    img.src = tmpl.image;
+                } else {
+                    const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
+                    if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
+                }
+            });
+        }, 50);
+    },
+
+    // ===== MARKETPLACE =====
+    renderMarketplace(content) {
+        this.marketListings = Economy.generateMarketListings(6);
+        content.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:32px;">🏪</div>
+                <h3 style="font-size:11px;margin:8px 0;">Marketplace</h3>
+                <p style="font-size:7px;color:var(--text-dim);">Buy cards from other collectors!</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+                ${this.marketListings.map((listing, i) => `
+                    <div class="card ${listing.card.rarity}" onclick="UI.buyMarketItem(${i})">
+                        <div style="text-align:center;">
+                            <canvas id="market-card-${i}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                        </div>
+                        <div class="card-name" style="color:${RARITIES[listing.card.rarity].color};font-size:8px;">${listing.card.name}</div>
+                        <div class="card-class" style="font-size:7px;">${CLASSES[listing.card.class].emoji} ${CLASSES[listing.card.class].name}</div>
+                        <div class="card-stats" style="font-size:7px;">
+                            <span><span style="color:#888">PWR</span> <span style="color:var(--gold)">${getCardPower(listing.card)}</span></span>
+                        </div>
+                        <div style="font-size:7px;color:var(--text-dim);margin-top:4px;">Seller: ${listing.seller}</div>
+                        <div style="text-align:center;margin-top:6px;">
+                            <button class="btn btn-gold" style="font-size:7px;padding:4px 10px;">💰 ${listing.price}g</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        setTimeout(() => {
+            this.marketListings.forEach((listing, i) => {
+                const canvas = document.getElementById(`market-card-${i}`);
+                if (canvas) CardRenderer.drawCardSprite(canvas, listing.card, 48);
+            });
+        }, 50);
+    },
+
+    // ===== BUY HANDLERS =====
+    buyTierPack(tierKey) {
+        const pack = Economy.TIER_PACKS[tierKey];
+        if (!pack) return;
+        if (!Economy.canAfford({gold:pack.gold,gems:pack.gems})) {
+            this.toast('Not enough currency!', 'error');
+            return;
         }
+        const cards = Economy.buyTierPack(tierKey);
+        if (!cards) return;
+        this.updateHeader();
+        PackAnimation.show(pack.name, cards);
+    },
+
+    buyClassPack(classKey) {
+        const pack = Economy.CLASS_PACKS[classKey];
+        if (!pack) return;
+        if (!Economy.canAfford({gold:pack.gold,gems:pack.gems})) {
+            this.toast('Not enough currency!', 'error');
+            return;
+        }
+        const cards = Economy.buyClassPack(classKey);
+        if (!cards) return;
+        this.updateHeader();
+        PackAnimation.show(pack.name, cards);
     },
 
     openPack(packType) {
@@ -615,8 +823,6 @@ const UI = {
         if (!cards) return;
 
         this.updateHeader();
-        
-        // Show pack opening animation modal
         PackAnimation.show(cost.name, cards);
     },
 
@@ -634,7 +840,7 @@ const UI = {
         
         this.toast(`Bought ${listing.card.name}!`, 'success');
         this.updateHeader();
-        this.renderShopContent('items');
+        this.renderShopContent('marketplace');
     },
 
     buyDailyDeal(index) {
@@ -642,7 +848,7 @@ const UI = {
         if (result) {
             this.toast('Daily deal purchased!', 'success');
             this.updateHeader();
-            this.renderShopContent('summon');
+            this.renderShopContent('tiers');
         } else {
             this.toast('Not enough currency!', 'error');
         }
@@ -688,6 +894,49 @@ const UI = {
         
         // Auto-close after 8s
         setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
+    },
+
+    // ===== TURN ORDER DISPLAY =====
+    renderTurnOrder() {
+        const container = document.getElementById('turn-order-display');
+        if (!container) return;
+        const turnOrder = BattleEngine.getNextTurnOrder(5);
+        if (turnOrder.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = turnOrder.map((u, i) => {
+            const arrow = i === 0 ? '👉 ' : '';
+            const opacity = u.alive ? '1' : '0.3';
+            const side = u.isAlly ? '#44cc44' : '#ff4444';
+            return `<span class="turn-order-unit" style="opacity:${opacity}; color:${side}" title="${u.isAlly ? 'Ally' : 'Enemy'}">${arrow}${u.name}</span>`;
+        }).join('');
+    },
+
+    // ===== ENEMY INFO PANEL =====
+    showEnemyInfo(unit) {
+        // Remove existing
+        const old = document.querySelector('.enemy-info-popup');
+        if (old) old.remove();
+
+        const popup = document.createElement('div');
+        popup.className = 'enemy-info-popup';
+        const cls = CLASSES[unit.class] || {};
+        popup.innerHTML = `
+            <div class="enemy-info-header">${cls.emoji || '⚔️'} ${unit.name}</div>
+            <div class="enemy-info-stats">
+                <div>❤️ HP: ${unit.stats.hp}/${unit.stats.maxHp}</div>
+                <div>⚔️ ATK: ${unit.stats.atk}</div>
+                <div>🛡️ DEF: ${unit.stats.def}</div>
+                <div>💨 SPD: ${unit.stats.spd}</div>
+            </div>
+            ${unit.skill ? `<div class="enemy-info-skill">✨ ${unit.skill.name}</div>` : ''}
+            <div class="enemy-info-close">✕</div>
+        `;
+        document.body.appendChild(popup);
+        popup.querySelector('.enemy-info-close').addEventListener('click', () => popup.remove());
+        popup.addEventListener('click', (e) => { if (e.target === popup) popup.remove(); });
+        setTimeout(() => { if (popup.parentNode) popup.remove(); }, 5000);
     },
 
     // ===== TOAST =====
