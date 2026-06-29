@@ -1,0 +1,88 @@
+{
+  "_comment": "Hero catalog: indices used by generate_hero_sprites.py and metadata generator. All hero classes × rarities pre-baked as static metadata; token URIs chunked into /metadata/{tokenId}.json at deploy time.",
+  "schema_version": "1.0",
+  "totalCombinations": 100,
+  "classes": [
+    {
+      "name": "Warrior",
+      "imageBasename": "warrior",
+      "stats": {
+        "hp":     100, "atk": 25, "def": 20, "spd": 10, "crit": 5,
+        "skillName": "Shield Bash", "skillType": "Physical", "skillValue": 30
+      },
+      "rarityBonuses": {
+        "Common":    {"hpMul": 1.0, "atkMul": 1.0},
+        "Rare":      {"hpMul": 1.25, "atkMul": 1.4},
+        "Epic":      {"hpMul": 1.6,  "atkMul": 1.9},
+        "Legendary": {"hpMul": 2.1,  "atkMul": 2.5},
+        "Mythic":    {"hpMul": 3.0,  "atkMul": 3.5}
+      }
+    },
+    {
+      "name": "Mage",
+      "imageBasename": "mage",
+      "stats": {
+        "hp": 75, "atk": 65, "def": 12, "spd": 18, "crit": 12,
+        "skillName": "Elemental Strike", "skillType": "Elemental", "skillValue": 80
+      },
+      "rarityBonuses": {
+        "Common":    {"hpMul": 1.0,  "atkMul": 1.0},
+        "Rare":      {"hpMul": 1.1,  "atkMul": 1.5},
+        "Epic":      {"hpMul": 1.3,  "atkMul": 2.0},
+        "Legendary": {"hpMul": 1.6,  "atkMul": 2.8},
+        "Mythic":    {"hpMul": 2.0,  "atkMul": 4.0}
+      }
+    },
+    {
+      "name": "Archer",
+      "imageBasename": "archer",
+      "stats": {
+        "hp": 85, "atk": 50, "def": 15, "spd": 22, "crit": 18,
+        "skillName": "Piercing Arrow", "skillType": "Physical", "skillValue": 55
+      },
+      "rarityBonuses": {
+        "Common":    {"hpMul": 1.0, "atkMul": 1.0},
+        "Rare":      {"hpMul": 1.2, "atkMul": 1.4},
+        "Epic":      {"hpMul": 1.5, "atkMul": 1.9},
+        "Legendary": {"hpMul": 1.9, "atkMul": 2.6},
+        "Mythic":    {"hpMul": 2.6, "atkMul": 3.6}
+      }
+    },
+    {
+      "name": "Healer",
+      "imageBasename": "healer",
+      "stats": {
+        "hp": 95, "atk": 40, "def": 18, "spd": 14, "crit": 8,
+        "skillName": "Healing Light", "skillType": "Spiritual", "skillValue": 60
+      },
+      "rarityBonuses": {
+        "Common":    {"hpMul": 1.0, "atkMul": 1.0},
+        "Rare":      {"hpMul": 1.3, "atkMul": 1.3},
+        "Epic":      {"hpMul": 1.7, "atkMul": 1.7},
+        "Legendary": {"hpMul": 2.2, "atkMul": 2.2},
+        "Mythic":    {"hpMul": 3.0, "atkMul": 3.0}
+      }
+    },
+    {
+      "name": "Assassin",
+      "imageBasename": "assassin",
+      "stats": {
+        "hp": 70, "atk": 60, "def": 12, "spd": 28, "crit": 25,
+        "skillName": "Shadow Strike", "skillType": "Physical", "skillValue": 70
+      },
+      "rarityBonuses": {
+        "Common":    {"hpMul": 1.0, "atkMul": 1.0},
+        "Rare":      {"hpMul": 1.15, "atkMul": 1.5},
+        "Epic":      {"hpMul": 1.4,  "atkMul": 2.1},
+        "Legendary": {"hpMul": 1.7,  "atkMul": 2.9},
+        "Mythic":    {"hpMul": 2.2,  "atkMul": 4.0}
+      }
+    }
+  ],
+  "rarities": ["Common", "Rare", "Epic", "Legendary", "Mythic"],
+  "distribution": {
+    "_comment": "Probability weights. Sum = 100.",
+    "Common": 50, "Rare": 25, "Epic": 15, "Legendary": 8, "Mythic": 2
+  },
+  "mintFlowNote": "When the server-side relayer calls mintCard(), it: (1) picks a class by RNG/seed, (2) rolls rarity by weight, (3) applies rarity bonuses to base stats, (4) builds a /metadata/{tokenId}.json file under public/metadata/ on the host, (5) submits tx. tokenURI(tokenId) resolves to /metadata/{tokenId}.json via baseURI."
+}

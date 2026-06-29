@@ -1,0 +1,5 @@
+
+# Hardhat compiled artifacts (rebuild locally with `npx hardhat compile`)
+blockchain/artifacts/
+blockchain/cache/
+blockchain/artifacts.bak-prev1/

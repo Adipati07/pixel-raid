@@ -1,0 +1,21 @@
+{
+  "name": "Pixel Raid #2: Crystal Mage",
+  "description": "Rare-tier Mage hero for Pixel Raid. Higher INT scaling, increased elemental damage. Minted via in-game drop after defeating Elemental Storm stage.",
+  "image": "https://pixel.brebross.xyz/assets/heroes/mage-rare.png",
+  "external_url": "https://pixel.brebross.xyz/",
+  "background_color": "4169E1",
+  "attributes": [
+    {"trait_type": "Class",       "value": "Mage"},
+    {"trait_type": "Rarity",      "value": "Rare"},
+    {"trait_type": "HP",          "value": 75,  "display_type": "number"},
+    {"trait_type": "Attack",      "value": 65,  "display_type": "number"},
+    {"trait_type": "Defense",     "value": 12,  "display_type": "number"},
+    {"trait_type": "Speed",       "value": 18,  "display_type": "number"},
+    {"trait_type": "Crit",        "value": 12,  "display_type": "boost_percentage"},
+    {"trait_type": "Skill Name",  "value": "Crystal Barrage"},
+    {"trait_type": "Skill Type",  "value": "Elemental"},
+    {"trait_type": "Skill Value", "value": 80,  "display_type": "number"},
+    {"trait_type": "Level",       "value": 1,   "display_type": "number"},
+    {"trait_type": "EXP",         "value": 0,   "display_type": "number"}
+  ]
+}

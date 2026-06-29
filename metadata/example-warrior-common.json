@@ -1,0 +1,21 @@
+{
+  "name": "Pixel Raid #1: Iron Warrior",
+  "description": "Common-rarity Warrior hero for Pixel Raid auto-battle RPG. Minted by server-side relayer after a gameplay win. Standard starter build.",
+  "image": "https://pixel.brebross.xyz/assets/heroes/warrior-common.png",
+  "external_url": "https://pixel.brebross.xyz/",
+  "background_color": "A0522D",
+  "attributes": [
+    {"trait_type": "Class",       "value": "Warrior"},
+    {"trait_type": "Rarity",      "value": "Common"},
+    {"trait_type": "HP",          "value": 100, "display_type": "number"},
+    {"trait_type": "Attack",      "value": 25,  "display_type": "number"},
+    {"trait_type": "Defense",     "value": 20,  "display_type": "number"},
+    {"trait_type": "Speed",       "value": 10,  "display_type": "number"},
+    {"trait_type": "Crit",        "value": 5,   "display_type": "boost_percentage"},
+    {"trait_type": "Skill Name",  "value": "Shield Bash"},
+    {"trait_type": "Skill Type",  "value": "Physical"},
+    {"trait_type": "Skill Value", "value": 30,  "display_type": "number"},
+    {"trait_type": "Level",       "value": 1,   "display_type": "number"},
+    {"trait_type": "EXP",         "value": 0,   "display_type": "number"}
+  ]
+}

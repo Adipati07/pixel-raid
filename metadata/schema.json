@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pixel.brebross.xyz/metadata/schema.json",
+  "title": "Pixel Raid NFT Metadata (ERC-721 + OpenSea-compatible)",
+  "description": "Per-token metadata served at /metadata/{tokenId}.json. Compatible with OpenSea, Blur, and standard ERC-721 marketplaces.",
+  "type": "object",
+  "required": ["name", "description", "image", "attributes"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name + token id, e.g. 'Pixel Raid #42: Iron Warrior'",
+      "pattern": "^Pixel Raid #\\d+: "
+    },
+    "description": {
+      "type": "string",
+      "description": "Long form description (< 500 chars)"
+    },
+    "image": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to PNG/JPEG illustration (hero art generated via generate_hero_sprites.py)"
+    },
+    "external_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Link to game where this NFT is usable"
+    },
+    "background_color": {
+      "type": "string",
+      "description": "Hex without #, used for marketplace cards",
+      "pattern": "^[0-9A-Fa-f]{6}$"
+    },
+    "attributes": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["trait_type", "value"],
+        "properties": {
+          "trait_type": {
+            "type": "string",
+            "enum": ["Class", "Rarity", "HP", "Attack", "Defense", "Speed", "Crit", "Skill Name", "Skill Type", "Skill Value", "Level", "EXP"]
+          },
+          "value": { "type": ["string", "number", "boolean"] },
+          "display_type": {
+            "type": "string",
+            "enum": ["number", "boost_number", "boost_percentage", "date"],
+            "description": "Optional. Use 'number' for raw stats, 'boost_percentage' for crit%, etc."
+          },
+          "max_value": {
+            "type": "number",
+            "description": "Optional cap for boost_percentage display"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "file": "1.json",
+      "tokenId": 1,
+      "schemaUrl": "https://pixel.brebross.xyz/metadata/1.json"
+    }
+  ]
+}
