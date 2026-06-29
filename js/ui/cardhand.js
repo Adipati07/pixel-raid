@@ -28,11 +28,15 @@ const CardHand = {
      * @param {Array} hand - Array of card objects
      * @param {Object} combatantOrMana - Combatant object (new) or mana number (old)
      * @param {boolean} enabled - Whether cards can be played
+     * @param {Object} options - { hasEmptyHeroZone, hasSummoned }
      */
-    render(hand, combatantOrMana, enabled = false) {
+    render(hand, combatantOrMana, enabled = false, options = {}) {
         if (!this.container) return;
         this.enabled = enabled;
         this.container.innerHTML = '';
+
+        const hasEmptyHeroZone = options.hasEmptyHeroZone !== undefined ? options.hasEmptyHeroZone : true;
+        const hasSummoned = options.hasSummoned || false;
 
         // Support both old (mana int) and new (combatant object) APIs
         let currentMana = 0;
@@ -52,17 +56,14 @@ const CardHand = {
         }
 
         hand.forEach((card, index) => {
-            // In Yu-Gi-Oh mode, hero cards are always playable if there's an empty hero zone
-            // Skill cards are always playable (they go to skill zones or activate immediately)
             let canPlay = enabled;
             if (card.cardType === 'hero' && combatant) {
-                let hasEmpty = false;
-                for (let i = 0; i < 3; i++) {
-                    if (!combatant.heroZones[i]) { hasEmpty = true; break; }
-                }
-                canPlay = enabled && hasEmpty;
+                // Can play hero if: enabled + empty zone + haven't summoned this turn
+                canPlay = enabled && hasEmptyHeroZone && !hasSummoned;
             } else if (card.manaCost !== undefined) {
                 canPlay = enabled && currentMana >= card.manaCost;
+            } else if (card.cardType === 'skill') {
+                canPlay = enabled; // Skills always playable
             }
 
             try {
@@ -165,23 +166,42 @@ const CardHand = {
         }
 
         const el = cards[cardIndex];
-        el.classList.add('card-playing');
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.animateCardPlay(el, callback);
+        } else {
+            el.classList.add('card-playing');
+            setTimeout(() => { if (callback) callback(); }, 400);
+        }
+    },
 
-        setTimeout(() => {
-            if (callback) callback();
-        }, 400);
+    /**
+     * Shake a card (can't play indicator)
+     */
+    shakeCard(cardIndex) {
+        const cards = this.container?.querySelectorAll('.battle-card');
+        if (!cards || !cards[cardIndex]) return;
+        const el = cards[cardIndex];
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.shakeCard(el);
+        } else {
+            el.classList.add('card-disabled');
+            setTimeout(() => el.classList.remove('card-disabled'), 400);
+        }
     },
 
     /**
      * Animate card being drawn (slide in from deck)
      */
     animateCardDraw() {
-        const cards = this.container?.querySelectorAll('.battle-card');
-        if (!cards || cards.length === 0) return;
-
-        const last = cards[cards.length - 1];
-        last.classList.add('card-draw-in');
-        setTimeout(() => last.classList.remove('card-draw-in'), 500);
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.animateCardDraw(this.container);
+        } else {
+            const cards = this.container?.querySelectorAll('.battle-card');
+            if (!cards || cards.length === 0) return;
+            const last = cards[cards.length - 1];
+            last.classList.add('card-draw-in');
+            setTimeout(() => last.classList.remove('card-draw-in'), 500);
+        }
     },
 
     /**

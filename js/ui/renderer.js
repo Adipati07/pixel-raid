@@ -317,6 +317,12 @@ const BattleRenderer = {
             this._drawAttackAnim(ctx, anim, W, H);
         }
 
+        // Battle animation overlays (summon effects, attack flashes)
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.update();
+            BattleAnimations.renderOverlay(ctx, W, H);
+        }
+
         // Register click handler for zones
         this._registerClickHandler(canvas, W, H);
     },

@@ -52,6 +52,13 @@ const BattleEngine = {
         this._selectedAttacker = null;
         this._selectedTarget = null;
         this._attackQueue = [];
+        this._playerHasSummoned = false;
+
+        // Initialize animation system
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.stop(); // clear any leftover state
+            BattleAnimations.init();
+        }
 
         // Clear any leftover timers
         if (this._mainPhaseTimer) { clearTimeout(this._mainPhaseTimer); this._mainPhaseTimer = null; }
@@ -199,6 +206,7 @@ const BattleEngine = {
         if (!this.isRunning) return;
 
         this.turnNumber++;
+        this._playerHasSummoned = false;
         const current = this.isPlayerTurn ? this.player : this.enemy;
         const opponent = this.isPlayerTurn ? this.enemy : this.player;
 
@@ -255,10 +263,145 @@ const BattleEngine = {
 
     // ===== MAIN PHASE: PLAYER CARD PLAY =====
     _enablePlayerCards() {
-        CardHand.render(this.player.hand, this.player, true);
+        // Determine which hero zones are empty for each card type
+        const hasEmptyHeroZone = this.player.heroZones.some(z => z === null);
+        const hasSummoned = this._playerHasSummoned; // once per turn normal summon
+
+        CardHand.render(this.player.hand, this.player, true, { hasEmptyHeroZone, hasSummoned });
         CardHand.onCardPlay = (index, card) => {
-            this._playCard(this.player, index, card, this.enemy);
+            this.playCard(index);
         };
+    },
+
+    /**
+     * Public API: Player plays a card from hand by index
+     */
+    playCard(handIndex) {
+        if (!this.isPlayerTurn || this.currentPhase !== 'main') return false;
+        const card = this.player.hand[handIndex];
+        if (!card) return false;
+
+        if (card.cardType === 'hero') {
+            // Check summoning limit
+            if (this._playerHasSummoned) {
+                this.addLog('❌ Already summoned this turn!', 'info');
+                CardHand.shakeCard(handIndex);
+                return false;
+            }
+            // Check for empty zone
+            const zoneIndex = this._findEmptyZone(this.player);
+            if (zoneIndex === -1) {
+                this.addLog('❌ No empty hero zones!', 'info');
+                CardHand.shakeCard(handIndex);
+                return false;
+            }
+            // Animate card out, then summon
+            CardHand.animateCardPlay(handIndex, () => {
+                this._summonHero(this.player, handIndex, zoneIndex, this.enemy);
+                this._playerHasSummoned = true;
+            });
+            return true;
+        } else if (card.cardType === 'skill') {
+            // Animate card out, then activate
+            CardHand.animateCardPlay(handIndex, () => {
+                this._activateSkill(this.player, handIndex, this.enemy);
+            });
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Find first empty hero zone for a combatant
+     */
+    _findEmptyZone(combatant) {
+        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
+            if (combatant.heroZones[i] === null) return i;
+        }
+        return -1;
+    },
+
+    /**
+     * Summon a hero card from hand to a specific zone
+     */
+    _summonHero(combatant, handIndex, zoneIndex, target) {
+        const card = combatant.hand.splice(handIndex, 1)[0];
+        if (!card) return false;
+
+        card.position = 'attack';
+        card.faceUp = true;
+        card.canAttack = false;
+        card.hasAttacked = false;
+        card.atkBuff = 0;
+        card.defBuff = 0;
+        combatant.heroZones[zoneIndex] = card;
+
+        this.addLog(`🃏 ${combatant.name} summons ${card.name} to Zone ${zoneIndex + 1} (ATK)`, 'skill');
+
+        // Spawn summon animation
+        this._showDamageNum(combatant, `✦ Summon!`, '#ffd700');
+        this._triggerAnimation('skill');
+
+        // Emit event for renderer
+        if (typeof BattleAnimations !== 'undefined') {
+            const zonePos = this._getZoneScreenPos(combatant, zoneIndex);
+            if (zonePos) {
+                BattleAnimations.spawnSummonEffect(zonePos.x, zonePos.y);
+            }
+        }
+
+        this._renderBattle();
+        if (this.isPlayerTurn && this.currentPhase === 'main') {
+            this._enablePlayerCards();
+        }
+        if (this.onCardPlayed) this.onCardPlayed(combatant, card);
+        return true;
+    },
+
+    /**
+     * Activate a skill card from hand
+     */
+    _activateSkill(combatant, handIndex, target) {
+        const card = combatant.hand.splice(handIndex, 1)[0];
+        if (!card) return false;
+
+        this._activateSkillCard(combatant, target, card);
+        combatant.graveyard.push(card);
+
+        this._renderBattle();
+        if (this.isPlayerTurn && this.currentPhase === 'main') {
+            this._enablePlayerCards();
+        }
+        if (this.onCardPlayed) this.onCardPlayed(combatant, card);
+        return true;
+    },
+
+    /**
+     * Get approximate screen position of a hero zone for animations
+     */
+    _getZoneScreenPos(combatant, zoneIndex) {
+        const canvas = document.getElementById('battle-canvas');
+        if (!canvas) return null;
+        const W = canvas.width;
+        const H = canvas.height;
+        const rowHeight = H / 6;
+        const zoneW = 80;
+        const totalHeroW = zoneW * 3 + 20;
+        const heroStartX = (W - totalHeroW) / 2;
+
+        if (combatant.isPlayer) {
+            const heroY = rowHeight * 3 + (rowHeight * 2 - 100) / 2;
+            return {
+                x: heroStartX + zoneIndex * (zoneW + 10) + zoneW / 2,
+                y: heroY + 50,
+            };
+        } else {
+            const heroY = rowHeight + (rowHeight * 2 - 100) / 2;
+            return {
+                x: heroStartX + zoneIndex * (zoneW + 10) + zoneW / 2,
+                y: heroY + 50,
+            };
+        }
     },
 
     /**
@@ -589,6 +732,9 @@ const BattleEngine = {
             this.addLog(`⚔️ ${atkHero.name} attacks directly! ${lpDamage} damage! (LP: ${defender.lp})`, 'dmg');
             this._showDamageNum(defender, `-${lpDamage}`, '#ff4444');
             this._triggerAnimation('crit');
+            if (typeof BattleAnimations !== 'undefined') {
+                BattleAnimations.shakeScreen(5, 0.3);
+            }
 
             this._renderBattle();
 
@@ -777,6 +923,7 @@ const BattleEngine = {
     // ===== AI LOGIC =====
     _aiPlayCards() {
         const ai = this.enemy;
+        let aiSummoned = false;
 
         // Sort hand: play heroes first, then skills
         const playable = ai.hand
@@ -805,16 +952,15 @@ const BattleEngine = {
             const actualIndex = ai.hand.indexOf(card);
             if (actualIndex === -1) continue;
 
-            // Check if we can play this card
             if (card.cardType === 'hero') {
-                let hasEmpty = false;
-                for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                    if (ai.heroZones[i] === null) { hasEmpty = true; break; }
+                if (aiSummoned) continue; // one summon per turn
+                const zone = this._findEmptyZone(ai);
+                if (zone === -1) continue;
+                this._summonHero(ai, actualIndex, zone, this.player);
+                aiSummoned = true;
+            } else if (card.cardType === 'skill') {
+                this._activateSkill(ai, actualIndex, this.player);
                 }
-                if (!hasEmpty) continue;
-            }
-
-            this._playCard(ai, actualIndex, card, this.player);
             played++;
         }
 
@@ -860,19 +1006,44 @@ const BattleEngine = {
     },
 
     _showDamageNum(target, text, color) {
-        const wrap = document.querySelector('.battle-canvas-wrap');
-        if (!wrap) return;
-        const num = document.createElement('div');
-        num.className = 'battle-damage-num';
-        num.style.left = (50 + Math.random() * 30) + '%';
-        num.style.top = target.isPlayer ? '65%' : '25%';
-        num.style.color = color;
-        num.textContent = text;
-        wrap.appendChild(num);
-        setTimeout(() => { if (num.parentNode) num.remove(); }, 1200);
+        if (typeof BattleAnimations !== 'undefined') {
+            const canvas = document.getElementById('battle-canvas');
+            if (canvas) {
+                // Position based on which side took damage
+                const x = canvas.width * (0.4 + Math.random() * 0.2);
+                const y = target.isPlayer ? canvas.height * 0.65 : canvas.height * 0.25;
+                BattleAnimations.spawnDamageNumber(x, y, text, color);
+                // Also shake screen for big damage
+                if (text.includes('-') && parseInt(text.replace(/[^0-9]/g, '')) > 500) {
+                    BattleAnimations.shakeScreen(4, 0.3);
+                }
+            }
+        } else {
+            // Fallback
+            const wrap = document.querySelector('.battle-canvas-wrap');
+            if (!wrap) return;
+            const num = document.createElement('div');
+            num.className = 'battle-damage-num';
+            num.style.left = (50 + Math.random() * 30) + '%';
+            num.style.top = target.isPlayer ? '65%' : '25%';
+            num.style.color = color;
+            num.textContent = text;
+            wrap.appendChild(num);
+            setTimeout(() => { if (num.parentNode) num.remove(); }, 1200);
+        }
     },
 
     _onPhaseChange(phase) {
+        // Show animated phase banner
+        const phaseNames = {
+            draw: 'DRAW PHASE',
+            main: 'MAIN PHASE',
+            battle: 'BATTLE PHASE',
+            end: 'END PHASE',
+        };
+        if (typeof BattleAnimations !== 'undefined' && phaseNames[phase]) {
+            BattleAnimations.showPhaseBanner(phaseNames[phase], this.isPlayerTurn);
+        }
         if (this.onPhaseChange) this.onPhaseChange(phase, this.isPlayerTurn);
     },
 
