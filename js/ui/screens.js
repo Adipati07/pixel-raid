@@ -141,6 +141,9 @@ const UI = {
         const enemyHero = enemyDeck[0]; // pick first generated enemy
         const enemySkillIds = GameState.generateEnemySkillDeck(stage);
 
+        // Initialize card hand renderer with the hand area container
+        CardHand.init('card-hand-area');
+
         // Clear battle log
         document.getElementById('battle-log').innerHTML = '';
         
