@@ -61,8 +61,25 @@
             display: flex; align-items: center; justify-content: space-between;
         }
         .nav-logo {
-            font-size: 14px; color: var(--gold);
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+            font-size: 16px; color: var(--gold);
+            text-shadow:
+                2px 2px 0 rgba(0,0,0,0.8),
+                0 0 12px rgba(240,192,64,0.5),
+                0 0 30px rgba(240,192,64,0.2);
+            letter-spacing: 2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+        .nav-logo::before {
+            content: '⚔';
+            font-size: 18px;
+            filter: drop-shadow(0 0 6px rgba(240,192,64,0.6));
+        }
+        @keyframes logoGlow {
+            0%, 100% { text-shadow: 2px 2px 0 rgba(0,0,0,0.8), 0 0 12px rgba(240,192,64,0.5), 0 0 30px rgba(240,192,64,0.2); }
+            50% { text-shadow: 2px 2px 0 rgba(0,0,0,0.8), 0 0 24px rgba(240,192,64,0.8), 0 0 60px rgba(240,192,64,0.3); }
         }
         .nav-links { display: flex; gap: 24px; }
         .nav-links a {
@@ -87,13 +104,39 @@
         }
         .hero-title {
             font-size: clamp(32px, 8vw, 80px); color: var(--gold);
-            text-shadow: 4px 4px 0 var(--gold-dark), 8px 8px 0 rgba(0,0,0,0.6), 0 0 40px rgba(240,192,64,0.3);
+            text-shadow:
+                4px 4px 0 var(--gold-dark),
+                8px 8px 0 rgba(0,0,0,0.6),
+                0 0 40px rgba(240,192,64,0.4),
+                0 0 80px rgba(240,192,64,0.2),
+                0 0 120px rgba(240,192,64,0.1);
             animation: titlePulse 3s ease-in-out infinite, titleEntry 1s ease-out;
-            margin-bottom: 8px; letter-spacing: 4px;
+            margin-bottom: 8px; letter-spacing: 6px;
+            position: relative;
+        }
+        .hero-title::before {
+            content: '⚔';
+            font-size: 0.6em;
+            margin-right: 0.2em;
+            filter: drop-shadow(0 0 15px rgba(240,192,64,0.6));
+            display: inline-block;
+            animation: heroSword 2.5s ease-in-out infinite;
+        }
+        .hero-title::after {
+            content: '⚔';
+            font-size: 0.6em;
+            margin-left: 0.2em;
+            filter: drop-shadow(0 0 15px rgba(240,192,64,0.6));
+            display: inline-block;
+            animation: heroSword 2.5s ease-in-out infinite 1.25s;
+        }
+        @keyframes heroSword {
+            0%, 100% { transform: rotate(-12deg) scale(1); }
+            50% { transform: rotate(12deg) scale(1.1); }
         }
         @keyframes titlePulse {
-            0%, 100% { text-shadow: 4px 4px 0 var(--gold-dark), 8px 8px 0 rgba(0,0,0,0.6), 0 0 40px rgba(240,192,64,0.3); }
-            50% { text-shadow: 4px 4px 0 var(--gold-dark), 8px 8px 0 rgba(0,0,0,0.6), 0 0 80px rgba(240,192,64,0.5), 0 0 120px rgba(240,192,64,0.2); }
+            0%, 100% { text-shadow: 4px 4px 0 var(--gold-dark), 8px 8px 0 rgba(0,0,0,0.6), 0 0 40px rgba(240,192,64,0.4), 0 0 80px rgba(240,192,64,0.2), 0 0 120px rgba(240,192,64,0.1); }
+            50% { text-shadow: 4px 4px 0 var(--gold-dark), 8px 8px 0 rgba(0,0,0,0.6), 0 0 80px rgba(240,192,64,0.7), 0 0 140px rgba(240,192,64,0.4), 0 0 200px rgba(240,192,64,0.15); }
         }
         @keyframes titleEntry {
             from { opacity: 0; transform: scale(0.5) translateY(-30px); }
@@ -308,7 +351,11 @@
             border-top: 2px solid rgba(240,192,64,0.15);
             background: linear-gradient(180deg, var(--bg-dark), #06060e);
         }
-        .footer-logo { font-size: 16px; color: var(--gold); margin-bottom: 16px; }
+        .footer-logo {
+            font-size: 16px; color: var(--gold); margin-bottom: 16px;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.8), 0 0 10px rgba(240,192,64,0.4);
+            letter-spacing: 2px;
+        }
         .footer-tagline { font-size: 8px; color: var(--text-dim); margin-bottom: 24px; }
         .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
         .footer-links a {
