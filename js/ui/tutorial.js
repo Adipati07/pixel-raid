@@ -54,7 +54,7 @@ const Tutorial = {
         {
             id: 'welcome',
             title: '⚔️ Welcome to Pixel Raid!',
-            text: 'Collect hero cards, build your deck, and battle through stages!\n\nLet me show you around...',
+            text: 'Collect hero cards, build your deck, and battle through stages!\n\nThis is a turn-based card battler — you play skill cards, manage mana, and outsmart enemies!\n\nLet me show you around...',
             target: null,
             position: 'center',
         },
@@ -68,36 +68,43 @@ const Tutorial = {
         {
             id: 'nav_battle',
             title: '⚔️ Battle Screen',
-            text: 'This is where you fight!\n\nPress "Start Battle" to fight enemies.\nWin all 3 waves to clear a stage and get rewards!',
+            text: 'This is where you fight!\n\nBattles are 1v1 turn-based. Each turn has 4 phases:\n🃏 Draw Phase — draw a skill card\n⚡ Main Phase — play skill cards from your hand\n⚔️ Attack Phase — your hero attacks automatically\n⏭ End Phase — turn passes to enemy\n\nWin by reducing enemy HP to 0!',
             target: '#screen-battle',
             position: 'bottom',
         },
         {
+            id: 'mana_system',
+            title: '💎 Mana System',
+            text: 'Every skill card costs mana to play!\n\nYou start with 0 mana. Each turn your max mana increases +1 (up to 10), and you refill to max.\n\nEarly turns = few cards playable.\nLater turns = unleash powerful combos!\n\nTip: Save mana for big cards when it matters!',
+            target: '#player-mana-display',
+            position: 'top',
+        },
+        {
+            id: 'card_hand',
+            title: '🃏 Skill Cards',
+            text: 'Your hand shows skill cards you can play:\n\n🔴 Attack — deal damage to enemy\n🛡️ Defense — gain shield or reduce damage\n⬆️ Buff — boost your ATK/DEF/SPD\n⬇️ Debuff — weaken the enemy\n⭐ Special — unique powerful effects\n\nClick a card to play it during Main Phase!',
+            target: '#card-hand-area',
+            position: 'top',
+        },
+        {
             id: 'start_battle',
             title: '🎮 Try Your First Battle!',
-            text: 'Press the button below to start fighting!\n\nYour heroes attack automatically. Watch the battle log for what happens.',
+            text: 'Press "Start Battle" to begin!\n\nDraw 3 cards to start. Play skill cards wisely, manage your mana, and defeat the enemy!\n\nDon\'t worry — you\'ll earn gold and EXP whether you win or lose.',
             target: '#btn-start-battle',
             position: 'top',
         },
         {
             id: 'nav_heroes',
             title: '🦸 Heroes Tab',
-            text: 'Check your hero collection here.\n\nSee stats, rarity, and skills of each card.\nNew heroes unlock as you level up!',
+            text: 'Check your hero collection here.\n\nSee stats (HP, ATK, DEF, SPD, MANA) and skills of each card.\nNew heroes unlock as you level up!',
             target: '[data-screen="heroes"]',
             position: 'bottom',
         },
         {
             id: 'nav_formation',
-            title: '📐 Formation',
-            text: 'Drag heroes to build your battle deck.\n\nYou can bring up to 5 heroes.\nBench heroes are reserves.\n\nTip: Mix tanks, DPS, and healers!',
+            title: '📐 Formation & Synergy',
+            text: 'Pick your battle hero here!\n\nOnly 1 hero goes into battle, but choose wisely — each hero has different stats and skills.\n\nBring heroes of the same type for synergy bonuses:\n• 3x Warriors → Iron Wall (+20 DEF)\n• 2x Mages → Arcane Surge (+15 ATK)\n• Balanced team → Full Balance (+50 HP)',
             target: '[data-screen="formation"]',
-            position: 'bottom',
-        },
-        {
-            id: 'nav_inventory',
-            title: '🎒 Inventory',
-            text: 'Equip gear to make heroes stronger!\n\n⚔️ Weapons → ATK\n🛡️ Armor → DEF\n💍 Accessories → various buffs\n🧪 Consumables → one-time use',
-            target: '[data-screen="inventory"]',
             position: 'bottom',
         },
         {
@@ -106,13 +113,6 @@ const Tutorial = {
             text: 'Buy card packs to get new heroes!\n\n📦 Basic Pack — 50g, 3 cards\n📦 Premium Pack — 150g, guaranteed rare\n📦 Elite Pack — 3 gems, boosted rates\n📦 Legendary Pack — 10 gems, guaranteed epic+',
             target: '[data-screen="shop"]',
             position: 'bottom',
-        },
-        {
-            id: 'synergies',
-            title: '🔗 Synergy System',
-            text: 'Bring heroes of the same class for bonus effects!\n\n2x same class → class buff\n3x same class → stronger buff\nSpecial combos (e.g. Warrior + Mage) → unique bonuses!\n\nExperiment with different team compositions!',
-            target: null,
-            position: 'center',
         },
         {
             id: 'level_up',
@@ -191,7 +191,7 @@ const Tutorial = {
         if (step.id === 'ready') {
             const className = CLASSES[this.chosenClass]?.name || this.chosenClass;
             const classEmoji = CLASSES[this.chosenClass]?.emoji || '⚔️';
-            step.text = `That's everything you need to know, ${this.chosenName}!\n\nYour ${classEmoji} ${className} journey begins now.\n\nQuick tips:\n• Win stages to earn gold & cards\n• Open packs to expand collection\n• Equip gear to boost stats\n• Level up to unlock rare heroes\n• Build synergies for bonus power\n\nGood luck, ${this.chosenName}! ⚔️`;
+            step.text = `That's everything you need to know, ${this.chosenName}!\n\nYour ${classEmoji} ${className} journey begins now.\n\nBattle tips:\n• Draw 3 cards to start, 1 more each turn\n• Mana +1/turn (max 10) — save for big plays!\n• Attack cards deal damage, Defense gives shield\n• Buff/Debuff swing the fight in your favor\n• Win stages to earn gold & level up\n\nGood luck, ${this.chosenName}! ⚔️`;
         }
 
         // Highlight target element

@@ -85,7 +85,7 @@ const GameState = {
         // Generate 5 random skill cards for enemy, scaled by stage
         const count = Math.min(5, Math.ceil(stage / 3) + 2);
         const ids = [];
-        const pool = STARTER_SKILL_CARDS.map(c => c.id);
+        const pool = SKILL_CARD_TEMPLATES.map(c => c.id);
         for (let i = 0; i < count; i++) {
             ids.push(pool[Math.floor(Math.random() * pool.length)]);
         }

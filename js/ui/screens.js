@@ -132,7 +132,7 @@ const UI = {
         let playerSkillIds = GameState.skillDeck.slice();
         // If no skill deck built, use default starter skill cards
         if (playerSkillIds.length === 0) {
-            playerSkillIds = STARTER_SKILL_CARDS.slice(0, 5).map(c => c.id);
+            playerSkillIds = SKILL_CARD_TEMPLATES.slice(0, 5).map(c => c.id);
         }
 
         // Generate enemy: 1 hero + skill cards
