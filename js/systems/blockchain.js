@@ -5,7 +5,7 @@
 
 const BlockchainBridge = {
     // Contract config (BSC Testnet for demo)
-    CONTRACT_ADDRESS: '0x0000000000000000000000000000000000000000', // TODO: Deploy & update
+    CONTRACT_ADDRESS: '0xB96eFfe282b5a8B71895CCF83fA4792A0f0933AC', // BSC testnet (deployed, verified)
     BSC_CHAIN_ID: '0x38',        // BSC Mainnet: 56
     BSC_TESTNET_CHAIN_ID: '0x61', // BSC Testnet: 97
     
