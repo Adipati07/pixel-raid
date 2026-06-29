@@ -11,6 +11,38 @@ const Tutorial = {
     chosenClass: null,
     chosenName: '',
 
+    // ========== Polish helpers (added) ==========
+    _KEY: 'pixelraid_tutorial_step',
+    _reducedMotion() {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    },
+    _loadSavedStep() {
+        try { return parseInt(localStorage.getItem(this._KEY) || '0', 10) || 0; }
+        catch (e) { return 0; }
+    },
+    _saveStep(step) {
+        try { localStorage.setItem(this._KEY, String(step)); } catch (e) {}
+    },
+    _clearSavedStep() {
+        try { localStorage.removeItem(this._KEY); } catch (e) {}
+    },
+    _installKeyboardNav() {
+        if (this._keyHandler) return;
+        this._keyHandler = (e) => {
+            if (!this.active) return;
+            if (e.key === 'ArrowRight') { e.preventDefault(); this.next(); }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); this.prev(); }
+            else if (e.key === 'Escape') { e.preventDefault(); this.end(); }
+        };
+        window.addEventListener('keydown', this._keyHandler);
+    },
+    _uninstallKeyboardNav() {
+        if (this._keyHandler) {
+            window.removeEventListener('keydown', this._keyHandler);
+            this._keyHandler = null;
+        }
+    },
+
     STEPS: [
         {
             id: 'character_creation',
@@ -106,9 +138,11 @@ const Tutorial = {
             return;
         }
         this.active = true;
-        this.step = 0;
         this.chosenClass = null;
         this.chosenName = '';
+        const saved = this._loadSavedStep();
+        this.step = (saved > 0 && saved < this.STEPS.length - 1) ? saved : 0;
+        this._installKeyboardNav();
         this.showStep();
     },
 
@@ -181,6 +215,9 @@ const Tutorial = {
             <div class="tutorial-backdrop"></div>
             <div class="tutorial-tooltip ${step.position}">
                 <div class="tutorial-step-count">Step ${this.step + 1}/${this.STEPS.length}</div>
+                <div class="tutorial-progress" aria-label="Tutorial progress">
+                    ${this.STEPS.map((_, i) => `<span class="tutorial-dot ${i < this.step ? 'done' : i === this.step ? 'current' : 'upcoming'}"></span>`).join('')}
+                </div>
                 <div class="tutorial-title">${step.title}</div>
                 <div class="tutorial-text">${step.text.replace(/\n/g, '<br>')}</div>
                 <div class="tutorial-buttons">
@@ -189,6 +226,7 @@ const Tutorial = {
                     ${!isFirst && !isLast ? '<button class="btn btn-gold tutorial-btn-next">Next →</button>' : ''}
                     ${isLast ? '<button class="btn btn-gold tutorial-btn-finish">⚔️ Start Playing!</button>' : ''}
                     ${!isLast ? '<button class="btn tutorial-btn-skip">Skip Tutorial</button>' : ''}
+                    ${!isLast ? '<button class="btn tutorial-btn-skip-all">Skip All</button>' : ''}
                 </div>
             </div>
         `;
@@ -212,6 +250,7 @@ const Tutorial = {
         this.overlay.querySelector('.tutorial-btn-back')?.addEventListener('click', () => this.prev());
         this.overlay.querySelector('.tutorial-btn-finish')?.addEventListener('click', () => this.end());
         this.overlay.querySelector('.tutorial-btn-skip')?.addEventListener('click', () => this.end());
+        this.overlay.querySelector('.tutorial-btn-skip-all')?.addEventListener('click', () => this.end());
 
         // Animate in
         requestAnimationFrame(() => {
@@ -443,6 +482,7 @@ const Tutorial = {
     },
 
     next() {
+        if (this.step < this.STEPS.length - 1) this._saveStep(this.step + 1);
         this.step++;
         this.showStep();
     },
@@ -456,9 +496,11 @@ const Tutorial = {
 
     end() {
         this.active = false;
+        this._uninstallKeyboardNav();
+        this._clearSavedStep();
         if (this.overlay) {
             this.overlay.classList.add('fade-out');
-            setTimeout(() => this.overlay?.remove(), 300);
+            setTimeout(() => this.overlay?.remove(), this._reducedMotion() ? 0 : 300);
         }
         if (this.highlightEl) {
             this.highlightEl.classList.remove('tutorial-highlight');

@@ -430,6 +430,27 @@
         .tutorial-ring { position: absolute; z-index: 9999; border: 3px solid var(--gold); border-radius: 8px; pointer-events: none; animation: tutorial-pulse 1.5s ease-in-out infinite; }
         @keyframes tutorial-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+        /* progress dots */
+        .tutorial-progress { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+        .tutorial-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(212,160,23,0.18); }
+        .tutorial-dot.done { background: rgba(212,160,23,0.45); }
+        .tutorial-dot.current { background: var(--gold); box-shadow: 0 0 8px rgba(212,160,23,0.6); }
+
+        /* skip all button */
+        .tutorial-btn-skip-all { font-size: 7px; padding: 6px 12px; border-radius: 4px; background: rgba(76,175,80,0.12); border: 1px solid rgba(76,175,80,0.25); color: var(--text-dim); cursor: pointer; }
+
+        /* arrow connector positioning classes */
+        .tutorial-arrow { position: absolute; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 14px solid var(--gold); pointer-events: none; filter: drop-shadow(0 0 4px rgba(212,160,23,0.4)); }
+        .tutorial-arrow.bottom { transform: rotate(180deg); }
+        .tutorial-arrow.left { transform: rotate(90deg); border-top: 14px solid var(--gold); border-left: 12px solid transparent; border-right: 12px solid transparent; }
+        .tutorial-arrow.right { transform: rotate(270deg); border-top: 14px solid var(--gold); border-left: 12px solid transparent; border-right: 12px solid transparent; }
+        .tutorial-arrow.top { transform: rotate(0deg); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tutorial-highlight, .tutorial-ring, .tutorial-progress, .tutorial-dot { transition: none !important; animation: none !important; }
+            .tutorial-overlay { transition-duration: 0.01ms !important; }
+        }
+
         /* Stat Bars in Cards */
         .card-stat-row { display:flex; align-items:center; gap:4px; margin:2px 0; }
         .card-stat-label { width:22px; font-size:6px; color:#6B8E6B; text-align:right; }
