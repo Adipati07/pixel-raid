@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/retro-ui.css">
     <style>
         /* ========== GAME UI STYLES ========== */
         :root {
@@ -176,6 +177,42 @@
         .log-skill { color: #aa44ff; }
         .log-drop { color: var(--gold); }
 
+        /* Turn order bar */
+        .turn-order-bar {
+            display: flex; gap: 8px; padding: 6px 10px; margin-bottom: 8px;
+            background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 9px;
+            align-items: center; overflow-x: auto; min-height: 24px;
+            font-family: 'Press Start 2P';
+        }
+        .turn-order-bar:empty { display: none; }
+        .turn-order-unit {
+            white-space: nowrap; padding: 2px 6px; border-radius: 4px;
+            background: rgba(255,255,255,0.08); font-size: 8px;
+        }
+        .turn-order-bar::before {
+            content: '⏳'; margin-right: 4px; font-size: 10px;
+        }
+
+        /* Pause overlay */
+        .pause-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10; border-radius: 8px;
+        }
+
+        /* Enemy info popup */
+        .enemy-info-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--panel); border: 2px solid var(--border); border-radius: 12px;
+            padding: 16px; z-index: 1000; min-width: 200px; font-size: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .enemy-info-header { font-family: 'Press Start 2P'; font-size: 12px; color: var(--gold); margin-bottom: 10px; text-align: center; }
+        .enemy-info-stats { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+        .enemy-info-skill { color: #aa44ff; font-size: 9px; text-align: center; padding: 4px; background: rgba(170,68,255,0.1); border-radius: 4px; }
+        .enemy-info-close { position: absolute; top: 8px; right: 10px; cursor: pointer; color: var(--text-dim); font-size: 14px; }
+        .enemy-info-close:hover { color: var(--text); }
+
         /* Battle animation classes */
         .battle-shake { animation: battleShake 0.3s ease-in-out; }
         .battle-shake-crit { animation: battleShakeCrit 0.5s ease-in-out; }
@@ -306,8 +343,12 @@
             text-shadow: 1px 1px 0 #000, 0 0 8px rgba(255,215,0,0.6);
             pointer-events: none;
             z-index: 55;
-            animation: skillPop 1.5s ease-out forwards;
+            animation: skillPop 2s ease-out forwards;
             white-space: nowrap;
+        }
+        .skill-desc {
+            font-size: 7px; color: #aaf; margin-top: 2px;
+            text-shadow: 1px 1px 0 #000;
         }
         @keyframes skillPop {
             0% { opacity: 0; transform: translateY(5px); }
@@ -651,6 +692,7 @@
 
         <div class="battle-controls">
             <button class="btn btn-gold" id="btn-start-battle">⚔️ Start Battle</button>
+            <button class="btn btn-secondary" id="btn-pause" style="display:none">⏸ Pause</button>
             <button class="btn btn-secondary" id="btn-auto-next">🔄 Auto Next Stage</button>
             <div class="speed-controls">
                 <button class="speed-btn active" data-speed="1">1x</button>
@@ -658,6 +700,8 @@
                 <button class="speed-btn" data-speed="3">3x</button>
             </div>
         </div>
+
+        <div class="turn-order-bar" id="turn-order-display"></div>
 
         <div class="battle-log" id="battle-log"></div>
 
