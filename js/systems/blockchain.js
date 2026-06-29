@@ -4,8 +4,11 @@
  * ======================================== */
 
 const BlockchainBridge = {
-    // Contract config (BSC Testnet for demo)
-    CONTRACT_ADDRESS: '0x0000000000000000000000000000000000000000', // TODO: Deploy & update
+    // Contract config (BSC Testnet)
+    // V2 deployed at 0xFB44693…7C13 — mutable baseURI, OpenZeppelin ERC-721 v4
+    // BSCscan: https://testnet.bscscan.com/address/0xFB44693a41CaFAa2CfeDb7694A2b7F70A41F7C13
+    // v1 (orphan): 0xB96eFfe282b5a8B71895CCF83fA4792A0f0933AC (no longer wired)
+    CONTRACT_ADDRESS: '0xFB44693a41CaFAa2CfeDb7694A2b7F70A41F7C13', // V2 (BSC testnet)
     BSC_CHAIN_ID: '0x38',        // BSC Mainnet: 56
     BSC_TESTNET_CHAIN_ID: '0x61', // BSC Testnet: 97
     
