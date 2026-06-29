@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Raid — Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; direction: ltr; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 900px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Pixel Raid — System Architecture</h1>
+      </div>
+      <p class="subtitle">NFT auto-battle RPG · BSC testnet · On-chain card ownership</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1180 720">
+
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24" />
+          </marker>
+          <marker id="arrow-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399" />
+          </marker>
+          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ═══ PATCH D · TOP HEADLINE STRIP ═══ -->
+        <rect x="30" y="20" width="1120" height="22" rx="4" fill="rgba(6, 78, 59, 0.35)" stroke="#34d399" stroke-width="1"/>
+        <circle cx="50" cy="31" r="4" fill="#34d399">
+          <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <text x="68" y="35" fill="#34d399" font-size="10" font-weight="700">LIVE on BSC Testnet (chain 97)</text>
+        <circle cx="290" cy="31" r="4" fill="#34d399">
+          <animate attributeName="opacity" values="1;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+        </circle>
+        <text x="308" y="35" fill="#34d399" font-size="10" font-weight="700">✓ VERIFIED on BSCscan</text>
+        <circle cx="500" cy="31" r="4" fill="#22d3ee">
+          <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="518" y="35" fill="#22d3ee" font-size="10" font-weight="700">SOURCE OPEN — github.com/Adipati07/pixel-raid</text>
+        <circle cx="900" cy="31" r="4" fill="#a78bfa">
+          <animate attributeName="opacity" values="1;0.3;1" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+        <text x="918" y="35" fill="#a78bfa" font-size="10" font-weight="700">Live + production-ready</text>
+
+        <!-- REGION 1: USER -->
+        <rect x="30" y="50" width="180" height="220" rx="10" fill="rgba(30, 41, 59, 0.3)" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="42" y="68" fill="#94a3b8" font-size="9" font-weight="600">USER</text>
+
+        <rect x="50" y="80" width="140" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="120" y="105" fill="white" font-size="11" font-weight="600" text-anchor="middle">Browser</text>
+        <text x="120" y="121" fill="#94a3b8" font-size="9" text-anchor="middle">Chrome · Firefox · Mobile</text>
+
+        <rect x="50" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="120" y="195" fill="white" font-size="11" font-weight="600" text-anchor="middle">MetaMask</text>
+        <text x="120" y="212" fill="#94a3b8" font-size="8" text-anchor="middle">Signer + Custody</text>
+        <text x="120" y="227" fill="#fb7185" font-size="8" text-anchor="middle">Wallet 0xF6a1…ed2</text>
+        <text x="120" y="241" fill="#94a3b8" font-size="7" text-anchor="middle">Personal signing</text>
+
+        <line x1="120" y1="170" x2="120" y2="142" stroke="#fb7185" stroke-width="1.2" marker-end="url(#arrow-rose)"/>
+        <text x="135" y="158" fill="#fb7185" font-size="8">injected</text>
+
+        <!-- REGION 2: CLOUDFLARE EDGE -->
+        <rect x="240" y="50" width="190" height="100" rx="10" fill="rgba(120, 53, 15, 0.05)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="6,4"/>
+        <text x="252" y="68" fill="#fbbf24" font-size="9" font-weight="600">CF EDGE</text>
+
+        <rect x="260" y="80" width="150" height="60" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="335" y="105" fill="white" font-size="11" font-weight="600" text-anchor="middle">Cloudflare CDN</text>
+        <text x="335" y="121" fill="#94a3b8" font-size="9" text-anchor="middle">DNS · DDoS · TLS</text>
+
+        <!-- REGION 3: VPS HOST -->
+        <rect x="240" y="170" width="600" height="490" rx="12" fill="rgba(120, 53, 15, 0.05)" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="8,4"/>
+        <text x="252" y="188" fill="#fbbf24" font-size="10" font-weight="600">VPS · 77.90.51.232 · Ubuntu 24.04</text>
+
+        <!-- nginx -->
+        <rect x="270" y="200" width="120" height="55" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="330" y="220" fill="white" font-size="11" font-weight="600" text-anchor="middle">nginx</text>
+        <text x="330" y="236" fill="#94a3b8" font-size="9" text-anchor="middle">:443 / :80</text>
+        <text x="330" y="248" fill="#fbbf24" font-size="7" text-anchor="middle">cert: work.crt</text>
+
+        <!-- Game Frontend -->
+        <rect x="425" y="200" width="220" height="120" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="535" y="222" fill="white" font-size="12" font-weight="600" text-anchor="middle">Game Frontend</text>
+        <text x="535" y="240" fill="#94a3b8" font-size="8" text-anchor="middle">index.html · landing.html</text>
+        <text x="535" y="254" fill="#94a3b8" font-size="8" text-anchor="middle">game.html · /play route</text>
+        <text x="535" y="270" fill="#94a3b8" font-size="8" text-anchor="middle">JS modules · WalletConnect UI</text>
+        <text x="535" y="284" fill="#94a3b8" font-size="8" text-anchor="middle">Battle loop · Heroes · Items</text>
+        <text x="535" y="304" fill="#22d3ee" font-size="8" text-anchor="middle">pixel.brebross.xyz</text>
+
+        <!-- ethers.js -->
+        <rect x="685" y="200" width="130" height="55" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="750" y="222" fill="white" font-size="11" font-weight="600" text-anchor="middle">ethers.js v6</text>
+        <text x="750" y="238" fill="#94a3b8" font-size="8" text-anchor="middle">RPC client</text>
+        <text x="750" y="252" fill="#34d399" font-size="7" text-anchor="middle">Provider + Signer</text>
+
+        <!-- PocketBase -->
+        <rect x="425" y="350" width="120" height="60" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="485" y="372" fill="white" font-size="11" font-weight="600" text-anchor="middle">PocketBase</text>
+        <text x="485" y="388" fill="#94a3b8" font-size="8" text-anchor="middle">v0.39.4 · :8090</text>
+        <text x="485" y="402" fill="#a78bfa" font-size="7" text-anchor="middle">player collection state</text>
+
+        <!-- Static Assets -->
+        <rect x="270" y="350" width="130" height="80" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="335" y="372" fill="white" font-size="11" font-weight="600" text-anchor="middle">Static Assets</text>
+        <text x="335" y="388" fill="#94a3b8" font-size="8" text-anchor="middle">heroes/ · characters/</text>
+        <text x="335" y="402" fill="#94a3b8" font-size="8" text-anchor="middle">backgrounds/ · audio/</text>
+        <text x="335" y="416" fill="#fbbf24" font-size="7" text-anchor="middle">402 files · pixel art</text>
+        <text x="335" y="428" fill="#fbbf24" font-size="7" text-anchor="middle">cache-bust ?v=N</text>
+
+        <!-- metadata -->
+        <rect x="270" y="465" width="130" height="80" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="335" y="487" fill="white" font-size="11" font-weight="600" text-anchor="middle">metadata/</text>
+        <text x="335" y="503" fill="#94a3b8" font-size="8" text-anchor="middle">schema · heroes · 1.json</text>
+        <text x="335" y="518" fill="#94a3b8" font-size="8" text-anchor="middle">JSON · application/json</text>
+        <text x="335" y="532" fill="#fbbf24" font-size="7" text-anchor="middle">try_files $uri $uri.json</text>
+
+        <!-- Deployer Relayer -->
+        <rect x="425" y="445" width="220" height="80" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="535" y="467" fill="white" font-size="11" font-weight="600" text-anchor="middle">Server-Side Relayer</text>
+        <text x="535" y="483" fill="#94a3b8" font-size="8" text-anchor="middle">onlyOwner mint path</text>
+        <text x="535" y="497" fill="#fb7185" font-size="8" text-anchor="middle">Wallet 0xF6a1…ed2 (testnet)</text>
+        <text x="535" y="512" fill="#94a3b8" font-size="7" text-anchor="middle">Signs mintCard / setBaseURI</text>
+        <text x="535" y="525" fill="#94a3b8" font-size="7" text-anchor="middle">TBA: auto-mint on battle win</text>
+
+        <!-- REGION 4: BSC TESTNET -->
+        <rect x="870" y="170" width="280" height="410" rx="12" fill="rgba(76, 29, 149, 0.05)" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="8,4"/>
+        <text x="882" y="188" fill="#a78bfa" font-size="10" font-weight="600">BSC TESTNET · Chain ID 97</text>
+
+        <!-- V2 contract -->
+        <rect x="900" y="200" width="220" height="140" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="1010" y="220" fill="white" font-size="12" font-weight="600" text-anchor="middle">PixelRaidCardsV2</text>
+        <text x="1010" y="237" fill="#94a3b8" font-size="8" text-anchor="middle">ERC-721 · Solidity 0.8.26</text>
+        <text x="1010" y="252" fill="#34d399" font-size="8" text-anchor="middle">0xFB44693…7C13 ✅ Verified</text>
+        <text x="1010" y="270" fill="#94a3b8" font-size="8" text-anchor="middle">baseURI: pixel.brebross.xyz/metadata/</text>
+        <text x="1010" y="284" fill="#94a3b8" font-size="8" text-anchor="middle">name: "Pixel Raid Cards"</text>
+        <text x="1010" y="298" fill="#94a3b8" font-size="8" text-anchor="middle">symbol: "PRC"</text>
+        <text x="1010" y="316" fill="#34d399" font-size="8" text-anchor="middle">mintCard · listCard · buyCard</text>
+        <text x="1010" y="330" fill="#34d399" font-size="8" text-anchor="middle">cancelListing · levelUpCard</text>
+
+        <!-- OpenZeppelin -->
+        <rect x="900" y="370" width="220" height="80" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1010" y="392" fill="white" font-size="11" font-weight="600" text-anchor="middle">@openzeppelin/contracts</text>
+        <text x="1010" y="408" fill="#94a3b8" font-size="8" text-anchor="middle">v4.9.6 · 15 deps inlined</text>
+        <text x="1010" y="422" fill="#94a3b8" font-size="8" text-anchor="middle">ERC721 · Ownable</text>
+        <text x="1010" y="436" fill="#94a3b8" font-size="8" text-anchor="middle">Enumerable · Strings · Counters</text>
+
+        <!-- PATCH C · NFT STATE — REBRAND LIVE-PIPELINE LANGUAGE -->
+        <rect x="900" y="475" width="220" height="100" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="1010" y="494" fill="white" font-size="11" font-weight="600" text-anchor="middle">Live Minting Pipeline</text>
+        <line x1="912" y1="500" x2="1108" y2="500" stroke="#a78bfa" stroke-width="0.5" opacity="0.5"/>
+        <text x="912" y="514" fill="#a78bfa" font-size="8" font-weight="600">▲ Production-ready</text>
+        <text x="912" y="526" fill="#94a3b8" font-size="8">onlyOwner · server-side relayer</text>
+        <line x1="912" y1="532" x2="1108" y2="532" stroke="#a78bfa" stroke-width="0.5" opacity="0.5"/>
+        <text x="912" y="546" fill="#a78bfa" font-size="8" font-weight="600">▼ Sample token (proof-of-life)</text>
+        <text x="912" y="558" fill="#94a3b8" font-size="8">Iron Warrior Common · tx 0x705c…</text>
+        <text x="912" y="569" fill="#94a3b8" font-size="7">gas 488,419 · block 116,136,690</text>
+
+        <!-- REGION 5: EXTERNAL -->
+        <rect x="870" y="50" width="280" height="100" rx="10" fill="rgba(30, 41, 59, 0.3)" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="882" y="68" fill="#94a3b8" font-size="9" font-weight="600">EXTERNAL</text>
+
+        <rect x="900" y="80" width="110" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="955" y="105" fill="white" font-size="11" font-weight="600" text-anchor="middle">BSCScan</text>
+        <text x="955" y="121" fill="#94a3b8" font-size="8" text-anchor="middle">verified source</text>
+        <text x="955" y="135" fill="#34d399" font-size="7" text-anchor="middle">✓ Verified</text>
+
+        <rect x="1030" y="80" width="110" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="1085" y="105" fill="white" font-size="11" font-weight="600" text-anchor="middle">NFT Mkt</text>
+        <text x="1085" y="121" fill="#94a3b8" font-size="8" text-anchor="middle">OpenSea · rare</text>
+        <text x="1085" y="135" fill="#94a3b8" font-size="8" text-anchor="middle">fetch tokenURI</text>
+
+        <!-- ARROWS -->
+        <line x1="190" y1="110" x2="258" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="220" y="103" fill="#94a3b8" font-size="8" text-anchor="middle">HTTPS</text>
+
+        <line x1="410" y1="110" x2="270" y2="225" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+        <text x="335" y="160" fill="#fbbf24" font-size="8" text-anchor="middle">HTTPS</text>
+
+        <line x1="390" y1="227" x2="423" y2="227" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="406" y="220" fill="#22d3ee" font-size="7" text-anchor="middle">html/js</text>
+
+        <line x1="330" y1="257" x2="335" y2="348" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+        <text x="350" y="305" fill="#fbbf24" font-size="7">assets</text>
+
+        <line x1="265" y1="245" x2="265" y2="463" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+        <line x1="270" y1="500" x2="265" y2="500" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+        <line x1="645" y1="227" x2="683" y2="227" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+        <text x="664" y="222" fill="#34d399" font-size="7" text-anchor="middle">call</text>
+
+        <line x1="535" y1="320" x2="485" y2="348" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <text x="490" y="340" fill="#a78bfa" font-size="7">PocketBase API</text>
+
+        <path d="M 815 227 L 855 227 L 855 250 L 898 250" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow-emerald)"/>
+        <text x="820" y="219" fill="#34d399" font-size="7" font-weight="600">signed tx (RPC)</text>
+
+        <path d="M 120 250 Q 120 280 250 280 L 800 280 Q 830 280 855 280 L 880 290" fill="none" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <path d="M 645 480 L 700 480 L 700 340 L 900 340" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-rose)"/>
+        <text x="685" y="475" fill="#fb7185" font-size="7" text-anchor="middle">onlyOwner tx</text>
+
+        <path d="M 1010 340 L 1010 460 L 25 460 L 25 500 L 268 500" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
+
+
+        <line x1="1085" y1="140" x2="1085" y2="175" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3"/>
+        <path d="M 1085 110 Q 1085 460 402 500" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+
+        <!-- ═══ PATCH A · NUMBERED JOURNEY BADGES ❶❷❸❹ ═══ -->
+        <!-- ❶ Wallet injection (MetaMask → Browser) -->
+        <circle cx="120" cy="156" r="11" fill="#fb7185" stroke="#020617" stroke-width="1.5"/>
+        <text x="120" y="160" fill="white" font-size="11" font-weight="900" text-anchor="middle">1</text>
+
+        <!-- ❷ ethers.js → V2 contract (sign tx via user wallet) -->
+        <circle cx="870" cy="240" r="13" fill="#34d399" stroke="#020617" stroke-width="1.5"/>
+        <text x="870" y="245" fill="white" font-size="12" font-weight="900" text-anchor="middle">2</text>
+        <text x="870" y="261" fill="#34d399" font-size="7" font-weight="600" text-anchor="middle">signed tx → V2</text>
+        <text x="870" y="271" fill="#34d399" font-size="7" font-weight="600" text-anchor="middle">contract</text>
+
+        <!-- ❸ Relayer → V2 (onlyOwner mint) -->
+        <circle cx="700" cy="455" r="13" fill="#fb7185" stroke="#020617" stroke-width="1.5"/>
+        <text x="700" y="460" fill="white" font-size="12" font-weight="900" text-anchor="middle">3</text>
+        <text x="555" y="395" fill="#fb7185" font-size="8" font-weight="600">Server-side mint · onlyOwner tx</text>
+
+        <!-- ❹ Contract tokenURI → metadata.json -->
+        <circle cx="772" cy="458" r="13" fill="#34d399" stroke="#020617" stroke-width="1.5"/>
+        <text x="772" y="463" fill="white" font-size="12" font-weight="900" text-anchor="middle">4</text>
+        <text x="772" y="482" fill="#34d399" font-size="7" font-weight="600" text-anchor="middle">token URL ⬇ metadata</text>
+
+        <!-- ═══ LEGEND · NUMBERED + COLORED CHIPS ═══ -->
+        <text x="900" y="600" fill="white" font-size="12" font-weight="700">Legend</text>
+
+        <!-- 1 · Frontend (cyan) -->
+        <rect x="900" y="612" width="18" height="13" rx="2" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="909" y="623" fill="#22d3ee" font-size="11" font-weight="900" text-anchor="middle">1</text>
+        <text x="928" y="623" fill="white" font-size="11">Frontend</text>
+
+        <!-- 2 · Backend (emerald) -->
+        <rect x="900" y="632" width="18" height="13" rx="2" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="909" y="643" fill="#34d399" font-size="11" font-weight="900" text-anchor="middle">2</text>
+        <text x="928" y="643" fill="white" font-size="11">Backend</text>
+
+        <!-- 3 · Cloud (amber) -->
+        <rect x="900" y="652" width="18" height="13" rx="2" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="909" y="663" fill="#fbbf24" font-size="11" font-weight="900" text-anchor="middle">3</text>
+        <text x="928" y="663" fill="white" font-size="11">Cloud / CDN / VPS</text>
+
+        <!-- 4 · State/DB (violet) -->
+        <rect x="900" y="672" width="18" height="13" rx="2" fill="rgba(76, 29, 149, 0.5)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="909" y="683" fill="#a78bfa" font-size="11" font-weight="900" text-anchor="middle">4</text>
+        <text x="928" y="683" fill="white" font-size="11">State / DB / Chain</text>
+
+        <!-- 5 · Security (rose) -->
+        <rect x="900" y="692" width="18" height="13" rx="2" fill="rgba(136, 19, 55, 0.5)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="909" y="703" fill="#fb7185" font-size="11" font-weight="900" text-anchor="middle">5</text>
+        <text x="928" y="703" fill="white" font-size="11">Security / Wallet</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Game Frontend</h3></div>
+        <ul>
+          <li>• pixel.brebross.xyz · HTTPS via Cloudflare</li>
+          <li>• Static landing + game.html (/play route)</li>
+          <li>• JS modules: heroes · battle · formation · economy</li>
+          <li>• ethers.js v6 — RPC client + signer</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>Smart Contract</h3></div>
+        <ul>
+          <li>• ERC-721 · Solidity 0.8.26 · viaIR enabled</li>
+          <li>• Optimizer: 200 runs</li>
+          <li>• OpenZeppelin v4.9.6 (15 deps inlined)</li>
+          <li>• BSCscan verified · 16 sources hash match</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-dot violet"></div><h3>On-chain + Off-chain</h3></div>
+        <ul>
+          <li>• Backend: PocketBase v0.39.4 (player state)</li>
+          <li>• Testnet: BSC chain 97 · low-cost faucet</li>
+          <li>• Static assets: 402 files (pixel art)</li>
+          <li>• Metadata host: nginx /metadata/, JSON mime</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">Pixel Raid · BSC Testnet (chain 97) · Renaiss Hackathon S1</p>
+  </div>
+</body>
+</html>
