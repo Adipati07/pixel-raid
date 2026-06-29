@@ -266,8 +266,8 @@ const BattleEngine = {
             const isAlly = this.allyTeam.includes(attacker);
             const canvas = document.getElementById('battle-canvas');
             if (canvas) {
-                const cx = isAlly ? 100 + attacker.position * 70 : canvas.width - 100 - attacker.position * 70;
-                this.showDamageNumber(cx, canvas.height / 2 - 20, `+${attacker.hotHeal}`, '#44cc44');
+                const cx = isAlly ? 80 + attacker.position * 90 : canvas.width - 80 - attacker.position * 90;
+                this.showDamageNumber(cx, canvas.height * 0.32 - 40, `+${attacker.hotHeal}`, '#44cc44');
             }
         }
 
@@ -317,7 +317,9 @@ const BattleEngine = {
     },
 
     scheduleNextTurn() {
-        const delay = Math.floor(800 / GameState.battleSpeed);
+        const baseDelay = Math.floor(800 / GameState.battleSpeed);
+        const animDelay = 450;
+        const delay = Math.max(baseDelay, animDelay / GameState.battleSpeed);
         this.battleTimer = setTimeout(() => this.runNextTurn(), delay);
     },
 
@@ -369,7 +371,27 @@ const BattleEngine = {
             isCrit = true;
         }
 
-        // Apply damage
+        // Get positions for animation
+        const attackerPos = attacker.position || 0;
+        const targetPos = target.position || 0;
+        const targetIsAlly = this.allyTeam.includes(target);
+
+        // Trigger lunge animation FIRST, then apply damage after
+        const canvas = document.getElementById('battle-canvas');
+        if (canvas && typeof BattleRenderer.animateAttack === 'function') {
+            BattleRenderer.animateAttack(
+                attacker.name, attackerPos, isAlly,
+                target.name, targetPos, targetIsAlly,
+                () => {
+                    this._applyDamage(attacker, target, dmg, isCrit, isAlly, targetIsAlly, targetPos);
+                }
+            );
+        } else {
+            this._applyDamage(attacker, target, dmg, isCrit, isAlly, targetIsAlly, targetPos);
+        }
+    },
+
+    _applyDamage(attacker, target, dmg, isCrit, isAlly, targetIsAlly, targetPos) {
         if (target.shield > 0) {
             const absorbed = Math.min(target.shield, dmg);
             target.shield -= absorbed;
@@ -383,22 +405,19 @@ const BattleEngine = {
         const critText = isCrit ? ' CRIT!' : '';
         this.addLog(`${isAlly ? '🟢' : '🔴'} ${attacker.name} → ${target.name} for ${dmg} dmg${critText}`, logClass);
 
-        // Trigger canvas animation
         this.triggerCanvasAnimation(isCrit ? 'crit' : 'hit');
 
-        // Show floating damage number on canvas
+        // Show floating damage number — positions updated for bigger sprites
         const canvas = document.getElementById('battle-canvas');
         if (canvas) {
-            const targetIsAlly = this.allyTeam.includes(target);
-            const baseX = targetIsAlly ? 100 + target.position * 70 : canvas.width - 100 - target.position * 70;
-            const baseY = canvas.height / 2 - 30 + (target.position % 2) * 20;
-            const offsetX = (Math.random() - 0.5) * 40;
-            const offsetY = (Math.random() - 0.5) * 20;
+            const baseX = targetIsAlly ? 80 + targetPos * 90 : canvas.width - 80 - targetPos * 90;
+            const baseY = canvas.height * 0.32 - 40;
+            const offsetX = (Math.random() - 0.5) * 30;
             if (isCrit) {
-                this.showDamageNumber(baseX + offsetX, baseY + offsetY, `CRIT! -${dmg}`, '#ffdd44');
+                this.showDamageNumber(baseX + offsetX, baseY, `CRIT! -${dmg}`, '#ffdd44');
                 if (typeof Sound !== 'undefined') Sound.critical();
             } else {
-                this.showDamageNumber(baseX + offsetX, baseY + offsetY, `-${dmg}`, '#ff4444');
+                this.showDamageNumber(baseX + offsetX, baseY, `-${dmg}`, '#ff4444');
                 if (typeof Sound !== 'undefined') Sound.attack();
             }
         }
@@ -413,6 +432,9 @@ const BattleEngine = {
 
         // Trigger skill
         this.trySkill(attacker, target, isAlly);
+
+        // Re-render canvas
+        BattleRenderer.renderBattle(this.allyTeam, this.enemyTeam);
     },
 
     trySkill(attacker, target, isAlly) {
@@ -448,8 +470,8 @@ const BattleEngine = {
                 // Show heal number
                 const canvas = document.getElementById('battle-canvas');
                 if (canvas) {
-                    const cx = isAlly ? 100 + attacker.position * 70 : canvas.width - 100 - attacker.position * 70;
-                    this.showDamageNumber(cx, canvas.height / 2 - 30, `+${heal}`, '#44cc44');
+                    const cx = isAlly ? 80 + attacker.position * 90 : canvas.width - 80 - attacker.position * 90;
+                    this.showDamageNumber(cx, canvas.height * 0.32 - 40, `+${heal}`, '#44cc44');
                 }
                 break;
             }
@@ -465,8 +487,8 @@ const BattleEngine = {
                 if (canvas) {
                     enemies.filter(c => c.alive || c.stats.hp <= 0).forEach((e, i) => {
                         const eIsAlly = this.allyTeam.includes(e);
-                        const cx = eIsAlly ? 100 + e.position * 70 : canvas.width - 100 - e.position * 70;
-                        this.showDamageNumber(cx + (Math.random()-0.5)*30, canvas.height/2 - 30 + i * 15, `-${aoeDmg}`, '#ff6644');
+                        const cx = eIsAlly ? 80 + e.position * 90 : canvas.width - 80 - e.position * 90;
+                        this.showDamageNumber(cx + (Math.random()-0.5)*30, canvas.height * 0.32 - 40 + i * 15, `-${aoeDmg}`, '#ff6644');
                     });
                 }
                 break;
@@ -481,8 +503,8 @@ const BattleEngine = {
                     const canvas = document.getElementById('battle-canvas');
                     if (canvas) {
                         const lIsAlly = this.allyTeam.includes(lowest);
-                        const cx = lIsAlly ? 100 + lowest.position * 70 : canvas.width - 100 - lowest.position * 70;
-                        this.showDamageNumber(cx, canvas.height/2 - 30, `+${healAmt}`, '#44cc44');
+                        const cx = lIsAlly ? 80 + lowest.position * 90 : canvas.width - 80 - lowest.position * 90;
+                        this.showDamageNumber(cx, canvas.height * 0.32 - 40, `+${healAmt}`, '#44cc44');
                     }
                 }
                 break;
@@ -525,8 +547,8 @@ const BattleEngine = {
                 const tdCanvas = document.getElementById('battle-canvas');
                 if (tdCanvas) {
                     const tIsAlly = this.allyTeam.includes(target);
-                    const cx = tIsAlly ? 100 + target.position * 70 : tdCanvas.width - 100 - target.position * 70;
-                    this.showDamageNumber(cx, tdCanvas.height/2 - 30, `-${skill.val} TRUE`, '#aa44ff');
+                    const cx = tIsAlly ? 80 + target.position * 90 : tdCanvas.width - 80 - target.position * 90;
+                    this.showDamageNumber(cx, tdCanvas.height * 0.32 - 40, `-${skill.val} TRUE`, '#aa44ff');
                 }
                 if (target.stats.hp <= 0) { target.alive = false; this.addLog(`💀 ${target.name} defeated!`, 'death'); this.markHeroDead(target); }
                 break;
@@ -553,23 +575,7 @@ const BattleEngine = {
 
     addLog(text, type) {
         this.log.push({ text, type, turn: this.currentTurn });
-        // Update UI
-        const logEl = document.getElementById('battle-log');
-        if (logEl) {
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type || 'info'}`;
-            // Add turn number prefix
-            const turnSpan = document.createElement('span');
-            turnSpan.className = 'log-turn-num';
-            turnSpan.textContent = `[T${this.currentTurn}]`;
-            entry.appendChild(turnSpan);
-            entry.appendChild(document.createTextNode(text));
-            logEl.appendChild(entry);
-            // Auto-scroll to bottom
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-        // Update canvas
-        BattleRenderer.renderBattle(this.allyTeam, this.enemyTeam);
+        // Log stored internally for rewards, NOT rendered to DOM
     },
 
     stop() {
