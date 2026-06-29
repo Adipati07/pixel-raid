@@ -53,6 +53,7 @@ const BattleEngine = {
         this._selectedTarget = null;
         this._attackQueue = [];
         this._playerHasSummoned = false;
+        this._playerHasUsedSkill = false;
 
         // Initialize animation system
         if (typeof BattleAnimations !== 'undefined') {
@@ -207,6 +208,7 @@ const BattleEngine = {
 
         this.turnNumber++;
         this._playerHasSummoned = false;
+        this._playerHasUsedSkill = false;
         const current = this.isPlayerTurn ? this.player : this.enemy;
         const opponent = this.isPlayerTurn ? this.enemy : this.player;
 
@@ -245,12 +247,13 @@ const BattleEngine = {
 
             if (this.isPlayerTurn) {
                 this._enablePlayerCards();
-                // Auto-advance to battle phase after timeout (20 seconds)
+                // Safety timeout: auto-advance to battle phase after 60s (player must click End Turn)
                 this._mainPhaseTimer = setTimeout(() => {
                     if (this.currentPhase === 'main' && this.isRunning) {
+                        this.addLog('⏰ Turn auto-advanced (60s timeout)', 'info');
                         this._startBattlePhase();
                     }
-                }, 20000);
+                }, 60000);
             } else {
                 // Enemy AI plays cards
                 this._aiPlayCards();
@@ -266,8 +269,9 @@ const BattleEngine = {
         // Determine which hero zones are empty for each card type
         const hasEmptyHeroZone = this.player.heroZones.some(z => z === null);
         const hasSummoned = this._playerHasSummoned; // once per turn normal summon
+        const hasUsedSkill = this._playerHasUsedSkill || false;
 
-        CardHand.render(this.player.hand, this.player, true, { hasEmptyHeroZone, hasSummoned });
+        CardHand.render(this.player.hand, this.player, true, { hasEmptyHeroZone, hasSummoned, hasUsedSkill });
         CardHand.onCardPlay = (index, card) => {
             this.playCard(index);
         };
@@ -305,6 +309,7 @@ const BattleEngine = {
             // Animate card out, then activate
             CardHand.animateCardPlay(handIndex, () => {
                 this._activateSkill(this.player, handIndex, this.enemy);
+                this._playerHasUsedSkill = true;
             });
             return true;
         }

@@ -37,6 +37,7 @@ const CardHand = {
 
         const hasEmptyHeroZone = options.hasEmptyHeroZone !== undefined ? options.hasEmptyHeroZone : true;
         const hasSummoned = options.hasSummoned || false;
+        const hasUsedSkill = options.hasUsedSkill || false;
 
         // Support both old (mana int) and new (combatant object) APIs
         let currentMana = 0;
@@ -60,10 +61,8 @@ const CardHand = {
             if (card.cardType === 'hero' && combatant) {
                 // Can play hero if: enabled + empty zone + haven't summoned this turn
                 canPlay = enabled && hasEmptyHeroZone && !hasSummoned;
-            } else if (card.manaCost !== undefined) {
-                canPlay = enabled && currentMana >= card.manaCost;
             } else if (card.cardType === 'skill') {
-                canPlay = enabled; // Skills always playable
+                canPlay = enabled && !hasUsedSkill; // One skill per turn, no mana in Yu-Gi-Oh
             }
 
             try {
