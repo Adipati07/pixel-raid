@@ -3,6 +3,51 @@
  * Card Collector Auto-Battle RPG
  * ======================================== */
 
+// Loading screen animation controller
+const LoadingScreen = {
+    el: null,
+    bar: null,
+    tip: null,
+    tips: [
+        'Gathering heroes from the frontier...',
+        'Forging card battle engine...',
+        'Loading pixel art assets...',
+        'Preparing the arena...',
+        'Sharpening swords...',
+        'Enchanting skill cards...'
+    ],
+    show() {
+        this.el = document.getElementById('loading-screen');
+        this.bar = document.getElementById('loading-bar-inner');
+        this.tip = document.getElementById('loading-tip');
+        if (!this.el) return;
+        this.el.style.display = 'flex';
+        this.el.style.opacity = '1';
+        this._animate();
+    },
+    _animate() {
+        if (!this.bar) return;
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15 + 5;
+            if (progress > 100) progress = 100;
+            this.bar.style.width = progress + '%';
+            if (this.tip && Math.random() > 0.5) {
+                this.tip.textContent = this.tips[Math.floor(Math.random() * this.tips.length)];
+            }
+            if (progress >= 100) {
+                clearInterval(interval);
+                setTimeout(() => this.hide(), 300);
+            }
+        }, 120);
+    },
+    hide() {
+        if (!this.el) return;
+        this.el.classList.add('fade-out');
+        setTimeout(() => { this.el.style.display = 'none'; }, 500);
+    }
+};
+
 (function() {
     'use strict';
 
