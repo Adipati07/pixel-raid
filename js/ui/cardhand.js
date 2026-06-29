@@ -43,8 +43,12 @@ const CardHand = {
 
         hand.forEach((card, index) => {
             const canPlay = enabled && currentMana >= card.manaCost;
-            const el = this._createCardElement(card, index, canPlay, currentMana);
-            this.container.appendChild(el);
+            try {
+                const el = this._createCardElement(card, index, canPlay, currentMana);
+                this.container.appendChild(el);
+            } catch (e) {
+                console.warn('CardHand: failed to render card', index, e);
+            }
         });
     },
 

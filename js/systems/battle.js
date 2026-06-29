@@ -30,6 +30,16 @@ const BattleEngine = {
         this.log = [];
         this.onComplete = onComplete;
 
+        // Clear any leftover timers from a previous battle
+        if (this._mainPhaseTimer) {
+            clearTimeout(this._mainPhaseTimer);
+            this._mainPhaseTimer = null;
+        }
+        if (this._phaseTimer) {
+            clearTimeout(this._phaseTimer);
+            this._phaseTimer = null;
+        }
+
         // Initialize player combatant
         this.player = this._initCombatant(playerHeroCard, playerCardIds, true);
 
@@ -165,7 +175,11 @@ const BattleEngine = {
 
             if (this.isPlayerTurn) {
                 // Player's turn: wait for card plays via UI
-                this._enablePlayerCards();
+                try {
+                    this._enablePlayerCards();
+                } catch (e) {
+                    console.warn('BattleEngine: _enablePlayerCards failed', e);
+                }
                 // Auto-advance to attack phase after timeout (15 seconds)
                 this._mainPhaseTimer = setTimeout(() => {
                     if (this.currentPhase === 'main' && this.isRunning) {
@@ -367,7 +381,7 @@ const BattleEngine = {
 
     // ===== ATTACK PHASE =====
     _startAttackPhase() {
-        if (!this.isRunning) return;
+        if (!this.isRunning || this.currentPhase !== 'main') return;
 
         // Clear main phase timer
         if (this._mainPhaseTimer) {
