@@ -81,6 +81,15 @@ const UI = {
             btn.textContent = GameState.autoNext ? '⏹️ Stop Auto' : '🔄 Auto Next Stage';
         });
 
+        // Pause button
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                BattleEngine.togglePause();
+                pauseBtn.textContent = BattleEngine.isPaused ? '▶️ Resume' : '⏸ Pause';
+            });
+        }
+
         document.querySelectorAll('.speed-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
@@ -115,8 +124,50 @@ const UI = {
         
         document.getElementById('btn-start-battle').disabled = true;
 
+        // Show pause button during battle
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸ Pause'; }
+
+        BattleEngine.onTurnChange = () => {
+            this.renderTurnOrder();
+        };
+
+        // Canvas click for enemy info
+        const canvas = document.getElementById('battle-canvas');
+        canvas.onclick = (e) => {
+            if (!BattleEngine.isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            // Check enemy positions (right side)
+            for (const enemy of BattleEngine.enemyTeam) {
+                if (!enemy.alive) continue;
+                const ex = canvas.width - 80 - enemy.position * 90;
+                const ey = canvas.height * 0.32;
+                if (Math.abs(mx - ex) < 45 && Math.abs(my - ey) < 50) {
+                    this.showEnemyInfo(enemy);
+                    return;
+                }
+            }
+            // Check ally positions (left side)
+            for (const ally of BattleEngine.allyTeam) {
+                if (!ally.alive) continue;
+                const ax = 80 + ally.position * 90;
+                const ay = canvas.height * 0.32;
+                if (Math.abs(mx - ax) < 45 && Math.abs(my - ay) < 50) {
+                    this.showEnemyInfo(ally);
+                    return;
+                }
+            }
+        };
+
         BattleEngine.startBattle(deckCards, enemies, (result, log, turns) => {
             document.getElementById('btn-start-battle').disabled = false;
+            // Hide pause button after battle
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            document.getElementById('turn-order-display').innerHTML = '';
 
             if (result === 'win') {
                 GameState.stats.battlesWon++;
@@ -137,6 +188,14 @@ const UI = {
 
                     // Show stage clear modal with rewards
                     setTimeout(() => this.showStageClearModal(rewards, stage), 800);
+
+                    // Hero EXP distribution
+                    const levelUps = BattleEngine.distributeEXP(true);
+                    if (levelUps.length > 0) {
+                        levelUps.forEach(lu => {
+                            this.toast(`⬆️ ${lu.name} reached Lv.${lu.level}! +${lu.boost} all stats`, 'success');
+                        });
+                    }
 
                     if (rewards.leveledUp) {
                         this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
@@ -293,7 +352,7 @@ const UI = {
             const name = document.createElement('div');
             name.className = 'card-name';
             name.style.color = RARITIES[card.rarity].color;
-            name.textContent = card.name;
+            name.textContent = card.name + (card.level > 1 ? ` Lv.${card.level}` : '');
 
             const cls = document.createElement('div');
             cls.className = 'card-class';
@@ -315,7 +374,8 @@ const UI = {
                     <div class="card-stat-bar-bg"><div class="card-stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
                     <span class="card-stat-val" style="color:${s.color}">${s.val}</span>
                 </div>
-            `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>`;
+            `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>` +
+            (card.level > 1 ? `<div class="card-exp-bar" style="margin-top:3px"><div class="card-exp-fill" style="width:${card.expToNext > 0 ? Math.min(100, (card.exp / card.expToNext) * 100) : 0}%"></div></div>` : '');
 
             el.append(sprite, name, cls, stats);
             grid.appendChild(el);
@@ -335,6 +395,7 @@ const UI = {
                 <div id="detail-sprite-container" style="width:96px;height:96px;margin:0 auto;"></div>
                 <h3 style="color:${RARITIES[card.rarity].color};font-size:12px;margin-top:8px;">${card.name}</h3>
                 <div style="color:${CLASSES[card.class].color};font-size:8px;">${CLASSES[card.class].emoji} ${CLASSES[card.class].name} • ${RARITIES[card.rarity].name}</div>
+                ${card.level > 1 ? `<div style="color:#aa44ff;font-size:8px;margin-top:2px;">⭐ Level ${card.level} — EXP: ${card.exp || 0}/${card.expToNext || '?'}</div>` : ''}
             </div>
             <div style="font-size:8px;margin-bottom:12px;">
                 ${['HP','ATK','DEF','SPD'].map(s => {
@@ -833,6 +894,49 @@ const UI = {
         
         // Auto-close after 8s
         setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
+    },
+
+    // ===== TURN ORDER DISPLAY =====
+    renderTurnOrder() {
+        const container = document.getElementById('turn-order-display');
+        if (!container) return;
+        const turnOrder = BattleEngine.getNextTurnOrder(5);
+        if (turnOrder.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = turnOrder.map((u, i) => {
+            const arrow = i === 0 ? '👉 ' : '';
+            const opacity = u.alive ? '1' : '0.3';
+            const side = u.isAlly ? '#44cc44' : '#ff4444';
+            return `<span class="turn-order-unit" style="opacity:${opacity}; color:${side}" title="${u.isAlly ? 'Ally' : 'Enemy'}">${arrow}${u.name}</span>`;
+        }).join('');
+    },
+
+    // ===== ENEMY INFO PANEL =====
+    showEnemyInfo(unit) {
+        // Remove existing
+        const old = document.querySelector('.enemy-info-popup');
+        if (old) old.remove();
+
+        const popup = document.createElement('div');
+        popup.className = 'enemy-info-popup';
+        const cls = CLASSES[unit.class] || {};
+        popup.innerHTML = `
+            <div class="enemy-info-header">${cls.emoji || '⚔️'} ${unit.name}</div>
+            <div class="enemy-info-stats">
+                <div>❤️ HP: ${unit.stats.hp}/${unit.stats.maxHp}</div>
+                <div>⚔️ ATK: ${unit.stats.atk}</div>
+                <div>🛡️ DEF: ${unit.stats.def}</div>
+                <div>💨 SPD: ${unit.stats.spd}</div>
+            </div>
+            ${unit.skill ? `<div class="enemy-info-skill">✨ ${unit.skill.name}</div>` : ''}
+            <div class="enemy-info-close">✕</div>
+        `;
+        document.body.appendChild(popup);
+        popup.querySelector('.enemy-info-close').addEventListener('click', () => popup.remove());
+        popup.addEventListener('click', (e) => { if (e.target === popup) popup.remove(); });
+        setTimeout(() => { if (popup.parentNode) popup.remove(); }, 5000);
     },
 
     // ===== TOAST =====

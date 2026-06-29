@@ -11,8 +11,11 @@ const BattleEngine = {
     currentTurn: 0,
     log: [],
     onComplete: null,
+    onTurnChange: null,
     battleTimer: null,
     isRunning: false,
+    isPaused: false,
+    pauseTimer: null,
 
     startBattle(allyCards, enemyCards, onComplete) {
         this.allyTeam = allyCards.map((c, i) => ({
@@ -25,6 +28,7 @@ const BattleEngine = {
             dotDmg: 0,
             hotHeal: 0,
             critBuff: 0,
+            charge: 0,
             position: i,
         }));
         this.enemyTeam = enemyCards.map((c, i) => ({
@@ -37,12 +41,14 @@ const BattleEngine = {
             dotDmg: 0,
             hotHeal: 0,
             critBuff: 0,
+            charge: 0,
             position: i,
         }));
         this.log = [];
         this.currentTurn = 0;
         this.onComplete = onComplete;
         this.isRunning = true;
+        this.isPaused = false;
 
         // Apply synergies to BOTH teams
         this.applySynergies(this.allyTeam, GameState.getDeckCards());
@@ -114,6 +120,42 @@ const BattleEngine = {
     },
 
     // ===== SKILL NAME POPUP =====
+    // Skill description map
+    _skillDesc: {
+        'Swift Strike': 'Fast multi-hit attack',
+        'Power Slash': 'High damage single target',
+        'Defend': 'Boost DEF for 3 turns',
+        'Inspire': 'Boost team ATK for 3 turns',
+        'Heal': 'Restore team HP',
+        'Arrow Rain': 'Damage all enemies',
+        'Backstab': 'High crit chance attack',
+        'Shadow Step': 'Dodge next attack',
+        'Fireball': 'Burn all enemies (DOT)',
+        'Ice Shard': 'Freeze enemy (stun)',
+        'Lightning': 'Chain damage to 2 enemies',
+        'Holy Light': 'Heal + cleanse debuffs',
+        'Shield Bash': 'Stun + damage',
+        'War Cry': 'Boost team DEF',
+        'Shadow Bolt': 'Damage + reduce enemy ATK',
+        'Dark Pact': 'Lifesteal attack',
+        'Nature\'s Blessing': 'Heal over time',
+        'Thorn Whip': 'Damage + DOT',
+        'Precision Shot': 'Ignore DEF attack',
+        'Wind Arrow': 'Speed boost + damage',
+        'Arcane Blast': 'Massive single target',
+        'Mana Shield': 'Convert damage to shield',
+        'Divine Protection': 'Shield all allies',
+        'Smite': 'Bonus damage vs low HP',
+        'Battle Focus': 'Boost own ATK + crit',
+        'Piercing Arrow': 'Ignore 50% DEF',
+        'Earthquake': 'Damage all + stun chance',
+        'Berserker Rage': 'ATK up, DEF down',
+        'Chain Lightning': 'Hit 3 random enemies',
+        'Regeneration': 'HOT for 3 turns',
+        'Frozen Heart': 'Freeze + DOT',
+        'Phoenix Flame': 'AOE + self heal',
+    },
+
     showSkillNamePopup(unitName, skillName, isAlly) {
         const wrap = document.querySelector('.battle-canvas-wrap');
         if (!wrap) return;
@@ -128,9 +170,13 @@ const BattleEngine = {
         popup.className = 'skill-name-popup';
         popup.style.left = x + 'px';
         popup.style.top = y + 'px';
-        popup.textContent = `✨ ${unitName}: ${skillName}!`;
+        // Extract clean skill name (remove "ULTIMATE: " prefix if present)
+        const cleanName = skillName.replace('ULTIMATE: ', '');
+        const desc = this._skillDesc[cleanName] || '';
+        const prefix = skillName.startsWith('ULTIMATE') ? '⚡ ULTIMATE' : '✨';
+        popup.innerHTML = `<div>${prefix} ${unitName}: ${skillName}!</div>${desc ? `<div class="skill-desc">${desc}</div>` : ''}`;
         wrap.appendChild(popup);
-        setTimeout(() => { if (popup.parentNode) popup.remove(); }, 1500);
+        setTimeout(() => { if (popup.parentNode) popup.remove(); }, 2000);
     },
 
     // ===== CANVAS ANIMATION TRIGGERS =====
@@ -271,6 +317,9 @@ const BattleEngine = {
             }
         }
 
+        // Gain charge each turn
+        this.addCharge(attacker, 15);
+
         // Apply DOT damage
         if (attacker.dotDmg > 0) {
             attacker.stats.hp -= attacker.dotDmg;
@@ -401,6 +450,9 @@ const BattleEngine = {
 
         target.stats.hp = Math.max(0, target.stats.hp - dmg);
 
+        // Gain charge when taking damage
+        this.addCharge(target, 20);
+
         const logClass = isCrit ? 'crit' : 'dmg';
         const critText = isCrit ? ' CRIT!' : '';
         this.addLog(`${isAlly ? '🟢' : '🔴'} ${attacker.name} → ${target.name} for ${dmg} dmg${critText}`, logClass);
@@ -435,6 +487,7 @@ const BattleEngine = {
 
         // Re-render canvas
         BattleRenderer.renderBattle(this.allyTeam, this.enemyTeam);
+        if (this.onTurnChange) this.onTurnChange();
     },
 
     trySkill(attacker, target, isAlly) {
@@ -578,8 +631,179 @@ const BattleEngine = {
         // Log stored internally for rewards, NOT rendered to DOM
     },
 
+    // ===== PAUSE / RESUME =====
+    pause() {
+        if (!this.isRunning || this.isPaused) return;
+        this.isPaused = true;
+        if (this.battleTimer) {
+            clearTimeout(this.battleTimer);
+            this.battleTimer = null;
+        }
+        this.showPauseOverlay();
+    },
+
+    resume() {
+        if (!this.isRunning || !this.isPaused) return;
+        this.isPaused = false;
+        this.hidePauseOverlay();
+        this.scheduleNextTurn();
+    },
+
+    togglePause() {
+        if (this.isPaused) this.resume();
+        else this.pause();
+    },
+
+    showPauseOverlay() {
+        const wrap = document.querySelector('.battle-canvas-wrap');
+        if (!wrap) return;
+        let overlay = wrap.querySelector('.pause-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'battle-overlay pause-overlay';
+            overlay.innerHTML = '<div class="battle-overlay-text" style="color:#ffd700">⏸ PAUSED</div>';
+            wrap.appendChild(overlay);
+        }
+    },
+
+    hidePauseOverlay() {
+        const el = document.querySelector('.pause-overlay');
+        if (el) el.remove();
+    },
+
+    // ===== TURN ORDER =====
+    getNextTurnOrder(count = 5) {
+        const alive = [...this.allyTeam, ...this.enemyTeam].filter(u => u.alive);
+        if (alive.length === 0) return [];
+        const sorted = alive.sort((a, b) => b.stats.spd - a.stats.spd);
+        const result = [];
+        const total = sorted.length;
+        for (let i = 0; i < count; i++) {
+            const idx = (this.currentTurn + i) % total;
+            const unit = sorted[idx];
+            if (unit) {
+                result.push({
+                    name: unit.name,
+                    isAlly: this.allyTeam.includes(unit),
+                    alive: unit.alive,
+                    spriteData: unit.spriteData,
+                    class: unit.class,
+                });
+            }
+        }
+        return result;
+    },
+
+    // ===== CHARGE SYSTEM =====
+    addCharge(unit, amount) {
+        if (!unit.alive) return;
+        unit.charge = Math.min(100, (unit.charge || 0) + amount);
+        if (unit.charge >= 100) {
+            this.triggerUltimate(unit);
+        }
+    },
+
+    triggerUltimate(unit) {
+        if (!unit.skill) return;
+        const isAlly = this.allyTeam.includes(unit);
+        const allies = isAlly ? this.allyTeam : this.enemyTeam;
+        const enemies = isAlly ? this.enemyTeam : this.allyTeam;
+
+        unit.charge = 0;
+        this.triggerCanvasAnimation('skill');
+        this.showSkillNamePopup(unit.name, 'ULTIMATE: ' + unit.skill.name, isAlly);
+
+        // Ultimate is enhanced version of skill — 2x effect
+        const skill = unit.skill;
+        switch (skill.type) {
+            case 'buff_def':
+            case 'buff_atk': {
+                const stat = skill.type === 'buff_def' ? 'def' : 'atk';
+                this.addBuff(unit, 'ULT ' + skill.name, stat, 1 + skill.val * 2, 4);
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! ${stat.toUpperCase()} boosted!`, 'skill');
+                break;
+            }
+            case 'shield':
+                unit.shield += skill.val * 2;
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! Shield ${skill.val * 2}!`, 'skill');
+                break;
+            case 'lifesteal': {
+                const heal = Math.floor(unit.stats.atk * skill.val * 2);
+                unit.stats.hp = Math.min(unit.stats.maxHp, unit.stats.hp + heal);
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! Heals ${heal}!`, 'heal');
+                break;
+            }
+            case 'aoe': {
+                const aoeDmg = Math.floor(unit.stats.atk * skill.val * 2);
+                for (const e of enemies.filter(c => c.alive)) {
+                    e.stats.hp = Math.max(0, e.stats.hp - aoeDmg);
+                    if (e.stats.hp <= 0) { e.alive = false; this.addLog(`💀 ${e.name} defeated!`, 'death'); this.markHeroDead(e); }
+                }
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! AOE ${aoeDmg}!`, 'skill');
+                break;
+            }
+            case 'heal': {
+                for (const ally of allies.filter(c => c.alive)) {
+                    const healAmt = Math.floor(ally.stats.maxHp * skill.val);
+                    ally.stats.hp = Math.min(ally.stats.maxHp, ally.stats.hp + healAmt);
+                }
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! Team healed!`, 'heal');
+                break;
+            }
+            case 'true_dmg': {
+                for (const e of enemies.filter(c => c.alive)) {
+                    e.stats.hp = Math.max(0, e.stats.hp - skill.val * 2);
+                    if (e.stats.hp <= 0) { e.alive = false; this.addLog(`💀 ${e.name} defeated!`, 'death'); this.markHeroDead(e); }
+                }
+                this.addLog(`⚡ ULTIMATE ${unit.name}: ${skill.name}! ${skill.val * 2} true damage to all!`, 'skill');
+                break;
+            }
+            default: {
+                // Generic ultimate — big damage to lowest HP enemy
+                const target = enemies.filter(c => c.alive).reduce((b, c) => c.stats.hp < b.stats.hp ? c : b, enemies[0]);
+                if (target) {
+                    const ultDmg = Math.floor(unit.stats.atk * 2);
+                    target.stats.hp = Math.max(0, target.stats.hp - ultDmg);
+                    if (target.stats.hp <= 0) { target.alive = false; this.addLog(`💀 ${target.name} defeated!`, 'death'); this.markHeroDead(target); }
+                    this.addLog(`⚡ ULTIMATE ${unit.name}: ${ultDmg} damage!`, 'skill');
+                }
+            }
+        }
+        BattleRenderer.renderBattle(this.allyTeam, this.enemyTeam);
+    },
+
+    // ===== HERO EXP SYSTEM =====
+    distributeEXP(isWin) {
+        if (!isWin) return [];
+        const levelUps = [];
+        const expGain = Math.floor(20 + GameState.player.stage * 5);
+        for (const card of GameState.collection) {
+            if (GameState.deck.includes(card.id)) {
+                if (!card.exp) card.exp = 0;
+                if (!card.level) card.level = 1;
+                card.exp += expGain;
+                const expNeeded = card.level * 50;
+                while (card.exp >= expNeeded) {
+                    card.exp -= expNeeded;
+                    card.level++;
+                    // Stat boost on level up
+                    const boost = Math.floor(2 + card.level * 0.5);
+                    card.stats.atk += boost;
+                    card.stats.def += boost;
+                    card.stats.hp += boost * 3;
+                    card.stats.maxHp += boost * 3;
+                    levelUps.push({ name: card.name, level: card.level, boost });
+                }
+            }
+        }
+        GameState.save();
+        return levelUps;
+    },
+
     stop() {
         this.isRunning = false;
+        this.isPaused = false;
         if (this.battleTimer) clearTimeout(this.battleTimer);
+        this.hidePauseOverlay();
     },
 };

@@ -401,7 +401,7 @@ const BattleRenderer = {
 
             // HP bar — bigger
             const barWidth = 70;
-            const barHeight = 6;
+            const barHeight = 8;
             const barX = x - barWidth / 2;
             const barY = y + spriteSize / 2 + 6;
             const hpPercent = card.stats.hp / card.stats.maxHp;
@@ -414,16 +414,36 @@ const BattleRenderer = {
             // HP fill
             ctx.fillStyle = hpPercent > 0.5 ? '#44cc44' : hpPercent > 0.25 ? '#ffaa00' : '#ff4444';
             ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
-            // HP text
+            // HP text on bar
             ctx.fillStyle = '#fff';
-            ctx.font = '6px "Press Start 2P"';
+            ctx.font = 'bold 7px "Press Start 2P"';
             ctx.textAlign = 'center';
-            ctx.fillText(`${card.stats.hp}/${card.stats.maxHp}`, x, barY + barHeight + 9);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${card.stats.hp}/${card.stats.maxHp}`, x, barY + barHeight / 2);
+
+            // Charge bar (ultimate)
+            const chargePercent = (card.charge || 0) / 100;
+            if (chargePercent > 0) {
+                const chargeY = barY + barHeight + 2;
+                const chargeH = 3;
+                ctx.fillStyle = '#111';
+                ctx.fillRect(barX, chargeY, barWidth, chargeH);
+                ctx.fillStyle = chargePercent >= 1 ? '#ffd700' : '#8866ff';
+                ctx.fillRect(barX, chargeY, barWidth * chargePercent, chargeH);
+                if (chargePercent >= 1) {
+                    // Glowing ultimate ready indicator
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = '5px "Press Start 2P"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⚡', x, chargeY + chargeH + 6);
+                }
+            }
 
             // Name
             ctx.fillStyle = card.alive ? '#fff' : '#666';
             ctx.font = '7px "Press Start 2P"';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
             ctx.fillText(card.name, x, barY + barHeight + 20);
 
             ctx.globalAlpha = 1;
