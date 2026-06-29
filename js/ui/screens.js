@@ -427,6 +427,19 @@ const UI = {
         document.getElementById('hero-detail').classList.add('hidden');
     },
 
+    // ===== PLAYER NAME =====
+    changePlayerName() {
+        const current = GameState.player.name || 'Adventurer';
+        const newName = prompt('Enter your name:', current);
+        if (newName && newName.trim() && newName.trim() !== current) {
+            const name = newName.trim().substring(0, 16);
+            GameState.player.name = name;
+            document.getElementById('player-name').textContent = name;
+            GameState.save();
+            this.toast(`Name changed to ${name}!`, 'success');
+        }
+    },
+
     // ===== FORMATION SCREEN =====
     renderFormationScreen() {
         Formation.init();
