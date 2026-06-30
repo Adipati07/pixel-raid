@@ -201,24 +201,16 @@ var BattlePhaser = {
     // ===== RESIZE =====
     _resizeToViewport: function () {
         if (!this._game) return;
-        var vw = window.innerWidth;
-        var vh = window.innerHeight;
-        // Leave room for card hand (~180px) at bottom
-        var gameH = vh - 180;
-        var gameW = vw;
-        // Maintain 3:2 aspect ratio
-        var aspect = 3 / 2;
-        if (gameW / gameH > aspect) {
-            gameW = Math.floor(gameH * aspect);
-        } else {
-            gameH = Math.floor(gameW / aspect);
-        }
-        this._game.scale.resize(gameW, gameH);
-        // Center the canvas
+        // Keep Phaser internal resolution at 600x400 (pixel art native)
+        // Just scale the canvas via CSS to fill viewport
         var canvas = this._game.canvas;
         if (canvas) {
+            canvas.style.width = '100%';
+            canvas.style.height = 'calc(100vh - 180px)';
+            canvas.style.objectFit = 'contain';
             canvas.style.display = 'block';
             canvas.style.margin = '0 auto';
+            canvas.style.maxHeight = 'calc(100vh - 180px)';
         }
     },
 
