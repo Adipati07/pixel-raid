@@ -5,7 +5,7 @@
 const RARITIES = {
     common:    { name: 'Common',    color: '#aaaaaa', weight: 60, statMul: 1.0, packWeight: 60 },
     rare:      { name: 'Rare',      color: '#4488ff', weight: 25, statMul: 1.3, packWeight: 25 },
-    epic:      { name: 'Epic',      color: '#aa44ff', weight: 10, statMul: 1.6, packWeight: 10 },
+    epic:      { name: 'Epic',      color: '#9b59b6', weight: 10, statMul: 1.6, packWeight: 10 },
     legendary: { name: 'Legendary', color: '#ff8800', weight: 4,  statMul: 2.0, packWeight: 4  },
     mythic:    { name: 'Mythic',    color: '#ff2266', weight: 1,  statMul: 2.5, packWeight: 1  },
 };

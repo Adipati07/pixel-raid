@@ -21,7 +21,7 @@ const Economy = {
         t3_elite: {
             name: '🥇 Elite Pack', tier: 3, gold: 600, gems: 0, count: 5,
             desc: 'T3 — 5 cards, guaranteed 1 Epic+',
-            color: '#aa44ff', guarantee: 'epic',
+            color: '#9b59b6', guarantee: 'epic',
             rarityWeights: { common: 25, rare: 35, epic: 25, legendary: 12, mythic: 3 },
         },
         t4_champion: {

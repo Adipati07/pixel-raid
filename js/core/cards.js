@@ -10,7 +10,7 @@ const CARD_TYPES = {
     attack:  { name: 'Attack',  emoji: '⚔️', color: '#ff4444' },
     defense: { name: 'Defense', emoji: '🛡️', color: '#4488ff' },
     buff:    { name: 'Buff',    emoji: '✨', color: '#44ff88' },
-    debuff:  { name: 'Debuff',  emoji: '💀', color: '#aa44ff' },
+    debuff:  { name: 'Debuff',  emoji: '💀', color: '#9b59b6' },
     special: { name: 'Special', emoji: '⚡', color: '#ffaa00' },
 };
 
@@ -161,7 +161,7 @@ const SKILL_CARD_TEMPLATES = [
         manaCost: 1,
         effect: { type: 'debuff', stat: 'atk', value: 0.20, target: 'enemy', duration: 2 },
         description: 'Reduce enemy ATK by 20% for 2 turns',
-        pixelColor: '#aa44ff',
+        pixelColor: '#9b59b6',
     },
     {
         id: 'slow',

@@ -392,7 +392,7 @@ const UI = {
                 <div id="detail-sprite-container" style="width:96px;height:96px;margin:0 auto;"></div>
                 <h3 style="color:${RARITIES[card.rarity].color};font-size:12px;margin-top:8px;">${card.name}</h3>
                 <div style="color:${CLASSES[card.class].color};font-size:8px;">${CLASSES[card.class].emoji} ${CLASSES[card.class].name} • ${RARITIES[card.rarity].name}</div>
-                ${card.level > 1 ? `<div style="color:#aa44ff;font-size:8px;margin-top:2px;">⭐ Level ${card.level} — EXP: ${card.exp || 0}/${card.expToNext || '?'}</div>` : ''}
+                ${card.level > 1 ? `<div style="color:#9b59b6;font-size:8px;margin-top:2px;">⭐ Level ${card.level} — EXP: ${card.exp || 0}/${card.expToNext || '?'}</div>` : ''}
             </div>
             <div style="font-size:8px;margin-bottom:12px;">
                 ${['HP','ATK','DEF','SPD'].map(s => {

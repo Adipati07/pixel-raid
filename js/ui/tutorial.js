@@ -351,8 +351,8 @@ const Tutorial = {
                 }
                 .cc-class-card.selected {
                     border-color: var(--gold) !important;
-                    background: rgba(240,192,64,0.1);
-                    box-shadow: 0 0 16px rgba(240,192,64,0.2);
+                    background: rgba(255,215,0,0.1);
+                    box-shadow: 0 0 16px rgba(255,215,0,0.2);
                 }
                 .cc-class-emoji {
                     font-size: 28px;

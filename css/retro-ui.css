@@ -67,7 +67,7 @@ body::after {
     border: 4px solid;
     border-image: repeating-linear-gradient(
         90deg,
-        #D4A017 0px, #D4A017 8px,
+        #b8920e 0px, #b8920e 8px,
         #A07A00 8px, #A07A00 16px
     ) 4;
     padding: 16px;
@@ -78,7 +78,7 @@ body::after {
     content: '►';
     position: absolute;
     top: 8px; left: 8px;
-    color: #D4A017;
+    color: #b8920e;
     font-size: 10px;
     animation: cursor-blink 1s step-end infinite;
 }
@@ -89,7 +89,7 @@ body::after {
 /* ===== GAME HEADER — retro RPG bar ===== */
 .game-header {
     background: linear-gradient(180deg, #1a3a1a 0%, #0c1f0c 100%) !important;
-    border-bottom: 4px solid #D4A017 !important;
+    border-bottom: 4px solid #b8920e !important;
     box-shadow: 
         0 4px 0 #A07A00,
         0 8px 20px rgba(0,0,0,0.5) !important;
@@ -100,7 +100,7 @@ body::after {
     position: absolute;
     bottom: -8px; left: 0; right: 0;
     height: 4px;
-    background: repeating-linear-gradient(90deg, #D4A017 0 4px, transparent 4px 8px);
+    background: repeating-linear-gradient(90deg, #b8920e 0 4px, transparent 4px 8px);
 }
 
 /* ===== NAV BUTTONS — RPG tab style ===== */
@@ -116,15 +116,15 @@ body::after {
 }
 .nav-btn:hover {
     background: linear-gradient(180deg, #224422, #163016) !important;
-    border-color: #D4A017 !important;
-    color: #D4A017 !important;
+    border-color: #b8920e !important;
+    color: #b8920e !important;
     transform: translateY(-2px) !important;
 }
 .nav-btn.active {
     background: linear-gradient(180deg, #0c1f0c, #1a3a1a) !important;
-    border-color: #D4A017 !important;
+    border-color: #b8920e !important;
     border-bottom: 4px solid #0c1f0c !important;
-    color: #D4A017 !important;
+    color: #b8920e !important;
     z-index: 2;
     box-shadow: 0 -2px 10px rgba(212,160,23,0.2) !important;
 }
@@ -141,7 +141,7 @@ body::after {
     border-radius: 0 !important;
     box-shadow: 
         4px 4px 0 rgba(0,0,0,0.4),
-        inset 0 0 20px rgba(76,175,80,0.03) !important;
+        inset 0 0 20px rgba(0,255,136,0.03) !important;
     transition: all 0.1s step-end !important;
     position: relative;
     overflow: hidden;
@@ -166,9 +166,9 @@ body::after {
 }
 .card.common { border-color: #888 !important; }
 .card.rare { border-color: #4488ff !important; }
-.card.epic { border-color: #aa44ff !important; }
-.card.legendary { border-color: #ff8800 !important; }
-.card.mythic { border-color: #ff4444 !important; }
+.card.epic { border-color: #9b59b6 !important; }
+.card.legendary { border-color: #ff6b35 !important; }
+.card.mythic { border-color: #e94560 !important; }
 
 /* Card rarity glow — pulsing effect */
 .card.legendary::after,
@@ -203,7 +203,7 @@ body::after {
     pointer-events: none;
 }
 .btn-gold {
-    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    background: linear-gradient(180deg, #ffd700, #b8920e) !important;
     color: #1a1a00 !important;
     box-shadow: 
         0 4px 0 #8B5E00,
@@ -217,7 +217,7 @@ body::after {
         0 6px 0 #8B5E00,
         0 10px 20px rgba(0,0,0,0.5),
         inset 0 1px 0 rgba(255,255,255,0.3) !important;
-    background: linear-gradient(180deg, #ffe080, #D4A017) !important;
+    background: linear-gradient(180deg, #ffe080, #b8920e) !important;
 }
 .btn-gold:active {
     transform: translateY(2px) !important;
@@ -229,8 +229,8 @@ body::after {
 
 .btn-secondary {
     background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
-    color: #D4A017 !important;
-    border: 2px solid #D4A017 !important;
+    color: #b8920e !important;
+    border: 2px solid #b8920e !important;
     box-shadow: 0 3px 0 rgba(0,0,0,0.3) !important;
 }
 .btn-secondary:hover {
@@ -300,9 +300,9 @@ body::after {
 .progress-fill {
     background: repeating-linear-gradient(
         90deg,
-        #D4A017 0px, #D4A017 6px,
-        #f0c040 6px, #f0c040 8px,
-        #D4A017 8px, #D4A017 10px,
+        #b8920e 0px, #b8920e 6px,
+        #ffd700 6px, #ffd700 8px,
+        #b8920e 8px, #b8920e 10px,
         #A07A00 10px, #A07A00 12px
     ) !important;
     border-radius: 0 !important;
@@ -314,9 +314,9 @@ body::after {
 .hp-bar .progress-fill {
     background: repeating-linear-gradient(
         90deg,
-        #4CAF50 0px, #4CAF50 6px,
+        #00ff88 0px, #00ff88 6px,
         #66BB6A 6px, #66BB6A 8px,
-        #4CAF50 8px, #4CAF50 10px,
+        #00ff88 8px, #00ff88 10px,
         #388E3C 10px, #388E3C 12px
     ) !important;
 }
@@ -324,7 +324,7 @@ body::after {
 /* ===== HERO DETAIL PANEL ===== */
 .hero-detail {
     background: linear-gradient(145deg, #0c1f0c, #0a1a0a) !important;
-    border: 3px solid #D4A017 !important;
+    border: 3px solid #b8920e !important;
     border-radius: 0 !important;
     box-shadow: 
         6px 6px 0 rgba(0,0,0,0.4),
@@ -336,14 +336,14 @@ body::after {
     position: absolute;
     top: -3px; left: -3px; right: -3px;
     height: 6px;
-    background: linear-gradient(90deg, #D4A017, #f0c040, #D4A017);
+    background: linear-gradient(90deg, #b8920e, #ffd700, #b8920e);
 }
 
 /* ===== STAT ROWS — retro RPG stat display ===== */
 .stat-row {
     background: rgba(10,31,10,0.8) !important;
-    border: 1px solid rgba(76,175,80,0.15) !important;
-    border-left: 3px solid #D4A017 !important;
+    border: 1px solid rgba(0,255,136,0.15) !important;
+    border-left: 3px solid #b8920e !important;
     border-radius: 0 !important;
     padding: 6px 10px !important;
     font-family: 'Press Start 2P', monospace;
@@ -355,28 +355,28 @@ body::after {
     letter-spacing: 1px;
 }
 .stat-value {
-    color: #D4A017 !important;
+    color: #b8920e !important;
     text-shadow: 0 0 6px rgba(212,160,23,0.3);
 }
 
 /* ===== FORMATION GRID — slot machine feel ===== */
 .grid-cell {
     background: linear-gradient(145deg, #0a1a0a, #0c1f0c) !important;
-    border: 2px dashed rgba(76,175,80,0.25) !important;
+    border: 2px dashed rgba(0,255,136,0.25) !important;
     border-radius: 0 !important;
     box-shadow: inset 0 0 20px rgba(0,0,0,0.3) !important;
     transition: all 0.1s step-end !important;
 }
 .grid-cell.occupied {
     border-style: solid !important;
-    border-color: #D4A017 !important;
+    border-color: #b8920e !important;
     box-shadow: 
         inset 0 0 20px rgba(212,160,23,0.05),
         0 0 10px rgba(212,160,23,0.1) !important;
 }
 .grid-cell.drag-over {
     background: rgba(212,160,23,0.15) !important;
-    border-color: #f0c040 !important;
+    border-color: #ffd700 !important;
     box-shadow: 
         inset 0 0 30px rgba(212,160,23,0.1),
         0 0 20px rgba(212,160,23,0.2) !important;
@@ -387,7 +387,7 @@ body::after {
     font-family: 'Press Start 2P', monospace !important;
     font-size: 7px !important;
     background: linear-gradient(180deg, #1a3a1a, #0c1f0c) !important;
-    border: 2px solid #4CAF50 !important;
+    border: 2px solid #00ff88 !important;
     border-radius: 0 !important;
     padding: 6px 12px !important;
     box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
@@ -398,7 +398,7 @@ body::after {
 /* ===== MODAL / DIALOG — RPG text box ===== */
 .battle-result-modal .battle-result-content {
     background: linear-gradient(180deg, #0c1f0c, #081408) !important;
-    border: 4px solid #D4A017 !important;
+    border: 4px solid #b8920e !important;
     border-radius: 0 !important;
     box-shadow: 
         0 0 0 4px #000,
@@ -411,7 +411,7 @@ body::after {
     position: absolute;
     top: -14px; left: 50%;
     transform: translateX(-50%);
-    background: #D4A017;
+    background: #b8920e;
     color: #000;
     width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
@@ -428,7 +428,7 @@ body::after {
 }
 #pack-box {
     border-radius: 0 !important;
-    border: 4px solid #D4A017 !important;
+    border: 4px solid #b8920e !important;
     box-shadow: 
         0 0 0 4px #000,
         0 0 60px rgba(212,160,23,0.4),
@@ -448,9 +448,9 @@ body::after {
     font-family: 'Press Start 2P', monospace;
 }
 #loading-screen .loading-text {
-    color: #4CAF50;
+    color: #00ff88;
     font-size: 10px;
-    text-shadow: 0 0 8px rgba(76,175,80,0.5);
+    text-shadow: 0 0 8px rgba(0,255,136,0.5);
     animation: terminal-type 0.05s step-end infinite;
 }
 @keyframes terminal-type {
@@ -471,8 +471,8 @@ body::after {
 }
 .inv-tab.active, .shop-tab.active {
     background: linear-gradient(180deg, #224422, #163016) !important;
-    border-color: #D4A017 !important;
-    color: #D4A017 !important;
+    border-color: #b8920e !important;
+    color: #b8920e !important;
     box-shadow: 
         2px 2px 0 rgba(0,0,0,0.3),
         0 0 10px rgba(212,160,23,0.15) !important;
@@ -516,7 +516,7 @@ body::after {
 /* ===== LEVEL BADGE ===== */
 .level-badge {
     font-family: 'Press Start 2P', monospace !important;
-    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    background: linear-gradient(180deg, #ffd700, #b8920e) !important;
     color: #1a1a00 !important;
     border: 2px solid #8B5E00 !important;
     border-radius: 0 !important;
@@ -533,13 +533,13 @@ body::after {
     box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important;
 }
 .bench-card:hover {
-    border-color: #D4A017 !important;
+    border-color: #b8920e !important;
 }
 
 /* ===== TUTORIAL OVERLAY ===== */
 .tutorial-tooltip {
     background: linear-gradient(180deg, #0c1f0c, #081408) !important;
-    border: 4px solid #D4A017 !important;
+    border: 4px solid #b8920e !important;
     border-radius: 0 !important;
     box-shadow: 
         0 0 0 4px #000,
@@ -592,7 +592,7 @@ body::after {
     padding: 6px 12px !important;
 }
 .speed-btn.active {
-    background: linear-gradient(180deg, #f0c040, #c8960a) !important;
+    background: linear-gradient(180deg, #ffd700, #b8920e) !important;
     color: #1a1a00 !important;
     border-color: #8B5E00 !important;
 }
@@ -625,5 +625,5 @@ body::after {
     background: #000;
     border: 2px solid #1a3a1a;
     padding: 8px;
-    color: #4CAF50;
+    color: #00ff88;
 }
