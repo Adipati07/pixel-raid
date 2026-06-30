@@ -313,19 +313,25 @@ const UI = {
             });
         };
 
-        // Initialize Phaser renderer and wait for scene to be ready before starting battle
-        if (typeof BattlePhaser !== 'undefined') {
+        // Use Canvas renderer (BattleArenaScene) — Yu-Gi-Oh style 2.5D perspective
+        if (typeof BattleArenaScene !== 'undefined') {
+            BattleArenaScene.init('battle-canvas-container');
+            BattleArenaScene.enter(
+                { hero: playerHero, skillCards: playerSkillIds },
+                { hero: enemyHero, skillCards: enemySkillIds },
+                () => {}
+            );
+            startEngine();
+        } else if (typeof BattlePhaser !== 'undefined') {
+            // Phaser fallback
             BattlePhaser.init('battle-canvas-container');
-            // Force Phaser game to resume/resize now that container is visible
             if (BattlePhaser._game) {
                 BattlePhaser._game.loop.wake();
                 if (BattlePhaser._game.scale) BattlePhaser._game.scale.refresh();
             }
             BattlePhaser.enter(playerHero, enemyHero, () => {
-                // Phaser scene is ready — safe to start battle engine now
                 startEngine();
             });
-            // Safety net: if callback never fires (Phaser clock stuck), start engine after 5s
             setTimeout(() => {
                 if (!BattleEngine.isRunning) {
                     console.warn('[Battle] Phaser enter callback timeout — starting engine directly');
