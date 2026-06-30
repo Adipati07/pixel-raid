@@ -15,7 +15,7 @@ const GameState = {
     },
     collection: [],     // all owned hero cards
     deck: [],           // 1 hero in active deck (card id) — for 1v1 battles
-    skillDeck: [],      // 5-8 skill card ids in active skill deck
+    skillDeck: [],      // up to 4 skill card ids in active skill deck
     inventory: [],      // all owned items
     equippedItems: {},  // { cardId: { weapon: itemId, armor: itemId, accessory: itemId } }
     
@@ -106,7 +106,7 @@ const GameState = {
     },
 
     addToDeck(cardId) {
-        if (this.deck.length >= 5) return false;
+        if (this.deck.length >= 4) return false;
         if (this.deck.includes(cardId)) return false;
         const card = this.getCardById(cardId);
         if (!card) return false;

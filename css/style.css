@@ -1084,6 +1084,243 @@ body {
     border: 1px solid rgba(243, 186, 47, 0.3);
 }
 
+/* ===== BATTLE DECK PREVIEW ===== */
+.battle-deck-preview {
+    background: var(--bg-card);
+    border: 2px solid var(--border-pixel, #333);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+.battle-preview-hero {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    background: var(--bg-dark);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-pixel, #333);
+}
+.battle-preview-hero-sprite {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+.battle-preview-hero-sprite img,
+.battle-preview-hero-sprite canvas {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    border-radius: 4px;
+}
+.battle-preview-hero-info {
+    flex: 1;
+}
+.battle-preview-hero-name {
+    font-family: 'Press Start 2P';
+    font-size: 10px;
+    margin-bottom: 4px;
+}
+.battle-preview-hero-class {
+    font-family: 'Silkscreen';
+    font-size: 8px;
+    margin-bottom: 4px;
+}
+.battle-preview-hero-stats {
+    display: flex;
+    gap: 8px;
+    font-family: 'Silkscreen';
+    font-size: 7px;
+}
+.battle-preview-skills {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.battle-preview-skill-card {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-pixel, #333);
+    border-radius: 4px;
+    padding: 6px 4px;
+    text-align: center;
+    min-width: 0;
+}
+.battle-preview-skill-icon {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+.battle-preview-skill-name {
+    font-family: 'Silkscreen';
+    font-size: 7px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.battle-preview-skill-mana {
+    font-family: 'Silkscreen';
+    font-size: 7px;
+    margin-top: 2px;
+}
+
+/* ===== STRATEGY SCREEN — Hero Grid ===== */
+.strategy-hero-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.strategy-hero-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-pixel, #333);
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    position: relative;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    min-height: 44px;
+}
+.strategy-hero-card:hover {
+    border-color: var(--gold);
+}
+.strategy-hero-lock {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 14px;
+    z-index: 2;
+}
+.strategy-hero-name {
+    font-family: 'Press Start 2P';
+    font-size: 7px;
+    margin: 4px 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.strategy-hero-class {
+    font-family: 'Silkscreen';
+    font-size: 7px;
+    color: var(--text-dim);
+}
+.strategy-hero-stats {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    font-family: 'Silkscreen';
+    font-size: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+.strategy-hero-selected-badge {
+    font-family: 'Press Start 2P';
+    font-size: 6px;
+    color: var(--gold);
+    margin-top: 4px;
+}
+
+/* ===== STRATEGY SCREEN — Skill Deck Builder ===== */
+.strategy-skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.strategy-skill-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-pixel, #333);
+    border-radius: 4px;
+    padding: 8px 6px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-height: 44px;
+}
+.strategy-skill-card:hover {
+    border-color: var(--gold);
+}
+.strategy-skill-card.in-deck {
+    background: var(--bg-dark);
+}
+.strategy-skill-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 12px;
+}
+.strategy-skill-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.strategy-skill-type-icon {
+    font-size: 12px;
+}
+.strategy-skill-name {
+    font-family: 'Press Start 2P';
+    font-size: 7px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.strategy-skill-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Silkscreen';
+    font-size: 7px;
+    margin-bottom: 4px;
+}
+.strategy-skill-desc {
+    font-family: 'Silkscreen';
+    font-size: 7px;
+    color: var(--text-dim);
+    line-height: 1.3;
+}
+
+/* ===== STRATEGY SCREEN — Deck Summary ===== */
+.strategy-deck-summary {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-pixel, #333);
+    border-radius: 4px;
+    padding: 10px;
+}
+.strategy-summary-hero {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    background: var(--bg-card);
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+.strategy-summary-skills {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+}
+.strategy-summary-skill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-pixel, #333);
+    border-radius: 3px;
+    padding: 4px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 44px;
+    justify-content: center;
+}
+.strategy-synergy-info {
+    margin-top: 8px;
+    padding: 6px;
+    border-top: 1px solid var(--border-pixel, #333);
+    text-align: center;
+}
+
 /* Mobile responsive */
 @media (max-width: 600px) {
     .nav-btn { font-size: 7px; padding: 8px 4px; }

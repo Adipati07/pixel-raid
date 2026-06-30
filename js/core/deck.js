@@ -14,9 +14,9 @@ const DeckManager = {
 
     // Max hand size and starting hand
     MAX_HAND: 5,
-    STARTING_HAND: 3,
-    MAX_DECK_SIZE: 8,
-    MIN_DECK_SIZE: 5,
+    STARTING_HAND: 2,
+    MAX_DECK_SIZE: 4,
+    MIN_DECK_SIZE: 4,
 
     // ===== DECK BUILDING (Pre-battle) =====
 
@@ -171,10 +171,10 @@ const DeckManager = {
     // ===== STAISETIC HELPERS =====
 
     /**
-     * Generate a default deck for a hero (first 5 available cards)
+     * Generate a default deck for a hero (first 4 available cards)
      */
     generateDefaultDeck() {
-        return SKILL_CARD_TEMPLATES.slice(0, 5).map(c => c.id);
+        return SKILL_CARD_TEMPLATES.slice(0, 4).map(c => c.id);
     },
 
     /**

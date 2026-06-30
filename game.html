@@ -1059,7 +1059,7 @@
     <div class="game-nav">
         <button class="nav-btn active" data-screen="battle" title="Fight enemies, earn gold & cards">⚔️ Battle</button>
         <button class="nav-btn" data-screen="heroes" title="View, upgrade & manage your hero collection">🃏 Heroes</button>
-        <button class="nav-btn" data-screen="formation" title="Arrange your team lineup for battle">📐 Formation</button>
+        <button class="nav-btn" data-screen="formation" title="Build your hero & skill deck">📐 Strategy</button>
         <button class="nav-btn" data-screen="inventory" title="Card packs, items & rewards">🎒 Inventory</button>
         <button class="nav-btn" data-screen="shop" title="Buy packs, gold & special offers">🏪 Shop</button>
     </div>
@@ -1069,6 +1069,8 @@
         <!-- Yu-Gi-Oh Style Battle Field -->
         <!-- LP Bars are rendered on the canvas itself (top & bottom info bars) -->
 
+        <!-- Battle Deck Preview — shows hero + skill cards before battle starts -->
+        <div id="battle-deck-preview" class="battle-deck-preview"></div>
         <!-- Battle Canvas — Full Yu-Gi-Oh field layout -->
         <div class="battle-canvas-wrap">
             <div id="battle-canvas-container"></div>
@@ -1094,14 +1096,9 @@
 
     <!-- ====== FORMATION SCREEN ====== -->
     <div class="screen" id="screen-formation">
-        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">📐 FORMATION</h2>
-        <p style="font-size:8px;color:var(--text-dim);margin-bottom:12px;">Drag heroes from bench to grid. Front row = tanky, Back row = safe. Swap by dragging occupied slots.</p>
-        <div id="formation-grid"></div>
-        <div class="bench-section">
-            <div class="bench-title">📋 BENCH (drag to deploy)</div>
-            <div id="bench-heroes"></div>
-        </div>
-        <div id="synergy-panel"></div>
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">📐 STRATEGY</h2>
+        <p style="font-size:8px;color:var(--text-dim);margin-bottom:12px;">Select your battle hero and build a 4-card skill deck.</p>
+        <div id="strategy-content"></div>
     </div>
 
     <!-- ====== INVENTORY SCREEN ====== -->

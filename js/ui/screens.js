@@ -39,7 +39,7 @@ const UI = {
         switch (name) {
             case 'battle': this.renderBattleScreen(); break;
             case 'heroes': this.renderHeroesScreen(); break;
-            case 'formation': this.renderFormationScreen(); break;
+            case 'formation': this.renderStrategyScreen(); break;
             case 'inventory': this.renderInventoryScreen(); break;
             case 'shop': this.renderShopScreen(); break;
         }
@@ -53,6 +53,9 @@ const UI = {
 
     // ===== BATTLE SCREEN =====
     renderBattleScreen() {
+        // Show deck preview (hero + skill cards) when battle is not active
+        this.renderBattleDeckPreview();
+
         // Update header stats if stage/wave elements exist
         const stageEl = document.getElementById('stage-number');
         if (stageEl) stageEl.textContent = GameState.player.stage;
@@ -74,6 +77,105 @@ const UI = {
             ctx.font = '14px "Press Start 2P"';
             ctx.textAlign = 'center';
             ctx.fillText('Press Start Battle!', canvas.width / 2, canvas.height / 2);
+        }
+    },
+
+    /**
+     * Render battle deck preview — shows active hero + skill deck cards
+     * Visible when battle is NOT running, hidden during battle
+     */
+    renderBattleDeckPreview() {
+        const preview = document.getElementById('battle-deck-preview');
+        if (!preview) return;
+
+        // Hide preview when battle is active
+        if (typeof BattleEngine !== 'undefined' && BattleEngine.isRunning) {
+            preview.style.display = 'none';
+            return;
+        }
+        preview.style.display = '';
+
+        const deckCards = GameState.getDeckCards();
+        const skillCards = GameState.skillDeck.length > 0
+            ? GameState.getSkillDeckCards()
+            : SKILL_CARD_TEMPLATES.slice(0, 4).map(t => ({ ...t }));
+
+        // No hero in deck — prompt user
+        if (deckCards.length === 0) {
+            preview.innerHTML = `
+                <div style="text-align:center;padding:24px 12px;">
+                    <div style="font-size:28px;margin-bottom:8px;">🃏</div>
+                    <div style="font-family:'Press Start 2P';font-size:9px;color:var(--gold);margin-bottom:8px;">No Hero Selected</div>
+                    <div style="font-size:8px;color:var(--text-dim);">Go to <strong>Strategy</strong> to build your deck!</div>
+                </div>
+            `;
+            return;
+        }
+
+        const hero = deckCards[0];
+        const template = getTemplateByName(hero.templateId || hero.name);
+        const cls = CLASSES[hero.class] || {};
+        const rarity = RARITIES[hero.rarity] || {};
+        const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
+
+        // Hero preview section
+        let heroHTML = `
+            <div class="battle-preview-hero">
+                <div class="battle-preview-hero-sprite" id="battle-preview-sprite"></div>
+                <div class="battle-preview-hero-info">
+                    <div class="battle-preview-hero-name" style="color:${rarity.color || '#fff'}">${hero.name}${hero.level > 1 ? ' Lv.' + hero.level : ''}</div>
+                    <div class="battle-preview-hero-class" style="color:${cls.color || '#888'}">${cls.emoji || ''} ${cls.name || hero.class}</div>
+                    <div class="battle-preview-hero-stats">
+                        <span style="color:#44cc44">HP:${hero.stats.hp}</span>
+                        <span style="color:#ff6644">ATK:${hero.stats.atk}</span>
+                        <span style="color:#4488ff">DEF:${hero.stats.def}</span>
+                        <span style="color:#ffaa00">SPD:${hero.stats.spd}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Skill cards section
+        let skillsHTML = '<div class="battle-preview-skills">';
+        skillCards.forEach(card => {
+            const typeIcon = typeIcons[card.type] || '🃏';
+            const cardType = CARD_TYPES[card.type] || {};
+            skillsHTML += `
+                <div class="battle-preview-skill-card">
+                    <div class="battle-preview-skill-icon">${typeIcon}</div>
+                    <div class="battle-preview-skill-name">${card.name}</div>
+                    <div class="battle-preview-skill-mana" style="color:${cardType.color || '#aaa'}">💎 ${card.manaCost}</div>
+                </div>
+            `;
+        });
+        skillsHTML += '</div>';
+
+        preview.innerHTML = heroHTML + skillsHTML;
+
+        // Draw hero sprite (image with canvas fallback)
+        const spriteContainer = document.getElementById('battle-preview-sprite');
+        if (spriteContainer) {
+            if (template && template.image) {
+                const img = document.createElement('img');
+                img.width = 80; img.height = 80;
+                img.style.imageRendering = 'pixelated';
+                img.src = template.image;
+                img.onerror = () => {
+                    const cvs = document.createElement('canvas');
+                    cvs.width = 80; cvs.height = 80;
+                    if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(cvs, hero, 80);
+                    spriteContainer.innerHTML = '';
+                    spriteContainer.appendChild(cvs);
+                };
+                spriteContainer.innerHTML = '';
+                spriteContainer.appendChild(img);
+            } else if (typeof CardRenderer !== 'undefined') {
+                const cvs = document.createElement('canvas');
+                cvs.width = 80; cvs.height = 80;
+                CardRenderer.drawCardSprite(cvs, hero, 80);
+                spriteContainer.innerHTML = '';
+                spriteContainer.appendChild(cvs);
+            }
         }
     },
 
@@ -108,7 +210,7 @@ const UI = {
         let playerSkillIds = GameState.skillDeck.slice();
         // If no skill deck built, use default starter skill cards
         if (playerSkillIds.length === 0) {
-            playerSkillIds = SKILL_CARD_TEMPLATES.slice(0, 5).map(c => c.id);
+            playerSkillIds = SKILL_CARD_TEMPLATES.slice(0, 4).map(c => c.id);
         }
 
         // Generate enemy: 1 hero + skill cards
@@ -463,7 +565,7 @@ const UI = {
             GameState.removeFromDeck(cardId);
             this.toast('Card removed from deck', 'info');
         } else {
-            if (GameState.deck.length >= 5) {
+            if (GameState.deck.length >= 4) {
                 this.toast('Deck is full! Remove a card first.', 'error');
                 return;
             }
@@ -504,11 +606,269 @@ const UI = {
         }
     },
 
-    // ===== FORMATION SCREEN =====
-    renderFormationScreen() {
-        Formation.init();
-        Formation.render();
+    // ===== STRATEGY SCREEN (replaces Formation) =====
+    _selectedStrategyHero: null,
+
+    renderStrategyScreen() {
+        this._renderHeroSelectionGrid();
     },
+
+    /**
+     * Section A: Hero Selection Grid — shows all 20 heroes from CARD_TEMPLATES
+     * Owned heroes are clickable; unowned are grayed out with lock icon
+     */
+    _renderHeroSelectionGrid() {
+        const container = document.getElementById('strategy-content');
+        if (!container) return;
+
+        const selectedDeckHeroId = GameState.deck.length > 0 ? GameState.deck[0] : null;
+
+        let html = `
+            <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin-bottom:8px;">
+                🦸 SELECT BATTLE HERO
+            </div>
+            <div class="strategy-hero-grid">
+        `;
+
+        CARD_TEMPLATES.forEach((tmpl, index) => {
+            // Check if player owns this hero (match by templateId or name)
+            const ownedCard = GameState.collection.find(
+                c => (c.templateId === tmpl.name) || (c.name === tmpl.name)
+            );
+            const isOwned = !!ownedCard;
+            const isSelected = isOwned && ownedCard && selectedDeckHeroId === ownedCard.id;
+            const cls = CLASSES[tmpl.cls] || {};
+
+            // Determine default rarity for styling
+            const totalStats = tmpl.hp + tmpl.atk + tmpl.def + tmpl.spd + tmpl.crit;
+            const defaultRarity = totalStats > 200 ? 'epic' : totalStats > 160 ? 'rare' : 'common';
+
+            const opacity = isOwned ? '1' : '0.4';
+            const cursor = isOwned ? 'pointer' : 'not-allowed';
+            const borderGlow = isSelected ? `box-shadow:0 0 12px var(--gold),0 0 4px var(--gold);border-color:var(--gold);` : '';
+
+            html += `
+                <div class="strategy-hero-card" data-hero-index="${index}"
+                     style="opacity:${opacity};cursor:${cursor};${borderGlow}"
+                     onclick="${isOwned ? `UI._selectStrategyHero(${index})` : ''}">
+                    ${!isOwned ? '<div class="strategy-hero-lock">🔒</div>' : ''}
+                    <canvas class="strategy-hero-sprite" data-hero-index="${index}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                    <div class="strategy-hero-name" style="color:${isOwned ? (RARITIES[ownedCard?.rarity]?.color || RARITIES[defaultRarity].color) : RARITIES[defaultRarity].color}">${tmpl.name}</div>
+                    <div class="strategy-hero-class">${cls.emoji || ''} ${cls.name || tmpl.cls}</div>
+                    <div class="strategy-hero-stats">
+                        <span style="color:#44cc44">HP:${tmpl.hp}</span>
+                        <span style="color:#ff6644">ATK:${tmpl.atk}</span>
+                        <span style="color:#4488ff">DEF:${tmpl.def}</span>
+                        <span style="color:#ffaa00">SPD:${tmpl.spd}</span>
+                    </div>
+                    ${isSelected ? '<div class="strategy-hero-selected-badge">✅ ACTIVE</div>' : ''}
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // Section B: Skill Card Deck Builder (only when hero is selected)
+        if (selectedDeckHeroId) {
+            html += this._renderSkillDeckBuilder();
+        }
+
+        // Section C: Active Deck Summary
+        html += this._renderDeckSummary();
+
+        container.innerHTML = html;
+
+        // Draw hero sprites after DOM is ready
+        setTimeout(() => {
+            document.querySelectorAll('.strategy-hero-sprite').forEach(canvas => {
+                const idx = parseInt(canvas.dataset.heroIndex);
+                const tmpl = CARD_TEMPLATES[idx];
+                if (!tmpl) return;
+                if (tmpl.image) {
+                    const img = new Image();
+                    img.onload = () => {
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, 48, 48);
+                    };
+                    img.onerror = () => {
+                        const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
+                        if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
+                    };
+                    img.src = tmpl.image;
+                } else {
+                    const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
+                    if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
+                }
+            });
+        }, 50);
+    },
+
+    /**
+     * Select a hero as the active battle hero
+     */
+    _selectStrategyHero(templateIndex) {
+        const tmpl = CARD_TEMPLATES[templateIndex];
+        if (!tmpl) return;
+
+        // Find owned card matching this template
+        const ownedCard = GameState.collection.find(
+            c => (c.templateId === tmpl.name) || (c.name === tmpl.name)
+        );
+        if (!ownedCard) {
+            this.toast('🔒 Hero not owned yet!', 'error');
+            return;
+        }
+
+        // Set as deck hero (single hero for 1v1)
+        GameState.deck = [ownedCard.id];
+        GameState.save();
+        this.toast(`${tmpl.name} set as battle hero!`, 'success');
+
+        // Re-render
+        this._renderHeroSelectionGrid();
+    },
+
+    /**
+     * Section B: Skill Card Deck Builder — shows all 20 skill cards
+     */
+    _renderSkillDeckBuilder() {
+        const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
+        const currentDeck = GameState.skillDeck || [];
+        const deckCount = currentDeck.length;
+
+        let html = `
+            <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin:16px 0 8px;">
+                🃏 SKILL DECK BUILDER <span style="font-family:'Silkscreen';font-size:8px;color:var(--text-dim);">(${deckCount}/4 cards)</span>
+            </div>
+            <div class="strategy-skill-grid">
+        `;
+
+        SKILL_CARD_TEMPLATES.forEach(card => {
+            const inDeck = currentDeck.includes(card.id);
+            const typeIcon = typeIcons[card.type] || '🃏';
+            const cardType = CARD_TYPES[card.type] || {};
+            const rarityColor = RARITIES[card.rarity]?.color || '#aaa';
+            const borderStyle = inDeck ? `border-color:${cardType.color || 'var(--gold)'};box-shadow:0 0 6px ${cardType.color || 'var(--gold)'}44;` : '';
+
+            html += `
+                <div class="strategy-skill-card ${inDeck ? 'in-deck' : ''}"
+                     style="${borderStyle}"
+                     onclick="UI._toggleSkillCard('${card.id}')">
+                    ${inDeck ? '<div class="strategy-skill-check">✅</div>' : ''}
+                    <div class="strategy-skill-header">
+                        <span class="strategy-skill-type-icon">${typeIcon}</span>
+                        <span class="strategy-skill-name">${card.name}</span>
+                    </div>
+                    <div class="strategy-skill-meta">
+                        <span style="color:${rarityColor}">${RARITIES[card.rarity]?.name || card.rarity}</span>
+                        <span style="color:${cardType.color || '#aaa'}">💎 ${card.manaCost}</span>
+                    </div>
+                    <div class="strategy-skill-desc">${card.description}</div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * Toggle a skill card in/out of the deck (max 4)
+     */
+    _toggleSkillCard(cardId) {
+        let deck = GameState.skillDeck || [];
+        const idx = deck.indexOf(cardId);
+
+        if (idx >= 0) {
+            // Remove from deck
+            deck.splice(idx, 1);
+            GameState.skillDeck = deck;
+        } else {
+            // Add to deck (max 4)
+            if (deck.length >= 4) {
+                this.toast('Skill deck is full! (Max 4 cards)', 'error');
+                return;
+            }
+            deck.push(cardId);
+            GameState.skillDeck = deck;
+        }
+
+        GameState.save();
+
+        // Re-render strategy screen
+        this._renderHeroSelectionGrid();
+    },
+
+    /**
+     * Section C: Active Deck Summary — mini preview of hero + skill cards
+     */
+    _renderDeckSummary() {
+        const deckCards = GameState.getDeckCards();
+        const skillCards = GameState.skillDeck.length > 0
+            ? GameState.getSkillDeckCards()
+            : SKILL_CARD_TEMPLATES.slice(0, 4);
+
+        let html = `
+            <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin:16px 0 8px;">
+                📋 ACTIVE DECK SUMMARY
+            </div>
+            <div class="strategy-deck-summary">
+        `;
+
+        // Hero
+        if (deckCards.length > 0) {
+            const hero = deckCards[0];
+            const cls = CLASSES[hero.class] || {};
+            const r = RARITIES[hero.rarity] || {};
+            html += `
+                <div class="strategy-summary-hero">
+                    <span style="font-size:14px">${cls.emoji || '🦸'}</span>
+                    <span style="color:${r.color};font-size:8px;font-weight:700;">${hero.name}</span>
+                    <span style="color:${cls.color};font-size:7px;">${cls.name}</span>
+                </div>
+            `;
+        } else {
+            html += `<div style="font-size:8px;color:var(--text-dim);">No hero selected</div>`;
+        }
+
+        // Skill cards
+        html += '<div class="strategy-summary-skills">';
+        const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
+        skillCards.forEach(card => {
+            const typeIcon = typeIcons[card.type] || '🃏';
+            html += `
+                <div class="strategy-summary-skill">
+                    <span>${typeIcon}</span>
+                    <span style="font-size:7px">${card.name}</span>
+                    <span style="font-size:7px;color:#888">💎${card.manaCost}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        // Synergy info (simplified for 1v1: check hero class + skill types)
+        if (deckCards.length > 0) {
+            const hero = deckCards[0];
+            const heroClass = hero.class;
+            const matchingSkills = skillCards.filter(s => {
+                // Simple synergy: attack skills match warrior/assassin, buff match mage, etc.
+                return true; // show general info
+            });
+            const cls = CLASSES[heroClass];
+            if (cls) {
+                html += `
+                    <div class="strategy-synergy-info">
+                        <span style="color:${cls.color};font-size:7px;">${cls.emoji} ${cls.name} — ${skillCards.length} skills equipped</span>
+                    </div>
+                `;
+            }
+        }
+
+        html += '</div>';
+        return html;
+    },
+
 
     // ===== INVENTORY SCREEN =====
     bindInventoryTabs() {
