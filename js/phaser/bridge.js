@@ -21,10 +21,9 @@ var BattlePhaser = {
             return;
         }
 
-        // Size to fill container (responsive)
-        var rect = container.getBoundingClientRect();
-        var W = Math.floor(rect.width) || 800;
-        var H = Math.floor(rect.height) || 500;
+        // Always use 800x500 for Phaser internal resolution (pixel art native)
+        var W = 800;
+        var H = 500;
 
         // Create Phaser game instance
         var config = {
