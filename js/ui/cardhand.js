@@ -87,7 +87,8 @@ const CardHand = {
             el.className = `battle-card skill-card rarity-${card.rarity || 'common'}`;
         }
 
-        if (!canPlay) el.classList.add('card-disabled');
+        if (canPlay) el.classList.add('card-playable');
+        else el.classList.add('card-disabled');
         if (this.selectedCard === index) el.classList.add('card-selected');
 
         const rarityColor = RARITIES[card.rarity] ? RARITIES[card.rarity].color : '#aaa';
@@ -235,7 +236,8 @@ const CardHand = {
         if (!cards) return;
 
         cards.forEach((el, i) => {
-            if (hand[i] && (hand[i].cardType === 'hero' || currentMana >= (hand[i].manaCost || 0))) {
+            // Yu-Gi-Oh style: all cards playable during main phase (no mana system)
+            if (hand[i]) {
                 el.classList.remove('card-disabled');
                 el.classList.add('card-playable');
             } else {
