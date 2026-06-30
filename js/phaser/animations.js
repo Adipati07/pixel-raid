@@ -151,8 +151,8 @@ var PhaserAnimations = {
     phaseBanner: function (text, color) {
         if (!this.scene) return;
 
-        var W = this.scene.W || 600;
-        var H = this.scene.H || 400;
+        var W = this.scene.W || 800;
+        var H = this.scene.H || 500;
 
         var banner = this.scene.add.text(W / 2, H / 2, text.toUpperCase(), {
             fontFamily: '"Press Start 2P", monospace',
@@ -299,8 +299,8 @@ var PhaserAnimations = {
     transitionIn: function (onComplete) {
         if (!this.scene) return;
 
-        var W = this.scene.W || 600;
-        var H = this.scene.H || 400;
+        var W = this.scene.W || 800;
+        var H = this.scene.H || 500;
 
         var overlay = this.scene.add.graphics();
         overlay.fillStyle(0x000000, 1);
@@ -342,8 +342,8 @@ var PhaserAnimations = {
     transitionOut: function (onComplete) {
         if (!this.scene) return;
 
-        var W = this.scene.W || 600;
-        var H = this.scene.H || 400;
+        var W = this.scene.W || 800;
+        var H = this.scene.H || 500;
 
         var overlay = this.scene.add.graphics();
         overlay.fillStyle(0x000000, 0);

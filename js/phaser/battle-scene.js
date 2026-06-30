@@ -10,16 +10,16 @@ const PhaserBattleScene = new Phaser.Class({
         Phaser.Scene.call(this, { key: 'PhaserBattleScene' });
 
         // Layout constants (match BattleArenaScene)
-        this.W = 600;
-        this.H = 400;
-        this.LP_BAR_H = 18;
-        this.FIELD_GAP = 6;
-        this.CENTER_H = 32;
-        this.ZONE_W = 80;
-        this.ZONE_H = 100;
-        this.ZONE_GAP = 6;
-        this.SKILL_ZONE_W = 56;
-        this.SKILL_ZONE_H = 80;
+        this.W = 800;
+        this.H = 500;
+        this.LP_BAR_H = 22;
+        this.FIELD_GAP = 8;
+        this.CENTER_H = 40;
+        this.ZONE_W = 106;
+        this.ZONE_H = 130;
+        this.ZONE_GAP = 10;
+        this.SKILL_ZONE_W = 74;
+        this.SKILL_ZONE_H = 106;
 
         // Game object refs
         this.bgGraphics = null;
@@ -147,9 +147,9 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(accent);
 
         // Name text
-        var nameText = this.add.text(26, lpH - 5, side === 'player' ? 'Player' : 'Enemy', {
+        var nameText = this.add.text(26, lpH - 6, side === 'player' ? 'Player' : 'Enemy', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '9px',
+            fontSize: '10px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -173,9 +173,9 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(barFill);
 
         // LP text
-        var lpText = this.add.text(barX + barW / 2, barY + barH - 4, 'LP 4000 / 4000', {
+        var lpText = this.add.text(barX + barW / 2, barY + barH / 2, 'LP 4000 / 4000', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '7px',
+            fontSize: '8px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -183,17 +183,17 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(lpText);
 
         // Deck / GY text
-        var deckText = this.add.text(W - 8, lpH - 10, 'DECK: 0', {
+        var deckText = this.add.text(W - 8, lpH - 12, 'DECK: 0', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '6px',
+            fontSize: '7px',
             color: '#b4b4b4'
         });
         deckText.setOrigin(1, 0.5);
         container.add(deckText);
 
-        var gyText = this.add.text(W - 8, lpH - 3, 'GY: 0', {
+        var gyText = this.add.text(W - 8, lpH - 4, 'GY: 0', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '6px',
+            fontSize: '7px',
             color: '#888888'
         });
         gyText.setOrigin(1, 0.5);
@@ -264,9 +264,9 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(accents);
 
         // VS text
-        this.vsText = this.add.text(W / 2, centerH / 2, 'VS', {
+        this.vsText = this.add.text(W / 2, centerH / 2 + 1, 'VS', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '16px',
+            fontSize: '20px',
             color: '#ffd700',
             fontStyle: 'bold'
         });
@@ -275,18 +275,18 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(this.vsText);
 
         // Turn text
-        this.turnText = this.add.text(W / 2 - 40, centerH / 2, 'Turn 0', {
+        this.turnText = this.add.text(W / 2 - 50, centerH / 2 + 1, 'Turn 0', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '6px',
+            fontSize: '7px',
             color: 'rgba(255,255,255,0.6)'
         });
         this.turnText.setOrigin(1, 0.5);
         container.add(this.turnText);
 
         // Phase text
-        this.phaseText = this.add.text(W / 2 + 40, centerH / 2, '', {
+        this.phaseText = this.add.text(W / 2 + 50, centerH / 2 + 1, '', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '6px',
+            fontSize: '7px',
             color: 'rgba(68,204,136,0.8)'
         });
         this.phaseText.setOrigin(0, 0.5);
@@ -296,11 +296,11 @@ const PhaserBattleScene = new Phaser.Class({
         var lines = this.add.graphics();
         lines.lineStyle(1, 0xffd700, 0.2);
         lines.beginPath();
-        lines.moveTo(20, centerH / 2);
-        lines.lineTo(W / 2 - 60, centerH / 2);
+        lines.moveTo(20, centerH / 2 + 1);
+        lines.lineTo(W / 2 - 75, centerH / 2 + 1);
         lines.strokePath();
         lines.beginPath();
-        lines.moveTo(W / 2 + 60, centerH / 2);
+        lines.moveTo(W / 2 + 75, centerH / 2 + 1);
         lines.lineTo(W - 20, centerH / 2);
         lines.strokePath();
         container.add(lines);
@@ -340,7 +340,7 @@ const PhaserBattleScene = new Phaser.Class({
             this._drawEmptyHeroZone(container, zx, heroY, zoneW, zoneH, i);
             var label = this.add.text(zx + zoneW / 2, heroY - 3, 'HERO ' + (i + 1), {
                 fontFamily: '"Press Start 2P", monospace',
-                fontSize: '5px',
+                fontSize: '6px',
                 color: 'rgba(68,136,255,0.3)'
             });
             label.setOrigin(0.5, 1);
@@ -359,7 +359,7 @@ const PhaserBattleScene = new Phaser.Class({
             this._drawEmptyHeroZone(container, zx, enemyHeroY, zoneW, zoneH, i);
             var label = this.add.text(zx + zoneW / 2, enemyHeroY - 3, 'HERO ' + (i + 1), {
                 fontFamily: '"Press Start 2P", monospace',
-                fontSize: '5px',
+                fontSize: '6px',
                 color: 'rgba(68,136,255,0.3)'
             });
             label.setOrigin(0.5, 1);
@@ -380,7 +380,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         // Placeholder icon
         var icon = this.add.text(x + w / 2, y + h / 2, '⚔', {
-            fontSize: '20px',
+            fontSize: '26px',
             color: 'rgba(68,136,255,0.12)'
         });
         icon.setOrigin(0.5, 0.5);
@@ -406,8 +406,8 @@ const PhaserBattleScene = new Phaser.Class({
         // Player skill zones
         var playerFieldY = lpH + gap + fieldH + gap + centerH + gap;
         var skillY = playerFieldY + (fieldH - skillH) / 2;
-        var leftSkillX = heroStartX - skillW - 18;
-        var rightSkillX = heroStartX + totalHeroW + 18;
+        var leftSkillX = heroStartX - skillW - 24;
+        var rightSkillX = heroStartX + totalHeroW + 24;
 
         for (var i = 0; i < 2; i++) {
             var sx = i === 0 ? leftSkillX : rightSkillX;
@@ -439,7 +439,7 @@ const PhaserBattleScene = new Phaser.Class({
         container.add(bg);
 
         var icon = this.add.text(x + w / 2, y + h / 2 - 4, '✨', {
-            fontSize: '16px',
+            fontSize: '22px',
             color: 'rgba(155,89,182,0.12)'
         });
         icon.setOrigin(0.5, 0.5);
@@ -525,7 +525,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         var nameText = this.add.text(x + 6, y + 5 + 4.5, hero.name || 'Hero', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '5px',
+            fontSize: '6px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -533,7 +533,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         var hpText = this.add.text(x + w - 6, y + 5 + 4.5, 'HP ' + (hero.currentHp || 0), {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '5px',
+            fontSize: '6px',
             color: '#ff4444',
             fontStyle: 'bold'
         });
@@ -573,7 +573,7 @@ const PhaserBattleScene = new Phaser.Class({
         var typeName = cls ? cls.name : 'Hero';
         var typeText = this.add.text(x + 6, infoY + 2, typeName, {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '4px',
+            fontSize: '5px',
             color: clsColor
         });
         container.add(typeText);
@@ -581,7 +581,7 @@ const PhaserBattleScene = new Phaser.Class({
         var rarityName = rarityInfo ? rarityInfo.name : '';
         var rarityText = this.add.text(x + w - 6, infoY + 2, rarityName, {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '4px',
+            fontSize: '5px',
             color: rarityColor
         });
         rarityText.setOrigin(1, 0);
@@ -614,7 +614,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         var hpBarText = this.add.text(x + 4 + (w - 8) / 2, hpBarY2 + 3, (hero.currentHp || 0) + '/' + (hero.maxHp || 0), {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '4px',
+            fontSize: '5px',
             color: '#ffffff'
         });
         hpBarText.setOrigin(0.5, 0.5);
@@ -633,7 +633,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         var atkText = this.add.text(x + 8, statBoxY + 2, '⚔' + totalAtk, {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '5px',
+            fontSize: '6px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -646,7 +646,7 @@ const PhaserBattleScene = new Phaser.Class({
 
         var defText = this.add.text(x + w - 8, statBoxY + 2, '🛡' + totalDef, {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '5px',
+            fontSize: '6px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -662,7 +662,7 @@ const PhaserBattleScene = new Phaser.Class({
 
             var defLabel = this.add.text(x + w / 2, y + h - 4, 'DEF', {
                 fontFamily: '"Press Start 2P", monospace',
-                fontSize: '4px',
+                fontSize: '5px',
                 color: 'rgba(68,136,255,0.9)',
                 fontStyle: 'bold'
             });
@@ -723,7 +723,7 @@ const PhaserBattleScene = new Phaser.Class({
         // Icon
         var emoji = typeInfo ? typeInfo.emoji : '✨';
         var icon = this.add.text(x + w / 2, y + h / 2 - 4, emoji, {
-            fontSize: '18px'
+            fontSize: '24px'
         });
         icon.setOrigin(0.5, 0.5);
         container.add(icon);
@@ -731,7 +731,7 @@ const PhaserBattleScene = new Phaser.Class({
         // Name
         var nameText = this.add.text(x + w / 2, y + h - 10, card.name || '', {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '4px',
+            fontSize: '5px',
             color: rarityColor
         });
         nameText.setOrigin(0.5, 0.5);
@@ -742,7 +742,7 @@ const PhaserBattleScene = new Phaser.Class({
             var desc = card.description.length > 18 ? card.description.substring(0, 18) + '...' : card.description;
             var descText = this.add.text(x + w / 2, y + h - 4, desc, {
                 fontFamily: '"Press Start 2P", monospace',
-                fontSize: '3px',
+                fontSize: '4px',
                 color: '#aaaaff'
             });
             descText.setOrigin(0.5, 0.5);
@@ -761,7 +761,7 @@ const PhaserBattleScene = new Phaser.Class({
         var color = isPlayer ? '#ffd700' : '#88ccff';
         var banner = this.add.text(this.W / 2, this.H / 2, text.toUpperCase(), {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: '16px',
+            fontSize: '20px',
             color: color,
             fontStyle: 'bold'
         });
@@ -869,8 +869,11 @@ const PhaserBattleScene = new Phaser.Class({
     // ===== ATTACK ANIMATIONS =====
     playAttack: function (attackIdx, targetIdx, isPlayerAttacking, damage, isCrit) {
         var zoneW = this.ZONE_W;
+        var zoneH = this.ZONE_H;
         var zoneGap = this.ZONE_GAP;
-        var totalHeroW = zoneW * 3 + zoneGap * 2;
+        var W = this.W;
+        var H = this.H;
+        var scene = this;
 
         var srcField = isPlayerAttacking ? this.zoneContainers.player : this.zoneContainers.enemy;
         var tgtField = isPlayerAttacking ? this.zoneContainers.enemy : this.zoneContainers.player;
@@ -878,64 +881,131 @@ const PhaserBattleScene = new Phaser.Class({
         if (!srcField[attackIdx] || !tgtField[targetIdx]) return;
 
         var srcX = srcField[attackIdx].x + zoneW / 2;
-        var srcY = srcField[attackIdx].y + this.ZONE_H / 2;
+        var srcY = srcField[attackIdx].y + zoneH / 2;
         var tgtX = tgtField[targetIdx].x + zoneW / 2;
-        var tgtY = tgtField[targetIdx].y + this.ZONE_H / 2;
+        var tgtY = tgtField[targetIdx].y + zoneH / 2;
 
-        // Attack flash circle
+        // Attack flash projectile
         var flash = this.add.graphics();
         flash.fillStyle(isCrit ? 0xff4444 : 0xffffff, 1);
-        flash.fillCircle(0, 0, 6);
+        flash.fillCircle(0, 0, isCrit ? 10 : 7);
         flash.setPosition(srcX, srcY);
+        flash.setDepth(50);
 
         // Trail line
         var trail = this.add.graphics();
-        trail.lineStyle(isCrit ? 3 : 2, isCrit ? 0xff4444 : 0xffffff, 0.6);
-        trail.beginPath();
-        trail.moveTo(srcX, srcY);
-        trail.lineTo(srcX, srcY);
-        trail.strokePath();
+        trail.setDepth(49);
 
         // Lunge animation
         this.tweens.add({
             targets: flash,
             x: tgtX,
             y: tgtY,
-            duration: 300,
+            duration: 280,
             ease: 'Power2',
             onUpdate: function (tween) {
-                // Update trail
                 var progress = tween.progress;
                 var cx = srcX + (tgtX - srcX) * progress;
                 var cy = srcY + (tgtY - srcY) * progress;
                 trail.clear();
-                trail.lineStyle(isCrit ? 3 : 2, isCrit ? 0xff4444 : 0xffffff, 0.6);
+                trail.lineStyle(isCrit ? 4 : 2, isCrit ? 0xff4444 : 0xffffff, 0.7);
                 trail.beginPath();
                 trail.moveTo(srcX, srcY);
                 trail.lineTo(cx, cy);
                 trail.strokePath();
             },
             onComplete: function () {
-                // Impact flash
-                this.spawnDamageNumber(tgtX + (Math.random() - 0.5) * 30, tgtY - 20, damage, isCrit);
-                this.triggerShake(isCrit ? 8 : 4, isCrit ? 0.6 : 0.3);
+                // === IMPACT EFFECTS ===
 
-                // Flash on target zone
-                var impactFlash = this.add.graphics();
-                impactFlash.fillStyle(isCrit ? 0xff3232 : 0xffffff, isCrit ? 0.4 : 0.3);
-                impactFlash.fillRect(tgtX - zoneW / 2, tgtY - this.ZONE_H / 2, zoneW, this.ZONE_H);
+                // 1. Damage number float-up
+                scene.spawnDamageNumber(tgtX + (Math.random() - 0.5) * 30, tgtY - 20, damage, isCrit);
 
-                this.tweens.add({
+                // 2. Screen shake (more intense for crits)
+                scene.triggerShake(isCrit ? 12 : 5, isCrit ? 0.8 : 0.4);
+
+                // 3. Flash on target zone
+                var impactFlash = scene.add.graphics();
+                impactFlash.setDepth(48);
+                impactFlash.fillStyle(isCrit ? 0xff3232 : 0xffffff, isCrit ? 0.5 : 0.35);
+                impactFlash.fillRect(tgtX - zoneW / 2, tgtY - zoneH / 2, zoneW, zoneH);
+
+                scene.tweens.add({
                     targets: impactFlash,
                     alpha: 0,
                     duration: 400,
                     onComplete: function () { impactFlash.destroy(); }
                 });
 
-                // Cleanup
+                // 4. Slash/impact X mark
+                var slash = scene.add.graphics();
+                slash.setDepth(51);
+                var slashColor = isCrit ? 0xff2222 : 0xffffff;
+                var slashSize = isCrit ? 22 : 16;
+                slash.lineStyle(isCrit ? 4 : 3, slashColor, 0.9);
+                // Diagonal lines forming an X
+                slash.beginPath();
+                slash.moveTo(tgtX - slashSize, tgtY - slashSize);
+                slash.lineTo(tgtX + slashSize, tgtY + slashSize);
+                slash.strokePath();
+                slash.beginPath();
+                slash.moveTo(tgtX + slashSize, tgtY - slashSize);
+                slash.lineTo(tgtX - slashSize, tgtY + slashSize);
+                slash.strokePath();
+
+                scene.tweens.add({
+                    targets: slash,
+                    alpha: 0,
+                    scaleX: 1.5,
+                    scaleY: 1.5,
+                    duration: 400,
+                    ease: 'Power2',
+                    onComplete: function () { slash.destroy(); }
+                });
+
+                // 5. Particle burst at impact
+                var particleCount = isCrit ? 14 : 8;
+                var particleColor = isCrit ? 0xff4444 : 0xffd700;
+                for (var p = 0; p < particleCount; p++) {
+                    (function (index) {
+                        var angle = (index / particleCount) * Math.PI * 2;
+                        var speed = 40 + Math.random() * 50;
+                        var particle = scene.add.graphics();
+                        var pSize = isCrit ? 3 + Math.random() * 3 : 2 + Math.random() * 2;
+                        particle.fillStyle(particleColor, 0.9);
+                        particle.fillCircle(0, 0, pSize);
+                        particle.setPosition(tgtX, tgtY);
+                        particle.setDepth(52);
+
+                        scene.tweens.add({
+                            targets: particle,
+                            x: tgtX + Math.cos(angle) * speed,
+                            y: tgtY + Math.sin(angle) * speed,
+                            alpha: 0,
+                            scaleX: 0.2,
+                            scaleY: 0.2,
+                            duration: 350 + Math.random() * 200,
+                            ease: 'Power2',
+                            onComplete: function () { particle.destroy(); }
+                        });
+                    })(p);
+                }
+
+                // 6. Brief full-screen flash overlay
+                var fullFlash = scene.add.graphics();
+                fullFlash.setDepth(47);
+                fullFlash.fillStyle(isCrit ? 0xff2222 : 0xffffff, isCrit ? 0.08 : 0.05);
+                fullFlash.fillRect(0, 0, W, H);
+                scene.tweens.add({
+                    targets: fullFlash,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: function () { fullFlash.destroy(); }
+                });
+
+                // Cleanup projectile
                 flash.destroy();
                 trail.destroy();
-            }.bind(this)
+            }
         });
     },
 
@@ -957,45 +1027,13 @@ const PhaserBattleScene = new Phaser.Class({
 
     // ===== TRANSITION =====
     showTransition: function (type, onComplete) {
-        var overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 1);
-        overlay.fillRect(0, 0, this.W, this.H);
-        overlay.setDepth(100);
-
         if (type === 'enter') {
-            // Fade from black
-            this.tweens.add({
-                targets: overlay,
-                alpha: 0,
-                duration: 800,
-                onComplete: function () {
-                    overlay.destroy();
-                    if (onComplete) onComplete();
-                }
-            });
-
-            // "DUEL!" text
-            var duelText = this.add.text(this.W / 2, this.H / 2, '⚔ DUEL! ⚔', {
-                fontFamily: '"Press Start 2P", monospace',
-                fontSize: '28px',
-                color: '#ffd700',
-                fontStyle: 'bold'
-            });
-            duelText.setOrigin(0.5, 0.5);
-            duelText.setShadow(0, 0, '#ffd700', 30);
-            duelText.setDepth(101);
-
-            this.tweens.add({
-                targets: duelText,
-                alpha: 0,
-                scaleX: 2,
-                scaleY: 2,
-                duration: 1200,
-                delay: 400,
-                onComplete: function () { duelText.destroy(); }
-            });
+            this._showCountdownSequence(onComplete);
         } else {
-            // Fade to black
+            var overlay = this.add.graphics();
+            overlay.fillStyle(0x000000, 1);
+            overlay.fillRect(0, 0, this.W, this.H);
+            overlay.setDepth(100);
             overlay.setAlpha(0);
             this.tweens.add({
                 targets: overlay,
@@ -1007,6 +1045,202 @@ const PhaserBattleScene = new Phaser.Class({
                 }
             });
         }
+    },
+
+    // ===== COUNTDOWN 3-2-1 SEQUENCE =====
+    _showCountdownSequence: function (onComplete) {
+        var W = this.W;
+        var H = this.H;
+        var scene = this;
+
+        // Dark overlay that fades out
+        var overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 1);
+        overlay.fillRect(0, 0, W, H);
+        overlay.setDepth(100);
+
+        this.tweens.add({
+            targets: overlay,
+            alpha: 0,
+            duration: 600,
+            onComplete: function () { overlay.destroy(); }
+        });
+
+        // Countdown numbers: 3, 2, 1
+        var numbers = ['3', '2', '1'];
+        var colors = ['#ff4444', '#ffaa00', '#44ff88'];
+        var glows = ['#ff0000', '#ff8800', '#00ff44'];
+        var delay = 700; // ms between each number
+
+        for (var i = 0; i < numbers.length; i++) {
+            (function (index) {
+                scene.time.delayedCall(600 + index * delay, function () {
+                    scene._showCountdownNumber(numbers[index], colors[index], glows[index]);
+                });
+            })(i);
+        }
+
+        // "FIGHT!" after countdown
+        scene.time.delayedCall(600 + numbers.length * delay + 200, function () {
+            scene._showFightText();
+        });
+
+        // Call onComplete after everything finishes
+        var totalTime = 600 + numbers.length * delay + 200 + 1200;
+        scene.time.delayedCall(totalTime, function () {
+            if (onComplete) onComplete();
+        });
+    },
+
+    _showCountdownNumber: function (num, color, glowColor) {
+        var W = this.W;
+        var H = this.H;
+        var scene = this;
+
+        // Number text
+        var text = this.add.text(W / 2, H / 2, num, {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '72px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        text.setOrigin(0.5, 0.5);
+        text.setDepth(102);
+        text.setScale(0.3);
+        text.setAlpha(0);
+        text.setShadow(0, 0, glowColor, 20, true, true, 8);
+
+        // Glow ring behind number
+        var ring = this.add.graphics();
+        ring.lineStyle(3, Phaser.Display.Color.HexStringToColor(glowColor).color, 0.6);
+        ring.strokeCircle(0, 0, 50);
+        ring.setPosition(W / 2, H / 2);
+        ring.setDepth(101);
+        ring.setAlpha(0);
+        ring.setScale(0.5);
+
+        // Pulse backdrop
+        var backdrop = this.add.graphics();
+        backdrop.fillStyle(Phaser.Display.Color.HexStringToColor(glowColor).color, 0.05);
+        backdrop.fillRect(0, 0, W, H);
+        backdrop.setDepth(100);
+        backdrop.setAlpha(0);
+
+        // Animate: scale up + fade in
+        this.tweens.add({
+            targets: text,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.easeOut',
+            onComplete: function () {
+                // Hold briefly, then scale + fade out
+                scene.tweens.add({
+                    targets: text,
+                    scaleX: 1.8,
+                    scaleY: 1.8,
+                    alpha: 0,
+                    duration: 400,
+                    delay: 200,
+                    ease: 'Power2',
+                    onComplete: function () { text.destroy(); }
+                });
+            }
+        });
+
+        // Animate ring
+        this.tweens.add({
+            targets: ring,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 0.8,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: function () {
+                scene.tweens.add({
+                    targets: ring,
+                    scaleX: 3,
+                    scaleY: 3,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: function () { ring.destroy(); }
+                });
+            }
+        });
+
+        // Animate backdrop flash
+        this.tweens.add({
+            targets: backdrop,
+            alpha: 0.3,
+            duration: 150,
+            yoyo: true,
+            onComplete: function () { backdrop.destroy(); }
+        });
+    },
+
+    _showFightText: function () {
+        var W = this.W;
+        var H = this.H;
+        var scene = this;
+
+        var text = this.add.text(W / 2, H / 2, 'FIGHT!', {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '48px',
+            color: '#ffd700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 5
+        });
+        text.setOrigin(0.5, 0.5);
+        text.setDepth(102);
+        text.setScale(0.2);
+        text.setAlpha(0);
+        text.setShadow(0, 0, '#ffd700', 30, true, true, 10);
+
+        // Screen flash overlay
+        var screenFlash = this.add.graphics();
+        screenFlash.fillStyle(0xffd700, 0.15);
+        screenFlash.fillRect(0, 0, W, H);
+        screenFlash.setDepth(100);
+        screenFlash.setAlpha(0);
+
+        // Camera shake
+        this.cameras.main.shake(600, 0.008);
+
+        // Animate FIGHT! text - big dramatic entrance
+        this.tweens.add({
+            targets: text,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            alpha: 1,
+            duration: 250,
+            ease: 'Back.easeOut',
+            onComplete: function () {
+                // Hold, then expand + fade
+                scene.tweens.add({
+                    targets: text,
+                    scaleX: 2.5,
+                    scaleY: 2.5,
+                    alpha: 0,
+                    duration: 800,
+                    delay: 400,
+                    ease: 'Power3',
+                    onComplete: function () { text.destroy(); }
+                });
+            }
+        });
+
+        // Flash overlay animation
+        this.tweens.add({
+            targets: screenFlash,
+            alpha: 0.4,
+            duration: 150,
+            yoyo: true,
+            onComplete: function () { screenFlash.destroy(); }
+        });
     },
 
     // ===== UPDATE LOOP =====

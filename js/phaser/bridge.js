@@ -23,8 +23,8 @@ var BattlePhaser = {
 
         // Size to fill container (responsive)
         var rect = container.getBoundingClientRect();
-        var W = Math.floor(rect.width) || 600;
-        var H = Math.floor(rect.height) || 400;
+        var W = Math.floor(rect.width) || 800;
+        var H = Math.floor(rect.height) || 500;
 
         // Create Phaser game instance
         var config = {
@@ -191,7 +191,7 @@ var BattlePhaser = {
 
             // Resize back to standard
             if (this._game) {
-                this._game.scale.resize(600, 400);
+                this._game.scale.resize(800, 500);
             }
 
             if (onComplete) onComplete();
@@ -201,7 +201,7 @@ var BattlePhaser = {
     // ===== RESIZE =====
     _resizeToViewport: function () {
         if (!this._game) return;
-        // Keep Phaser internal resolution at 600x400 (pixel art native)
+        // Keep Phaser internal resolution at 800x500 (pixel art native)
         // Just scale the canvas via CSS to fill viewport
         var canvas = this._game.canvas;
         if (canvas) {
