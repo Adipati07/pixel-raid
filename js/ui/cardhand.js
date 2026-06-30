@@ -43,6 +43,7 @@ const CardHand = {
         const hasEmptyHeroZone = options.hasEmptyHeroZone !== undefined ? options.hasEmptyHeroZone : true;
         const hasSummoned = options.hasSummoned || false;
         const hasUsedSkill = options.hasUsedSkill || false;
+        const canPlayCard = options.canPlayCard !== undefined ? options.canPlayCard : true;
 
         // Support both old (mana int) and new (combatant object) APIs
         let currentMana = 0;
@@ -62,11 +63,11 @@ const CardHand = {
         }
 
         hand.forEach((card, index) => {
-            let canPlay = enabled;
+            let canPlay = enabled && canPlayCard;
             if (card.cardType === 'hero' && combatant) {
-                canPlay = enabled && hasEmptyHeroZone && !hasSummoned;
+                canPlay = enabled && canPlayCard && hasEmptyHeroZone && !hasSummoned;
             } else if (card.cardType === 'skill') {
-                canPlay = enabled && !hasUsedSkill;
+                canPlay = enabled && canPlayCard && !hasUsedSkill;
             }
 
             try {

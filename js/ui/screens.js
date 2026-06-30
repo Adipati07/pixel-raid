@@ -66,17 +66,25 @@ const UI = {
             const progress = ((GameState.player.wave - 1) / GameState.player.maxWave) * 100;
             progressEl.style.width = progress + '%';
         }
-        
-        // Render initial battle canvas (skip if Phaser handles rendering)
-        const canvas = document.getElementById('battle-canvas');
-        if (canvas && canvas.tagName === 'CANVAS') {
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#0a0a2a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffd700';
-            ctx.font = '14px "Press Start 2P"';
-            ctx.textAlign = 'center';
-            ctx.fillText('Press Start Battle!', canvas.width / 2, canvas.height / 2);
+
+        // ISSUE 4: Hide black canvas area when battle is not active
+        const canvasContainer = document.getElementById('battle-canvas-container');
+        if (canvasContainer) {
+            if (typeof BattleEngine !== 'undefined' && BattleEngine.isRunning) {
+                canvasContainer.style.display = '';
+            } else {
+                canvasContainer.style.display = 'none';
+            }
+        }
+
+        // Hide card hand area when battle is not active
+        const cardHandArea = document.getElementById('card-hand-area');
+        if (cardHandArea) {
+            if (typeof BattleEngine !== 'undefined' && BattleEngine.isRunning) {
+                cardHandArea.style.display = '';
+            } else {
+                cardHandArea.style.display = 'none';
+            }
         }
     },
 
@@ -184,12 +192,6 @@ const UI = {
             if (typeof Sound !== 'undefined') Sound.click();
             this.startBattle();
         });
-        document.getElementById('btn-auto-next').addEventListener('click', () => {
-            GameState.autoNext = !GameState.autoNext;
-            const btn = document.getElementById('btn-auto-next');
-            btn.classList.toggle('btn-gold', GameState.autoNext);
-            btn.textContent = GameState.autoNext ? '⏹️ Stop Auto' : '🔄 Auto Next Stage';
-        });
 
         // Default battle speed = 2x (fast) — no speed buttons in UI
         GameState.battleSpeed = 2;
@@ -219,27 +221,23 @@ const UI = {
         const enemyHero = enemyDeck[0]; // pick first generated enemy
         const enemySkillIds = GameState.generateEnemySkillDeck(stage);
 
-        // Initialize card hand renderer with the hand area container
+        // BUG FIX: Properly reset battle state between battles (Issue 2)
+        BattleEngine.stop();
         CardHand.init('card-hand-area');
+
+        // Show battle canvas container (hidden when not in battle)
+        const battleContainer = document.getElementById('battle-canvas-container');
+        if (battleContainer) battleContainer.style.display = '';
         
         document.getElementById('btn-start-battle').disabled = true;
 
-        // Click on battle container for hero info
-        const battleContainer = document.getElementById('battle-canvas-container');
-        if (battleContainer) {
-            battleContainer.onclick = (e) => {
-                if (!BattleEngine.isRunning) return;
-                this.showEnemyInfo(BattleEngine.isPlayerTurn ? BattleEngine.enemy.hero : BattleEngine.player.hero);
-            };
-        }
-
-        // Set phase banner callback to use BattlePhaser or BattleArenaScene
+        // Set phase banner callback
         BattleEngine.onPhaseChange = (phase, isPlayerTurn) => {
             const phaseNames = { draw: 'DRAW PHASE', main: 'MAIN PHASE', battle: 'BATTLE PHASE', end: 'END PHASE' };
             if (phaseNames[phase]) {
                 if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
                     BattlePhaser.showPhaseBanner(phaseNames[phase], isPlayerTurn);
-                } else {
+                } else if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
                     BattleArenaScene.showPhaseBanner(phaseNames[phase], isPlayerTurn);
                 }
             }
@@ -305,12 +303,6 @@ const UI = {
                 GameState.save();
                 this.updateHeader();
                 this.renderBattleScreen();
-
-                // Auto next
-                if (GameState.autoNext && result === 'win') {
-                    const delay = GameState.player.wave === 1 ? 2500 : 1500;
-                    setTimeout(() => this.startBattle(), delay);
-                }
 
                 }, 900); // end setTimeout — wait for exit transition
             });

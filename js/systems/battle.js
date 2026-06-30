@@ -1,6 +1,7 @@
 /* ========================================
- * PIXEL RAID — Yu-Gi-Oh! Style Battle Engine (v3)
- * Card Duel RPG with Field Zones & Phases
+ * PIXEL RAID — Yu-Gi-Oh Style Battle Engine (v4)
+ * Hero-as-Entity Edition
+ * Hero sits beside battlefield as a separate entity
  * Phases: Draw → Main → Battle → End
  * ======================================== */
 
@@ -19,17 +20,20 @@ const BattleEngine = {
     onFieldUpdate: null,
     log: [],
 
-    // LP (Life Points)
+    // LP (Life Points) — kept for compatibility, hero HP is primary
     MAX_LP: 4000,
 
     // Field zones per player
     HERO_ZONE_COUNT: 3,
     SKILL_ZONE_COUNT: 2,
     MAX_HAND: 7,
-    STARTING_HAND: 5,
+    STARTING_HAND: 4,       // 4 skill cards (hero is separate entity, not a card)
+
+    // Cards per turn limit
+    MAX_CARDS_PER_TURN: 1,  // Only 1 card can be played per round
 
     // Combatants
-    player: null,   // { name, lp, heroZones[3], skillZones[2], hand[], graveyard[], deck[], isPlayer }
+    player: null,   // { name, battleHero, lp, heroZones[3], skillZones[2], hand[], graveyard[], deck[], isPlayer }
     enemy: null,
 
     // Auto-play mode
@@ -42,6 +46,9 @@ const BattleEngine = {
     _mainPhaseTimer: null,
     _phaseTimer: null,
     _autoAdvanceTimer: null,
+    _cardsPlayedThisTurn: 0,
+    _playerHasSummoned: false,
+    _playerHasUsedSkill: false,
 
     // ===== START BATTLE =====
     startBattle(playerHeroCard, playerCardIds, enemyHeroCard, enemyCardIds, onComplete) {
@@ -53,6 +60,7 @@ const BattleEngine = {
         this._selectedAttacker = null;
         this._selectedTarget = null;
         this._attackQueue = [];
+        this._cardsPlayedThisTurn = 0;
         this._playerHasSummoned = false;
         this._playerHasUsedSkill = false;
 
@@ -67,24 +75,25 @@ const BattleEngine = {
         if (this._phaseTimer) { clearTimeout(this._phaseTimer); this._phaseTimer = null; }
         if (this._autoAdvanceTimer) { clearTimeout(this._autoAdvanceTimer); this._autoAdvanceTimer = null; }
 
-        // Initialize player combatant with Yu-Gi-Oh field
+        // Initialize player combatant — hero is a separate entity
         this.player = this._initCombatant(playerHeroCard, playerCardIds, true);
         this.enemy = this._initCombatant(enemyHeroCard, enemyCardIds, false);
 
-        // Determine first turn (coin flip / SPD comparison)
-        if (this.player.heroes[0] && this.enemy.heroes[0]) {
-            this.isPlayerTurn = (this.player.heroes[0].stats.spd >= this.enemy.heroes[0].stats.spd);
-        } else {
-            this.isPlayerTurn = Math.random() < 0.5;
-        }
+        // Determine first turn (SPD comparison)
+        const playerSpd = this.player.battleHero ? this.player.battleHero.heroSPD : 10;
+        const enemySpd = this.enemy.battleHero ? this.enemy.battleHero.heroSPD : 10;
+        this.isPlayerTurn = (playerSpd >= enemySpd);
 
         this.addLog('⚔️ Duel Start!', 'info');
-        this.addLog(`Your LP: ${this.player.lp} | Enemy LP: ${this.enemy.lp}`, 'info');
+        if (this.player.battleHero && this.enemy.battleHero) {
+            this.addLog(`Your Hero: ${this.player.battleHero.name} (HP: ${this.player.battleHero.heroHP})`, 'info');
+            this.addLog(`Enemy Hero: ${this.enemy.battleHero.name} (HP: ${this.enemy.battleHero.heroHP})`, 'info');
+        }
 
         // Show opening overlay
         this._showOverlay(`⚔️ ${this.isPlayerTurn ? 'You go' : 'Enemy goes'} first!`, 'wave');
 
-        // Draw starting hands
+        // Draw starting hands (4 skill cards — hero is NOT a card in deck)
         for (let i = 0; i < this.STARTING_HAND; i++) {
             this._drawOneCard(this.player);
             this._drawOneCard(this.enemy);
@@ -99,30 +108,10 @@ const BattleEngine = {
         }, 1500);
     },
 
-    // ===== INIT COMBATANT (Yu-Gi-Oh field) =====
+    // ===== INIT COMBATANT — Hero is separate entity =====
     _initCombatant(heroCard, cardIds, isPlayer) {
-        // Build deck: mix of hero cards and skill cards
+        // Build deck with ONLY skill cards (hero is NOT in the deck)
         const deck = [];
-
-        // Add hero card as a hero card entry (the main fighter)
-        if (heroCard) {
-            const heroEntry = {
-                ...heroCard,
-                instanceId: Math.random().toString(36).substr(2, 9),
-                cardType: 'hero',       // 'hero' or 'skill'
-                position: 'attack',     // 'attack' or 'defense'
-                faceUp: true,
-                currentHp: heroCard.stats.hp || heroCard.stats.maxHp,
-                maxHp: heroCard.stats.hp || heroCard.stats.maxHp,
-                canAttack: false,       // can't attack the turn it's summoned
-                hasAttacked: false,
-                atkBuff: 0,
-                defBuff: 0,
-            };
-            // Add extra copies of hero to make deck more interesting
-            deck.push({ ...heroEntry, instanceId: Math.random().toString(36).substr(2, 9) });
-            deck.push({ ...heroEntry, instanceId: Math.random().toString(36).substr(2, 9) });
-        }
 
         // Add skill cards to deck
         for (const cid of cardIds) {
@@ -136,7 +125,7 @@ const BattleEngine = {
             }
         }
 
-        // If deck is too small, pad with random skill cards
+        // Pad deck with random skill cards if too small
         while (deck.length < 15) {
             const pool = SKILL_CARD_TEMPLATES;
             const tmpl = pool[Math.floor(Math.random() * pool.length)];
@@ -153,30 +142,39 @@ const BattleEngine = {
             [deck[i], deck[j]] = [deck[j], deck[i]];
         }
 
-        // Scale hero stats for Yu-Gi-Oh style (multiply to match LP scale)
-        const scaleStats = (card) => {
-            if (card.cardType === 'hero') {
-                const scale = 40; // Scale factor to match 4000 LP
-                card.stats = { ...card.stats };
-                card.stats.atk = Math.floor((card.stats.atk || 10) * scale);
-                card.stats.def = Math.floor((card.stats.def || 10) * scale);
-                card.currentHp = Math.floor((card.maxHp || 100) * scale);
-                card.maxHp = card.currentHp;
-            }
-            return card;
-        };
-
-        deck.forEach(scaleStats);
+        // Create battle hero entity (SEPARATE from deck — sits beside battlefield)
+        let battleHero = null;
+        if (heroCard) {
+            const scale = 40; // Scale factor to match LP scale
+            const baseHp = heroCard.stats.hp || heroCard.stats.maxHp || 100;
+            battleHero = {
+                name: heroCard.name,
+                class: heroCard.class || heroCard.cls,
+                rarity: heroCard.rarity || 'common',
+                templateId: heroCard.templateId || heroCard.name,
+                image: heroCard.image,
+                heroHP: Math.floor(baseHp * scale),
+                heroMaxHP: Math.floor(baseHp * scale),
+                heroATK: Math.floor((heroCard.stats.atk || 10) * scale),
+                heroDEF: Math.floor((heroCard.stats.def || 10) * scale),
+                heroSPD: heroCard.stats.spd || 10,
+                atkBuff: 0,
+                defBuff: 0,
+                level: heroCard.level || 1,
+                skill: heroCard.skill || null,
+            };
+        }
 
         return {
             name: isPlayer ? 'Player' : (heroCard ? heroCard.name : 'Enemy'),
             hero: heroCard,
+            battleHero: battleHero,   // Separate hero entity (NOT in deck/hand/zones)
             lp: this.MAX_LP,
-            heroZones: [null, null, null],      // 3 hero zone slots
+            heroZones: [null, null, null],      // 3 hero zone slots (kept for skill zone compat)
             skillZones: [null, null],            // 2 skill zone slots
             hand: [],
             graveyard: [],
-            deck: deck,
+            deck: deck,                          // Only skill cards
             isPlayer: isPlayer,
             heroes: heroCard ? [heroCard] : [],  // reference for synergy checks
         };
@@ -209,6 +207,7 @@ const BattleEngine = {
         if (!this.isRunning) return;
 
         this.turnNumber++;
+        this._cardsPlayedThisTurn = 0;  // Reset card play counter each turn
         this._playerHasSummoned = false;
         this._playerHasUsedSkill = false;
         const current = this.isPlayerTurn ? this.player : this.enemy;
@@ -230,15 +229,6 @@ const BattleEngine = {
             }
         }
 
-        // Reset attack flags for all heroes on field
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            const hero = current.heroZones[i];
-            if (hero) {
-                hero.hasAttacked = false;
-                hero.canAttack = true; // can attack from turn after summon
-            }
-        }
-
         this._renderBattle();
 
         // === MAIN PHASE ===
@@ -249,7 +239,7 @@ const BattleEngine = {
 
             if (this.isPlayerTurn) {
                 this._enablePlayerCards();
-                // Safety timeout: auto-advance to battle phase after 60s (player must click End Turn)
+                // Safety timeout: auto-advance to battle phase after 60s
                 this._mainPhaseTimer = setTimeout(() => {
                     if (this.currentPhase === 'main' && this.isRunning) {
                         this.addLog('⏰ Turn auto-advanced (60s timeout)', 'info');
@@ -268,12 +258,14 @@ const BattleEngine = {
 
     // ===== MAIN PHASE: PLAYER CARD PLAY =====
     _enablePlayerCards() {
-        // Determine which hero zones are empty for each card type
-        const hasEmptyHeroZone = this.player.heroZones.some(z => z === null);
-        const hasSummoned = this._playerHasSummoned; // once per turn normal summon
-        const hasUsedSkill = this._playerHasUsedSkill || false;
+        const canPlayMore = this._cardsPlayedThisTurn < this.MAX_CARDS_PER_TURN;
 
-        CardHand.render(this.player.hand, this.player, true, { hasEmptyHeroZone, hasSummoned, hasUsedSkill });
+        CardHand.render(this.player.hand, this.player, true, {
+            hasEmptyHeroZone: false,
+            hasSummoned: false,
+            hasUsedSkill: !canPlayMore,
+            canPlayCard: canPlayMore,
+        });
         CardHand.onCardPlay = (index, card) => {
             this.playCard(index);
         };
@@ -281,44 +273,32 @@ const BattleEngine = {
 
     /**
      * Public API: Player plays a card from hand by index
+     * Limited to 1 card per round
      */
     playCard(handIndex) {
         if (!this.isPlayerTurn || this.currentPhase !== 'main') return false;
         const card = this.player.hand[handIndex];
         if (!card) return false;
 
-        if (card.cardType === 'hero') {
-            // Check summoning limit
-            if (this._playerHasSummoned) {
-                this.addLog('❌ Already summoned this turn!', 'info');
-                CardHand.shakeCard(handIndex);
-                return false;
-            }
-            // Check for empty zone
-            const zoneIndex = this._findEmptyZone(this.player);
-            if (zoneIndex === -1) {
-                this.addLog('❌ No empty hero zones!', 'info');
-                CardHand.shakeCard(handIndex);
-                return false;
-            }
-            // Animate card out, then summon
-            CardHand.animateCardPlay(handIndex, () => {
-                this._summonHero(this.player, handIndex, zoneIndex, this.enemy);
-                this._playerHasSummoned = true;
-                // Auto-advance to battle phase after a card is played
-                this._scheduleAutoAdvance();
-            });
-            return true;
-        } else if (card.cardType === 'skill') {
+        // Check 1-card-per-turn limit
+        if (this._cardsPlayedThisTurn >= this.MAX_CARDS_PER_TURN) {
+            this.addLog('❌ Already played a card this turn!', 'info');
+            CardHand.shakeCard(handIndex);
+            return false;
+        }
+
+        if (card.cardType === 'skill') {
+            this._cardsPlayedThisTurn++;
             // Animate card out, then activate
             CardHand.animateCardPlay(handIndex, () => {
                 this._activateSkill(this.player, handIndex, this.enemy);
                 this._playerHasUsedSkill = true;
-                // Auto-advance to battle phase after a card is played
+                // Auto-advance to battle phase after playing card
                 this._scheduleAutoAdvance();
             });
             return true;
         }
+
         return false;
     },
 
@@ -330,43 +310,6 @@ const BattleEngine = {
             if (combatant.heroZones[i] === null) return i;
         }
         return -1;
-    },
-
-    /**
-     * Summon a hero card from hand to a specific zone
-     */
-    _summonHero(combatant, handIndex, zoneIndex, target) {
-        const card = combatant.hand.splice(handIndex, 1)[0];
-        if (!card) return false;
-
-        card.position = 'attack';
-        card.faceUp = true;
-        card.canAttack = false;
-        card.hasAttacked = false;
-        card.atkBuff = 0;
-        card.defBuff = 0;
-        combatant.heroZones[zoneIndex] = card;
-
-        this.addLog(`🃏 ${combatant.name} summons ${card.name} to Zone ${zoneIndex + 1} (ATK)`, 'skill');
-
-        // Spawn summon animation
-        this._showDamageNum(combatant, `✦ Summon!`, '#ffd700');
-        this._triggerAnimation('skill');
-
-        // Emit event for renderer
-        if (typeof BattleAnimations !== 'undefined') {
-            const zonePos = this._getZoneScreenPos(combatant, zoneIndex);
-            if (zonePos) {
-                BattleAnimations.spawnSummonEffect(zonePos.x, zonePos.y);
-            }
-        }
-
-        this._renderBattle();
-        if (this.isPlayerTurn && this.currentPhase === 'main') {
-            this._enablePlayerCards();
-        }
-        if (this.onCardPlayed) this.onCardPlayed(combatant, card);
-        return true;
     },
 
     /**
@@ -388,97 +331,16 @@ const BattleEngine = {
     },
 
     /**
-     * Get approximate screen position of a hero zone for animations
-     */
-    _getZoneScreenPos(combatant, zoneIndex) {
-        const canvas = document.getElementById('battle-canvas');
-        if (!canvas) return null;
-        const W = canvas.width;
-        const H = canvas.height;
-        const rowHeight = H / 6;
-        const zoneW = 80;
-        const totalHeroW = zoneW * 3 + 20;
-        const heroStartX = (W - totalHeroW) / 2;
-
-        if (combatant.isPlayer) {
-            const heroY = rowHeight * 3 + (rowHeight * 2 - 100) / 2;
-            return {
-                x: heroStartX + zoneIndex * (zoneW + 10) + zoneW / 2,
-                y: heroY + 50,
-            };
-        } else {
-            const heroY = rowHeight + (rowHeight * 2 - 100) / 2;
-            return {
-                x: heroStartX + zoneIndex * (zoneW + 10) + zoneW / 2,
-                y: heroY + 50,
-            };
-        }
-    },
-
-    /**
-     * Play a card from hand to field
+     * Play a card from hand to field (legacy compat — now only skill cards)
      */
     _playCard(combatant, handIndex, card, target) {
         // Remove from hand
         combatant.hand.splice(handIndex, 1);
 
-        if (card.cardType === 'hero') {
-            // Find empty hero zone
-            let zoneIndex = -1;
-            for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                if (combatant.heroZones[i] === null) {
-                    zoneIndex = i;
-                    break;
-                }
-            }
-            if (zoneIndex === -1) {
-                this.addLog(`❌ No empty hero zones!`, 'info');
-                combatant.hand.splice(handIndex, 0, card); // put back
-                return false;
-            }
-
-            // Summon hero to zone (in Attack Position by default)
-            card.position = 'attack';
-            card.faceUp = true;
-            card.canAttack = false; // can't attack the turn it's summoned (summoning sickness)
-            card.hasAttacked = false;
-            card.atkBuff = 0;
-            card.defBuff = 0;
-            combatant.heroZones[zoneIndex] = card;
-
-            this.addLog(`🃏 ${combatant.name} summons ${card.name} to Hero Zone ${zoneIndex + 1} (ATK Position)`, 'skill');
-            this._showDamageNum(combatant.isPlayer ? this.player : this.enemy, `Summon!`, '#ffd700');
-        } else if (card.cardType === 'skill') {
-            // Find empty skill zone
-            let zoneIndex = -1;
-            for (let i = 0; i < this.SKILL_ZONE_COUNT; i++) {
-                if (combatant.skillZones[i] === null) {
-                    zoneIndex = i;
-                    break;
-                }
-            }
-            if (zoneIndex === -1) {
-                // If no skill zone, activate immediately and discard
-                this._activateSkillCard(combatant, target, card);
-                combatant.graveyard.push(card);
-                this._renderBattle();
-                if (this.isPlayerTurn && this.currentPhase === 'main') {
-                    this._enablePlayerCards();
-                }
-                if (this.onCardPlayed) this.onCardPlayed(combatant, card);
-                return true;
-            }
-
-            // Place in skill zone and activate immediately
-            combatant.skillZones[zoneIndex] = card;
+        if (card.cardType === 'skill') {
+            // Activate skill immediately
             this._activateSkillCard(combatant, target, card);
-
-            // Move to graveyard after activation
-            setTimeout(() => {
-                combatant.skillZones[zoneIndex] = null;
-                combatant.graveyard.push(card);
-                this._renderBattle();
-            }, 500);
+            combatant.graveyard.push(card);
         }
 
         this._renderBattle();
@@ -493,7 +355,7 @@ const BattleEngine = {
     },
 
     /**
-     * Activate a skill card's effect
+     * Activate a skill card's effect — targets hero HP now
      */
     _activateSkillCard(caster, target, card) {
         const eff = card.effect;
@@ -502,23 +364,20 @@ const BattleEngine = {
         switch (eff.type) {
             case 'damage': {
                 let dmg = eff.value;
-                // Apply to enemy LP directly (or enemy hero if targeting)
-                const enemyCombatant = caster.isPlayer ? this.enemy : this.player;
-                const enemyHero = this._getStrongestHero(enemyCombatant);
-                if (enemyHero) {
-                    // Damage the hero
-                    const scaledDmg = dmg * 10; // Scale skill damage
-                    enemyHero.currentHp = Math.max(0, enemyHero.currentHp - scaledDmg);
-                    this.addLog(`  💥 ${enemyHero.name} takes ${scaledDmg} damage! (HP: ${enemyHero.currentHp}/${enemyHero.maxHp})`, 'dmg');
-                    this._showDamageNum(enemyCombatant, `-${scaledDmg}`, '#ff4444');
-                    if (enemyHero.currentHp <= 0) {
-                        this._destroyHero(enemyCombatant, enemyHero);
+                // Check for class bonus
+                if (eff.bonus && caster.battleHero) {
+                    if (caster.battleHero.class === eff.bonus.type) {
+                        dmg = Math.floor(dmg * (eff.bonus.mult || 1.5));
+                        this.addLog(`  🔥 Class bonus! Damage boosted!`, 'skill');
                     }
-                } else {
-                    // Direct LP damage
-                    const scaledDmg = dmg * 10;
-                    enemyCombatant.lp = Math.max(0, enemyCombatant.lp - scaledDmg);
-                    this.addLog(`  💥 ${enemyCombatant.name} takes ${scaledDmg} LP damage! (LP: ${enemyCombatant.lp})`, 'dmg');
+                }
+                // Scale damage for hero HP system
+                const scaledDmg = dmg * 10;
+                const enemyCombatant = caster.isPlayer ? this.enemy : this.player;
+                const enemyHero = enemyCombatant.battleHero;
+                if (enemyHero) {
+                    enemyHero.heroHP = Math.max(0, enemyHero.heroHP - scaledDmg);
+                    this.addLog(`  💥 ${enemyHero.name} takes ${scaledDmg} damage! (HP: ${enemyHero.heroHP}/${enemyHero.heroMaxHP})`, 'dmg');
                     this._showDamageNum(enemyCombatant, `-${scaledDmg}`, '#ff4444');
                 }
                 this._triggerAnimation('hit');
@@ -526,63 +385,68 @@ const BattleEngine = {
             }
 
             case 'shield': {
-                const hero = this._getStrongestHero(caster);
-                if (hero) {
-                    hero.defBuff += eff.value * 10;
-                    this.addLog(`  🛡️ ${hero.name} gains +${eff.value * 10} DEF!`, 'skill');
-                    this._showDamageNum(caster, `+${eff.value * 10}🛡`, '#4488ff');
+                const ownHero = caster.battleHero;
+                if (ownHero) {
+                    const shieldVal = eff.value * 10;
+                    ownHero.defBuff += shieldVal;
+                    this.addLog(`  🛡️ ${ownHero.name} gains +${shieldVal} DEF!`, 'skill');
+                    this._showDamageNum(caster, `+${shieldVal}🛡`, '#4488ff');
                 }
                 this._triggerAnimation('heal');
                 break;
             }
 
             case 'heal': {
-                const hero = this._getWeakestHero(caster);
-                if (hero) {
-                    const healed = Math.min(eff.value * 10, hero.maxHp - hero.currentHp);
-                    hero.currentHp += healed;
-                    this.addLog(`  💚 ${hero.name} heals ${healed} HP! (HP: ${hero.currentHp}/${hero.maxHp})`, 'heal');
-                    this._showDamageNum(caster, `+${healed}`, '#44ff88');
+                const ownHero = caster.battleHero;
+                if (ownHero) {
+                    const healVal = eff.value * 10;
+                    const actualHeal = Math.min(healVal, ownHero.heroMaxHP - ownHero.heroHP);
+                    ownHero.heroHP += actualHeal;
+                    this.addLog(`  💚 ${ownHero.name} heals ${actualHeal} HP! (HP: ${ownHero.heroHP}/${ownHero.heroMaxHP})`, 'heal');
+                    this._showDamageNum(caster, `+${actualHeal}`, '#44ff88');
                 }
-                // Also heal LP
-                const lpHeal = eff.value * 5;
-                caster.lp = Math.min(this.MAX_LP, caster.lp + lpHeal);
-                this.addLog(`  💚 ${caster.name} heals ${lpHeal} LP! (LP: ${caster.lp})`, 'heal');
                 this._triggerAnimation('heal');
                 break;
             }
 
             case 'lifesteal': {
                 const enemyCombatant = caster.isPlayer ? this.enemy : this.player;
-                const enemyHero = this._getStrongestHero(enemyCombatant);
-                let dmg = eff.value * 10;
+                const enemyHero = enemyCombatant.battleHero;
+                const ownHero = caster.battleHero;
+                const dmg = eff.value * 10;
                 if (enemyHero) {
-                    enemyHero.currentHp = Math.max(0, enemyHero.currentHp - dmg);
-                    const healed = Math.min(dmg, caster.lp > 0 ? this.MAX_LP - caster.lp : 0);
-                    caster.lp = Math.min(this.MAX_LP, caster.lp + Math.floor(dmg / 2));
-                    this.addLog(`  🧛 Drains ${dmg}! Heals ${Math.floor(dmg / 2)} LP!`, 'skill');
+                    enemyHero.heroHP = Math.max(0, enemyHero.heroHP - dmg);
+                    this.addLog(`  🧛 Drains ${dmg} from ${enemyHero.name}!`, 'skill');
                     this._showDamageNum(enemyCombatant, `-${dmg}`, '#ff4444');
-                    this._showDamageNum(caster, `+${Math.floor(dmg / 2)}`, '#44ff88');
-                    if (enemyHero.currentHp <= 0) {
-                        this._destroyHero(enemyCombatant, enemyHero);
-                    }
+                }
+                if (ownHero) {
+                    const healed = Math.min(Math.floor(dmg * 0.5), ownHero.heroMaxHP - ownHero.heroHP);
+                    ownHero.heroHP += healed;
+                    this.addLog(`  💚 Heals ${healed} HP! (HP: ${ownHero.heroHP}/${ownHero.heroMaxHP})`, 'heal');
+                    this._showDamageNum(caster, `+${healed}`, '#44ff88');
                 }
                 this._triggerAnimation('hit');
                 break;
             }
 
             case 'buff': {
-                // Buff all heroes on caster's field
-                for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                    const hero = caster.heroZones[i];
-                    if (hero) {
-                        if (eff.stat === 'atk') {
-                            hero.atkBuff += Math.floor(hero.stats.atk * eff.value);
-                            this.addLog(`  ✨ ${hero.name}: ATK +${Math.floor(hero.stats.atk * eff.value)}`, 'buff');
-                        } else if (eff.stat === 'def') {
-                            hero.defBuff += Math.floor(hero.stats.def * eff.value);
-                            this.addLog(`  ✨ ${hero.name}: DEF +${Math.floor(hero.stats.def * eff.value)}`, 'buff');
-                        }
+                const ownHero = caster.battleHero;
+                if (ownHero) {
+                    if (eff.stat === 'atk') {
+                        const buffVal = Math.floor(ownHero.heroATK * eff.value);
+                        ownHero.atkBuff += buffVal;
+                        this.addLog(`  ✨ ${ownHero.name}: ATK +${buffVal}`, 'buff');
+                    } else if (eff.stat === 'def') {
+                        const buffVal = Math.floor(ownHero.heroDEF * eff.value);
+                        ownHero.defBuff += buffVal;
+                        this.addLog(`  ✨ ${ownHero.name}: DEF +${buffVal}`, 'buff');
+                    } else if (eff.stat === 'spd') {
+                        // SPD buff — no direct effect in hero-vs-hero but log it
+                        this.addLog(`  ✨ ${ownHero.name}: SPD boosted!`, 'buff');
+                    } else if (eff.stat === 'crit') {
+                        // Crit buff — boost ATK as proxy
+                        ownHero.atkBuff += eff.value;
+                        this.addLog(`  ✨ ${ownHero.name}: CRIT boosted!`, 'buff');
                     }
                 }
                 this._triggerAnimation('skill');
@@ -591,16 +455,20 @@ const BattleEngine = {
 
             case 'debuff': {
                 const enemyCombatant = caster.isPlayer ? this.enemy : this.player;
-                for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                    const hero = enemyCombatant.heroZones[i];
-                    if (hero) {
-                        if (eff.stat === 'atk' || eff.stat === 'all') {
-                            hero.atkBuff -= Math.floor(hero.stats.atk * eff.value);
-                        }
-                        if (eff.stat === 'def' || eff.stat === 'all') {
-                            hero.defBuff -= Math.floor(hero.stats.def * eff.value);
-                        }
-                        this.addLog(`  💀 ${hero.name}: Stats reduced!`, 'debuff');
+                const enemyHero = enemyCombatant.battleHero;
+                if (enemyHero) {
+                    if (eff.stat === 'atk' || eff.stat === 'all') {
+                        const debuffVal = Math.floor(enemyHero.heroATK * eff.value);
+                        enemyHero.atkBuff -= debuffVal;
+                        this.addLog(`  💀 ${enemyHero.name}: ATK -${debuffVal}`, 'debuff');
+                    }
+                    if (eff.stat === 'def' || eff.stat === 'all') {
+                        const debuffVal = Math.floor(enemyHero.heroDEF * eff.value);
+                        enemyHero.defBuff -= debuffVal;
+                        this.addLog(`  💀 ${enemyHero.name}: DEF -${debuffVal}`, 'debuff');
+                    }
+                    if (eff.stat === 'spd') {
+                        this.addLog(`  💀 ${enemyHero.name}: SPD reduced!`, 'debuff');
                     }
                 }
                 this._triggerAnimation('skill');
@@ -608,10 +476,13 @@ const BattleEngine = {
             }
 
             case 'mana_gain': {
-                // In Yu-Gi-Oh style, this could be a draw effect
-                const drawn = this._drawOneCard(caster);
-                if (drawn) {
-                    this.addLog(`  📥 ${caster.name} draws an extra card!`, 'skill');
+                // Draw extra cards
+                const count = eff.value || 1;
+                for (let i = 0; i < count; i++) {
+                    const drawn = this._drawOneCard(caster);
+                    if (drawn) {
+                        this.addLog(`  📥 ${caster.name} draws an extra card!`, 'skill');
+                    }
                 }
                 break;
             }
@@ -622,15 +493,18 @@ const BattleEngine = {
     },
 
     /**
-     * Get strongest hero on field (highest ATK)
+     * Get strongest hero on field (highest ATK) — uses battleHero
      */
     _getStrongestHero(combatant) {
+        // Return the battle hero entity (always present during battle)
+        if (combatant.battleHero) return combatant.battleHero;
+        // Fallback: check hero zones
         let strongest = null;
         let maxAtk = -1;
         for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
             const hero = combatant.heroZones[i];
             if (hero) {
-                const totalAtk = hero.stats.atk + hero.atkBuff;
+                const totalAtk = (hero.stats ? hero.stats.atk : 0) + (hero.atkBuff || 0);
                 if (totalAtk > maxAtk) {
                     maxAtk = totalAtk;
                     strongest = hero;
@@ -641,25 +515,18 @@ const BattleEngine = {
     },
 
     /**
-     * Get weakest hero on field (lowest current HP)
+     * Get weakest hero on field (lowest current HP) — uses battleHero
      */
     _getWeakestHero(combatant) {
-        let weakest = null;
-        let minHp = Infinity;
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            const hero = combatant.heroZones[i];
-            if (hero && hero.currentHp < minHp) {
-                minHp = hero.currentHp;
-                weakest = hero;
-            }
-        }
-        return weakest;
+        // With hero-as-entity, there's only one hero — the battleHero
+        return combatant.battleHero || null;
     },
 
     /**
      * Get a random enemy hero on field
      */
     _getRandomEnemyHero(combatant) {
+        if (combatant.battleHero) return { hero: combatant.battleHero, index: 0 };
         const heroes = [];
         for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
             if (combatant.heroZones[i]) heroes.push({ hero: combatant.heroZones[i], index: i });
@@ -669,7 +536,7 @@ const BattleEngine = {
     },
 
     /**
-     * Destroy a hero (send to graveyard)
+     * Destroy a hero (send to graveyard) — legacy compat
      */
     _destroyHero(combatant, hero) {
         for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
@@ -682,13 +549,17 @@ const BattleEngine = {
         }
     },
 
-    // ===== BATTLE PHASE =====
+    // ===== BATTLE PHASE — Hero vs Hero Auto-Combat =====
     _startBattlePhase() {
         if (!this.isRunning || this.currentPhase !== 'main') return;
 
         if (this._mainPhaseTimer) {
             clearTimeout(this._mainPhaseTimer);
             this._mainPhaseTimer = null;
+        }
+        if (this._autoAdvanceTimer) {
+            clearTimeout(this._autoAdvanceTimer);
+            this._autoAdvanceTimer = null;
         }
 
         CardHand.enabled = false;
@@ -698,183 +569,69 @@ const BattleEngine = {
         const attacker = this.isPlayerTurn ? this.player : this.enemy;
         const defender = this.isPlayerTurn ? this.enemy : this.player;
 
-        // Build attack queue: all heroes that can attack
-        this._attackQueue = [];
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            const hero = attacker.heroZones[i];
-            if (hero && hero.canAttack && !hero.hasAttacked && hero.position === 'attack' && hero.faceUp) {
-                this._attackQueue.push({ hero, zoneIndex: i });
-            }
-        }
-
-        if (this._attackQueue.length === 0) {
-            this.addLog(`⚔️ No heroes can attack`, 'info');
+        if (!attacker.battleHero || !defender.battleHero) {
+            this.addLog('⚔️ No hero to attack!', 'info');
             setTimeout(() => {
                 if (this.isRunning) this._startEndPhase();
             }, 500);
             return;
         }
 
-        // Process attacks sequentially
-        this._processNextAttack(attacker, defender);
-    },
+        // Hero auto-attacks enemy hero
+        const hero = attacker.battleHero;
+        const target = defender.battleHero;
 
-    _processNextAttack(attacker, defender) {
-        if (!this.isRunning || this._attackQueue.length === 0) {
-            this._startEndPhase();
-            return;
+        const totalAtk = hero.heroATK + hero.atkBuff;
+        const totalDef = target.heroDEF + target.defBuff;
+        const damage = Math.max(1, totalAtk - Math.floor(totalDef * 0.5));
+        const isCrit = Math.random() < 0.15; // 15% crit chance
+        const finalDamage = isCrit ? Math.floor(damage * 1.5) : damage;
+
+        // Apply damage to enemy hero HP
+        target.heroHP = Math.max(0, target.heroHP - finalDamage);
+
+        const critText = isCrit ? ' 💥CRIT!' : '';
+        this.addLog(`⚔️ ${hero.name} (${totalAtk} ATK) attacks ${target.name} for ${finalDamage} damage!${critText} (HP: ${target.heroHP}/${target.heroMaxHP})`, 'dmg');
+
+        // Show damage number
+        this._showDamageNum(defender, `-${finalDamage}${isCrit ? ' 💥' : ''}`, isCrit ? '#ff4444' : '#ffaa00');
+        this._triggerAnimation(isCrit ? 'crit' : 'hit');
+
+        // Animate via Phaser
+        if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+            BattlePhaser.triggerShake(isCrit ? 10 : 5, isCrit ? 0.5 : 0.3);
         }
-
-        const { hero: atkHero, zoneIndex: atkIdx } = this._attackQueue.shift();
-        atkHero.hasAttacked = true;
-
-        const totalAtk = atkHero.stats.atk + atkHero.atkBuff;
-
-        // Check if defender has any heroes on field (must attack them first)
-        const defHeroes = [];
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            if (defender.heroZones[i]) defHeroes.push({ hero: defender.heroZones[i], index: i });
+        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            BattleArenaScene.triggerShake(isCrit ? 10 : 5, isCrit ? 0.5 : 0.3);
         }
-
-        if (defHeroes.length === 0) {
-            // DIRECT ATTACK! No monsters to block
-            const lpDamage = totalAtk;
-            defender.lp = Math.max(0, defender.lp - lpDamage);
-            this.addLog(`⚔️ ${atkHero.name} attacks directly! ${lpDamage} damage! (LP: ${defender.lp})`, 'dmg');
-            defender._lastHitZone = 0;
-            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                BattlePhaser.animateAttack(atkIdx, 0, this.isPlayerTurn, lpDamage, lpDamage > 800);
-            }
-            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-                BattleArenaScene.playAttack(atkIdx, 0, this.isPlayerTurn, lpDamage, lpDamage > 800);
-            }
-            this._showDamageNum(defender, `-${lpDamage}`, '#ff4444');
-            this._triggerAnimation('crit');
-            if (typeof BattleAnimations !== 'undefined') {
-                BattleAnimations.shakeScreen(5, 0.3);
-            }
-
-            this._renderBattle();
-
-            if (this._checkWinConditions()) return;
-
-            setTimeout(() => {
-                this._processNextAttack(attacker, defender);
-            }, 800);
-            return;
-        }
-
-        // Pick target: AI picks weakest, player could pick but for simplicity pick random/weakest
-        let targetInfo;
-        if (this.isPlayerTurn) {
-            // Player attacks: target the first available enemy hero (simplified)
-            targetInfo = defHeroes[0];
-        } else {
-            // AI targets the weakest hero
-            targetInfo = defHeroes.reduce((weakest, curr) => {
-                return (curr.hero.currentHp < weakest.hero.currentHp) ? curr : weakest;
-            }, defHeroes[0]);
-        }
-
-        const defHero = targetInfo.hero;
-        const defIdx = targetInfo.index;
-        const totalDef = defHero.stats.def + defHero.defBuff;
-
-        if (defHero.position === 'attack') {
-            // ATK vs ATK battle
-            const damage = totalAtk - (defHero.stats.atk + defHero.atkBuff);
-            const isCrit = Math.abs(damage) > 800;
-
-            // Trigger attack lunge animation
-            defHero._lastHitZone = defIdx;
-            atkHero._lastHitZone = atkIdx;
-            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                BattlePhaser.animateAttack(atkIdx, defIdx, this.isPlayerTurn, Math.abs(damage), isCrit);
-            }
-            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-                BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, Math.abs(damage), isCrit);
-            }
-
-            if (totalAtk > (defHero.stats.atk + defHero.atkBuff)) {
-                // Attacker wins: defender destroyed, defender takes damage
-                this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) vs ${defHero.name} (${defHero.stats.atk + defHero.atkBuff} ATK)`, 'dmg');
-                this._destroyHero(defender, defHero);
-                const lpDmg = Math.abs(damage);
-                defender.lp = Math.max(0, defender.lp - lpDmg);
-                this.addLog(`  💥 ${defender.name} takes ${lpDmg} battle damage! (LP: ${defender.lp})`, 'dmg');
-                this._showDamageNum(defender, `-${lpDmg}`, '#ff4444');
-                this._triggerAnimation(isCrit ? 'crit' : 'hit');
-            } else if (totalAtk < (defHero.stats.atk + defHero.atkBuff)) {
-                // Defender wins: attacker destroyed, attacker takes damage
-                this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) vs ${defHero.name} (${defHero.stats.atk + defHero.atkBuff} ATK)`, 'dmg');
-                this._destroyHero(attacker, atkHero);
-                const lpDmg = Math.abs(damage);
-                attacker.lp = Math.max(0, attacker.lp - lpDmg);
-                this.addLog(`  💥 ${attacker.name} takes ${lpDmg} battle damage! (LP: ${attacker.lp})`, 'dmg');
-                this._showDamageNum(attacker, `-${lpDmg}`, '#ff4444');
-                this._triggerAnimation(isCrit ? 'crit' : 'hit');
-            } else {
-                // Tie: both destroyed
-                this.addLog(`⚔️ ${atkHero.name} vs ${defHero.name} — Mutual destruction!`, 'dmg');
-                this._destroyHero(attacker, atkHero);
-                this._destroyHero(defender, defHero);
-                this._triggerAnimation('hit');
-            }
-        } else {
-            // ATK vs DEF battle
-            defHero._lastHitZone = defIdx;
-            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                const dmg = totalAtk > totalDef ? totalAtk - totalDef : totalDef - totalAtk;
-                BattlePhaser.animateAttack(atkIdx, defIdx, this.isPlayerTurn, dmg, dmg > 800);
-            }
-            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-                const dmg = totalAtk > totalDef ? totalAtk - totalDef : totalDef - totalAtk;
-                BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, dmg, dmg > 800);
-            }
-
-            if (defHero.faceUp) {
-                this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) attacks ${defHero.name} (DEF Position, ${totalDef} DEF)`, 'dmg');
-            } else {
-                this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) attacks face-down monster`, 'dmg');
-            }
-
-            if (totalAtk > totalDef) {
-                // Defender destroyed, no LP damage
-                if (!defHero.faceUp) {
-                    defHero.faceUp = true; // flip face-up
-                    this.addLog(`  🔄 ${defHero.name} is flipped face-up!`, 'info');
-                }
-                this._destroyHero(defender, defHero);
-                this.addLog(`  💀 ${defHero.name} destroyed!`, 'death');
-                this._triggerAnimation('hit');
-            } else if (totalAtk < totalDef) {
-                // Attacker takes difference as damage
-                const lpDmg = totalDef - totalAtk;
-                attacker.lp = Math.max(0, attacker.lp - lpDmg);
-                this.addLog(`  💥 ${attacker.name} takes ${lpDmg} damage! (LP: ${attacker.lp})`, 'dmg');
-                this._showDamageNum(attacker, `-${lpDmg}`, '#ff4444');
-                this._triggerAnimation('hit');
-                if (!defHero.faceUp) {
-                    defHero.faceUp = true;
-                    this.addLog(`  🔄 ${defHero.name} is flipped face-up!`, 'info');
-                }
-            } else {
-                // Equal: nothing happens
-                this.addLog(`  ⚖️ Equal stats! Nothing happens.`, 'info');
-                if (!defHero.faceUp) {
-                    defHero.faceUp = true;
-                }
-            }
+        if (typeof BattleAnimations !== 'undefined') {
+            BattleAnimations.shakeScreen(isCrit ? 8 : 4, isCrit ? 0.5 : 0.3);
         }
 
         this._renderBattle();
 
-        if (this._checkWinConditions()) return;
+        // Check if enemy hero is defeated
+        if (target.heroHP <= 0) {
+            this.addLog(`💀 ${target.name} has been defeated!`, 'death');
+            setTimeout(() => {
+                if (this.isRunning) this._endBattle(this.isPlayerTurn ? 'win' : 'lose');
+            }, 1000);
+            return;
+        }
 
-        // Process next attack after delay
+        // End battle phase after delay
         setTimeout(() => {
-            this._processNextAttack(attacker, defender);
-        }, 1000);
+            if (this.isRunning) this._startEndPhase();
+        }, 1200);
+    },
+
+    /**
+     * Legacy attack processing (simplified for hero-as-entity)
+     */
+    _processNextAttack(attacker, defender) {
+        // With hero-as-entity, attack is handled in _startBattlePhase
+        // This method is kept for API compatibility
+        this._startEndPhase();
     },
 
     // ===== END PHASE =====
@@ -886,16 +643,12 @@ const BattleEngine = {
 
         const current = this.isPlayerTurn ? this.player : this.enemy;
 
-        // End-of-turn effects: decay buffs
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            const hero = current.heroZones[i];
-            if (hero) {
-                // Buffs decay slightly each turn
-                if (hero.atkBuff > 0) hero.atkBuff = Math.floor(hero.atkBuff * 0.8);
-                if (hero.defBuff > 0) hero.defBuff = Math.floor(hero.defBuff * 0.8);
-                if (hero.atkBuff < 0) hero.atkBuff = Math.floor(hero.atkBuff * 0.8);
-                if (hero.defBuff < 0) hero.defBuff = Math.floor(hero.defBuff * 0.8);
-            }
+        // End-of-turn effects: decay buffs on battleHero
+        if (current.battleHero) {
+            if (current.battleHero.atkBuff > 0) current.battleHero.atkBuff = Math.floor(current.battleHero.atkBuff * 0.8);
+            if (current.battleHero.defBuff > 0) current.battleHero.defBuff = Math.floor(current.battleHero.defBuff * 0.8);
+            if (current.battleHero.atkBuff < 0) current.battleHero.atkBuff = Math.floor(current.battleHero.atkBuff * 0.8);
+            if (current.battleHero.defBuff < 0) current.battleHero.defBuff = Math.floor(current.battleHero.defBuff * 0.8);
         }
 
         this._renderBattle();
@@ -908,11 +661,23 @@ const BattleEngine = {
         }, 500);
     },
 
-    // ===== WIN CONDITIONS =====
+    // ===== WIN CONDITIONS — Check Hero HP =====
     _checkWinConditions() {
         if (!this.isRunning) return false;
 
-        // LP reaches 0
+        // Hero HP check (primary win condition)
+        if (this.player.battleHero && this.player.battleHero.heroHP <= 0) {
+            this.addLog(`💀 ${this.player.battleHero.name} HP reached 0!`, 'death');
+            this._endBattle('lose');
+            return true;
+        }
+        if (this.enemy.battleHero && this.enemy.battleHero.heroHP <= 0) {
+            this.addLog(`🏆 ${this.enemy.battleHero.name} defeated!`, 'win');
+            this._endBattle('win');
+            return true;
+        }
+
+        // LP reaches 0 (fallback)
         if (this.player.lp <= 0) {
             this.addLog(`💀 Player LP reached 0!`, 'death');
             this._endBattle('lose');
@@ -924,34 +689,12 @@ const BattleEngine = {
             return true;
         }
 
-        // Deck out (no cards in deck and can't draw)
-        if (this.player.deck.length === 0 && this.player.hand.length === 0) {
-            let hasHeroes = false;
-            for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                if (this.player.heroZones[i]) { hasHeroes = true; break; }
-            }
-            if (!hasHeroes) {
-                this.addLog(`💀 Player has no cards left!`, 'death');
-                this._endBattle('lose');
-                return true;
-            }
-        }
-        if (this.enemy.deck.length === 0 && this.enemy.hand.length === 0) {
-            let hasHeroes = false;
-            for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-                if (this.enemy.heroZones[i]) { hasHeroes = true; break; }
-            }
-            if (!hasHeroes) {
-                this.addLog(`🏆 Enemy has no cards left!`, 'win');
-                this._endBattle('win');
-                return true;
-            }
-        }
-
         // Turn limit
         if (this.turnNumber >= 50) {
-            const winner = this.player.lp >= this.enemy.lp ? 'win' : 'lose';
-            this.addLog(`⏰ Time out! ${winner === 'win' ? 'You win' : 'Enemy wins'} by LP!`, 'info');
+            const playerHP = this.player.battleHero ? this.player.battleHero.heroHP : this.player.lp;
+            const enemyHP = this.enemy.battleHero ? this.enemy.battleHero.heroHP : this.enemy.lp;
+            const winner = playerHP >= enemyHP ? 'win' : 'lose';
+            this.addLog(`⏰ Time out! ${winner === 'win' ? 'You win' : 'Enemy wins'}!`, 'info');
             this._endBattle(winner);
             return true;
         }
@@ -959,48 +702,41 @@ const BattleEngine = {
         return false;
     },
 
-    // ===== AI LOGIC =====
+    // ===== AI LOGIC — 1 card per turn, skill cards only =====
     _aiPlayCards() {
         const ai = this.enemy;
-        let aiSummoned = false;
 
-        // Sort hand: play heroes first, then skills
+        // Only 1 card per turn for AI too
+        if (this._cardsPlayedThisTurn >= this.MAX_CARDS_PER_TURN) return;
+
+        // Sort hand: prefer damage when player HP is high, heal when AI HP is low
         const playable = ai.hand
             .map((card, i) => ({ card, index: i }))
             .sort((a, b) => {
-                // Heroes first
-                if (a.card.cardType === 'hero' && b.card.cardType !== 'hero') return -1;
-                if (b.card.cardType === 'hero' && a.card.cardType !== 'hero') return 1;
-                // Among heroes, highest ATK first
-                if (a.card.cardType === 'hero' && b.card.cardType === 'hero') {
-                    return (b.card.stats.atk || 0) - (a.card.stats.atk || 0);
-                }
-                // Among skills, prefer damage when player LP is low, heal when AI LP is low
-                if (ai.lp < this.MAX_LP * 0.4) {
+                const aiHeroHP = ai.battleHero ? ai.battleHero.heroHP / ai.battleHero.heroMaxHP : 1;
+                if (aiHeroHP < 0.4) {
                     if (a.card.effect && a.card.effect.type === 'heal') return -1;
                     if (b.card.effect && b.card.effect.type === 'heal') return 1;
                 }
+                // Prefer damage cards
+                if (a.card.effect && a.card.effect.type === 'damage') return -1;
+                if (b.card.effect && b.card.effect.type === 'damage') return 1;
                 return 0;
             });
 
-        // Play up to 3 cards per turn
+        // Play 1 card
         let played = 0;
         for (const { card } of playable) {
-            if (played >= 3) break;
+            if (played >= 1) break;
 
             const actualIndex = ai.hand.indexOf(card);
             if (actualIndex === -1) continue;
 
-            if (card.cardType === 'hero') {
-                if (aiSummoned) continue; // one summon per turn
-                const zone = this._findEmptyZone(ai);
-                if (zone === -1) continue;
-                this._summonHero(ai, actualIndex, zone, this.player);
-                aiSummoned = true;
-            } else if (card.cardType === 'skill') {
+            if (card.cardType === 'skill') {
                 this._activateSkill(ai, actualIndex, this.player);
-                }
-            played++;
+                played++;
+                this._cardsPlayedThisTurn++;
+            }
         }
 
         if (played === 0) {
@@ -1044,7 +780,6 @@ const BattleEngine = {
                     BattleArenaScene.triggerShake(10, 0.6);
                     break;
                 case 'heal':
-                    // Heal glow handled by spawnHealNumber in _showDamageNum
                     break;
                 case 'skill':
                     BattleArenaScene.showPhaseBanner('SKILL ACTIVATE!', this.isPlayerTurn);
@@ -1096,16 +831,13 @@ const BattleEngine = {
             return;
         }
         if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-            // Use Canvas-based damage numbers via BattleArenaScene
             const pos = BattleArenaScene.getHeroZonePosition(
                 target._lastHitZone || 0,
                 target.isPlayer
             );
             if (color === '#44ff88' || color === '#22cc66') {
-                // Heal
                 BattleArenaScene.spawnHealNumber(pos.x, pos.y - 20, parseInt(text.replace(/[^0-9]/g, '')) || 0);
             } else {
-                // Damage
                 const isCrit = text.includes('CRIT') || text.includes('💥');
                 BattleArenaScene.spawnDamageNumber(
                     pos.x + (Math.random() - 0.5) * 30,
@@ -1153,7 +885,6 @@ const BattleEngine = {
             }
         } else
         if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-            // Canvas-based phase banner via scene
             if (phaseNames[phase]) {
                 BattleArenaScene.showPhaseBanner(phaseNames[phase], this.isPlayerTurn);
             }
@@ -1163,7 +894,7 @@ const BattleEngine = {
         if (this.onPhaseChange) this.onPhaseChange(phase, this.isPlayerTurn);
     },
 
-    // ===== RENDERING =====
+    // ===== RENDERING — Hero HP displayed on canvas =====
     _renderBattle() {
         // BattlePhaser (Phaser.js WebGL) or BattleArenaScene (Canvas) handles field rendering
         if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
@@ -1171,7 +902,6 @@ const BattleEngine = {
         } else if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
             // Scene renders itself — just update companion DOM elements
         } else if (typeof BattleRenderer !== 'undefined' && BattleRenderer.renderBattle) {
-            // Fallback to old renderer if scene not active
             try {
                 BattleRenderer.renderBattle(this.player, this.enemy);
             } catch (e) {
@@ -1179,18 +909,18 @@ const BattleEngine = {
             }
         }
 
-        // Update LP displays
+        // Update LP displays (now shows hero HP)
         this._updateLPDisplay('player', this.player);
         this._updateLPDisplay('enemy', this.enemy);
 
         // Update card hand
         if (this.isPlayerTurn && this.currentPhase === 'main') {
-            CardHand.render(this.player.hand, this.player, true);
+            CardHand.render(this.player.hand, this.player, true, { canPlayCard: this._cardsPlayedThisTurn < this.MAX_CARDS_PER_TURN });
         } else if (this.isPlayerTurn) {
             CardHand.render(this.player.hand, this.player, false);
         }
 
-        // Update deck count display (element may have been removed from DOM)
+        // Update deck count display
         const deckEl = document.getElementById('deck-count');
         if (deckEl) deckEl.textContent = this.player.deck.length;
 
@@ -1211,7 +941,10 @@ const BattleEngine = {
             turnEl.textContent = `Turn ${this.turnNumber} — ${this.isPlayerTurn ? 'Your Turn' : 'Enemy Turn'}`;
         }
 
-        // End turn button (removed from DOM — no-op)
+        // Update hero HP displays in DOM
+        this._updateHeroHPDisplay();
+
+        // End turn button
         const endTurnBtn = document.getElementById('btn-end-turn');
         if (endTurnBtn) {
             endTurnBtn.style.display = (this.isPlayerTurn && this.currentPhase === 'main') ? 'block' : 'none';
@@ -1223,11 +956,45 @@ const BattleEngine = {
     },
 
     _updateLPDisplay(side, combatant) {
-        // LP is now rendered entirely on the canvas — this method is kept for compatibility
-        // but does nothing since the DOM elements were removed
+        // LP is now hero HP — rendered on canvas and via _updateHeroHPDisplay
     },
 
-    // ===== END BATTLE =====
+    /**
+     * Update hero HP display in DOM (battle hero info strips)
+     */
+    _updateHeroHPDisplay() {
+        // Update player hero HP
+        const playerHpEl = document.getElementById('player-hero-hp');
+        const playerHpFill = document.getElementById('player-hero-hp-fill');
+        const playerNameEl = document.getElementById('player-hero-name');
+        if (this.player && this.player.battleHero) {
+            const h = this.player.battleHero;
+            const pct = Math.max(0, h.heroHP / h.heroMaxHP);
+            if (playerHpEl) playerHpEl.textContent = `${h.heroHP} / ${h.heroMaxHP}`;
+            if (playerHpFill) {
+                playerHpFill.style.width = (pct * 100) + '%';
+                playerHpFill.className = 'hp-fill' + (pct < 0.25 ? ' hp-critical' : pct < 0.5 ? ' hp-warning' : '');
+            }
+            if (playerNameEl) playerNameEl.textContent = h.name + (h.level > 1 ? ` Lv.${h.level}` : '');
+        }
+
+        // Update enemy hero HP
+        const enemyHpEl = document.getElementById('enemy-hero-hp');
+        const enemyHpFill = document.getElementById('enemy-hero-hp-fill');
+        const enemyNameEl = document.getElementById('enemy-hero-name');
+        if (this.enemy && this.enemy.battleHero) {
+            const h = this.enemy.battleHero;
+            const pct = Math.max(0, h.heroHP / h.heroMaxHP);
+            if (enemyHpEl) enemyHpEl.textContent = `${h.heroHP} / ${h.heroMaxHP}`;
+            if (enemyHpFill) {
+                enemyHpFill.style.width = (pct * 100) + '%';
+                enemyHpFill.className = 'hp-fill' + (pct < 0.25 ? ' hp-critical' : pct < 0.5 ? ' hp-warning' : '');
+            }
+            if (enemyNameEl) enemyNameEl.textContent = h.name + (h.level > 1 ? ` Lv.${h.level}` : '');
+        }
+    },
+
+    // ===== END BATTLE — Hero HP loss on defeat =====
     _endBattle(result) {
         this.isRunning = false;
         this.currentPhase = 'idle';
@@ -1241,6 +1008,13 @@ const BattleEngine = {
             this._autoAdvanceTimer = null;
         }
 
+        // On defeat, reduce player hero HP by 20% of max
+        if (result === 'lose' && this.player.battleHero) {
+            const hpLoss = Math.floor(this.player.battleHero.heroMaxHP * 0.2);
+            this.player.battleHero.heroHP = Math.max(1, this.player.battleHero.heroHP - hpLoss);
+            this.addLog(`💔 ${this.player.battleHero.name} loses ${hpLoss} HP from defeat`, 'info');
+        }
+
         if (result === 'win') {
             this._showOverlay('🏆 VICTORY!', 'clear');
             if (typeof Sound !== 'undefined') Sound.victory?.();
@@ -1251,6 +1025,9 @@ const BattleEngine = {
 
         // Distribute EXP
         const levelUps = this.distributeEXP(result === 'win');
+
+        // Clear card hand between battles
+        CardHand.clear();
 
         setTimeout(() => {
             if (this.onComplete) this.onComplete(result, this.log, this.turnNumber, levelUps);
@@ -1319,7 +1096,7 @@ const BattleEngine = {
 
     /**
      * Schedule auto-advance to battle phase after playing a card.
-     * Gives player ~1000ms to play another card, then auto-starts combat.
+     * Since only 1 card per turn, auto-advance after brief delay.
      */
     _scheduleAutoAdvance() {
         if (this._autoAdvanceTimer) clearTimeout(this._autoAdvanceTimer);
@@ -1336,13 +1113,14 @@ const BattleEngine = {
         this.isRunning = false;
         this.isPaused = false;
         this.currentPhase = 'idle';
+        this._cardsPlayedThisTurn = 0;
         if (this._mainPhaseTimer) clearTimeout(this._mainPhaseTimer);
         if (this._autoAdvanceTimer) { clearTimeout(this._autoAdvanceTimer); this._autoAdvanceTimer = null; }
         CardHand.clear();
     },
 
     /**
-     * Player selects an attacker during battle phase
+     * Player selects an attacker during battle phase (legacy compat)
      */
     selectAttacker(zoneIndex) {
         if (!this.isPlayerTurn || this.currentPhase !== 'battle') return false;
@@ -1353,7 +1131,7 @@ const BattleEngine = {
     },
 
     /**
-     * Player selects a target during battle phase
+     * Player selects a target during battle phase (legacy compat)
      */
     selectTarget(zoneIndex) {
         if (!this._selectedAttacker) return false;
@@ -1363,16 +1141,10 @@ const BattleEngine = {
     },
 
     /**
-     * Toggle hero position (attack ↔ defense)
+     * Toggle hero position (legacy compat — no-op with hero-as-entity)
      */
     togglePosition(zoneIndex) {
-        if (!this.isPlayerTurn || this.currentPhase !== 'main') return false;
-        const hero = this.player.heroZones[zoneIndex];
-        if (!hero) return false;
-        hero.position = hero.position === 'attack' ? 'defense' : 'attack';
-        this.addLog(`🔄 ${hero.name} switched to ${hero.position} position`, 'info');
-        this._renderBattle();
-        return true;
+        return false;
     },
 
     /**
@@ -1390,8 +1162,8 @@ const BattleEngine = {
 
     getNextTurnOrder(count = 5) {
         const units = [];
-        const p = { name: this.player?.name || 'Player', isAlly: true, alive: (this.player?.lp || 0) > 0 };
-        const e = { name: this.enemy?.name || 'Enemy', isAlly: false, alive: (this.enemy?.lp || 0) > 0 };
+        const p = { name: this.player?.name || 'Player', isAlly: true, alive: (this.player?.battleHero?.heroHP || 0) > 0 };
+        const e = { name: this.enemy?.name || 'Enemy', isAlly: false, alive: (this.enemy?.battleHero?.heroHP || 0) > 0 };
         for (let i = 0; i < count; i++) {
             units.push(i % 2 === 0 ? p : e);
         }
@@ -1402,17 +1174,13 @@ const BattleEngine = {
     get allyTeam() {
         if (!this.player) return [];
         const team = [];
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            if (this.player.heroZones[i]) team.push(this.player.heroZones[i]);
-        }
+        if (this.player.battleHero) team.push(this.player.battleHero);
         return team;
     },
     get enemyTeam() {
         if (!this.enemy) return [];
         const team = [];
-        for (let i = 0; i < this.HERO_ZONE_COUNT; i++) {
-            if (this.enemy.heroZones[i]) team.push(this.enemy.heroZones[i]);
-        }
+        if (this.enemy.battleHero) team.push(this.enemy.battleHero);
         return team;
     },
 

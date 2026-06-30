@@ -22,7 +22,6 @@ const GameState = {
     // Battle state
     battleActive: false,
     battleSpeed: 1,
-    autoNext: false,
     
     // Stats tracking
     stats: {
@@ -82,8 +81,8 @@ const GameState = {
     },
 
     generateEnemySkillDeck(stage) {
-        // Generate 5 random skill cards for enemy, scaled by stage
-        const count = Math.min(5, Math.ceil(stage / 3) + 2);
+        // Generate 4 random skill cards for enemy (matches player hand size)
+        const count = 4;
         const ids = [];
         const pool = SKILL_CARD_TEMPLATES.map(c => c.id);
         for (let i = 0; i < count; i++) {
@@ -170,26 +169,28 @@ const GameState = {
     },
 
     generateEnemyDeck(stage) {
-        const enemies = [];
-        const count = Math.min(5, Math.ceil(stage / 2) + 1);
-        const difficultyMul = 1 + (stage - 1) * 0.15;
+        // Generate a single enemy hero (hero-as-entity model)
+        // Enemy hero scales based on stage level
+        const stageScale = 1 + (stage - 1) * 0.18;
         
-        for (let i = 0; i < count; i++) {
-            const tmpl = CARD_TEMPLATES[Math.floor(Math.random() * CARD_TEMPLATES.length)];
-            const rarityRoll = Math.random();
-            let rarity = 'common';
-            if (stage >= 3 && rarityRoll < 0.3) rarity = 'rare';
-            if (stage >= 6 && rarityRoll < 0.15) rarity = 'epic';
-            if (stage >= 10 && rarityRoll < 0.05) rarity = 'legendary';
-            
-            const card = generateCard(tmpl, rarity);
-            // Scale enemy stats with stage
-            for (const stat of ['hp', 'maxHp', 'atk', 'def', 'spd']) {
-                card.stats[stat] = Math.floor(card.stats[stat] * difficultyMul);
-            }
-            enemies.push(card);
+        // Higher stages unlock rarer enemy heroes
+        const rarityRoll = Math.random();
+        let rarity = 'common';
+        if (stage >= 3 && rarityRoll < 0.35) rarity = 'rare';
+        if (stage >= 6 && rarityRoll < 0.20) rarity = 'epic';
+        if (stage >= 10 && rarityRoll < 0.08) rarity = 'legendary';
+        if (stage >= 15 && rarityRoll < 0.03) rarity = 'mythic';
+        
+        // Pick a random hero template
+        const tmpl = CARD_TEMPLATES[Math.floor(Math.random() * CARD_TEMPLATES.length)];
+        const card = generateCard(tmpl, rarity);
+        
+        // Scale enemy hero stats with stage
+        for (const stat of ['hp', 'maxHp', 'atk', 'def', 'spd']) {
+            card.stats[stat] = Math.floor(card.stats[stat] * stageScale);
         }
-        return enemies;
+        
+        return [card]; // Return single hero in array for compatibility
     },
     // ===== BLOCKCHAIN INTEGRATION =====
 
