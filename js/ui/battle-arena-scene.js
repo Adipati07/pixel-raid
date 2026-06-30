@@ -371,7 +371,19 @@ const BattleArenaScene = {
     _drawLPBar(ctx, combatant, isPlayer, rect) {
         const { x, y, w, h } = rect;
         const maxLP = BattleEngine.MAX_LP || 4000;
-        const pct = Math.max(0, Math.min(1, combatant.lp / maxLP));
+        const actualPct = Math.max(0, Math.min(1, combatant.lp / maxLP));
+
+        // Smooth LP animation
+        const lpKey = isPlayer ? '_playerLPDisplay' : '_enemyLPDisplay';
+        if (this[lpKey] === undefined) this[lpKey] = actualPct;
+        this[lpKey] += (actualPct - this[lpKey]) * 0.08; // Smooth lerp
+        const pct = this[lpKey];
+
+        // Animated LP number
+        const lpNumKey = isPlayer ? '_playerLPNum' : '_enemyLPNum';
+        if (this[lpNumKey] === undefined) this[lpNumKey] = combatant.lp;
+        this[lpNumKey] += (combatant.lp - this[lpNumKey]) * 0.1;
+        const displayLP = Math.round(this[lpNumKey]);
 
         // Background
         const bgGrad = ctx.createLinearGradient(x, y, x, y + h);
@@ -411,37 +423,52 @@ const BattleArenaScene = {
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(barX, barY, barW, barH);
 
-        // LP bar fill
+        // LP bar fill with glow
         if (pct > 0) {
             const fillGrad = ctx.createLinearGradient(barX, barY, barX + barW * pct, barY);
+            let glowColor;
             if (pct > 0.55) {
                 fillGrad.addColorStop(0, '#22cc66');
-                fillGrad.addColorStop(1, '#00cc66');
+                fillGrad.addColorStop(1, '#00ee77');
+                glowColor = '#00ff88';
             } else if (pct > 0.25) {
                 fillGrad.addColorStop(0, '#ccaa22');
                 fillGrad.addColorStop(1, '#ffcc00');
+                glowColor = '#ffdd44';
             } else {
                 fillGrad.addColorStop(0, '#cc2222');
                 fillGrad.addColorStop(1, '#ff3333');
+                glowColor = '#ff4444';
             }
+
+            // Glow behind bar
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 8;
             ctx.fillStyle = fillGrad;
             ctx.fillRect(barX + 1, barY + 1, (barW - 2) * pct, barH - 2);
+            ctx.shadowBlur = 0;
+
+            // Damage trail (red overlay showing recent damage)
+            if (actualPct < pct - 0.01) {
+                ctx.fillStyle = 'rgba(255,50,50,0.4)';
+                ctx.fillRect(barX + 1 + (barW - 2) * actualPct, barY + 1, (barW - 2) * (pct - actualPct), barH - 2);
+            }
 
             // Shine
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
             ctx.fillRect(barX + 1, barY + 1, (barW - 2) * pct, (barH - 2) / 2);
         }
 
-        // LP bar border
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        // LP bar border with glow
+        ctx.strokeStyle = pct > 0.55 ? 'rgba(0,255,136,0.3)' : pct > 0.25 ? 'rgba(255,200,0,0.3)' : 'rgba(255,50,50,0.3)';
         ctx.lineWidth = 1;
         ctx.strokeRect(barX, barY, barW, barH);
 
-        // LP text
-        ctx.fillStyle = '#fff';
+        // LP text with color
+        ctx.fillStyle = pct > 0.55 ? '#88ffbb' : pct > 0.25 ? '#ffdd88' : '#ff8888';
         ctx.font = 'bold 7px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText(`LP ${combatant.lp} / ${maxLP}`, barX + barW / 2, barY + barH - 4);
+        ctx.fillText(`LP ${displayLP} / ${maxLP}`, barX + barW / 2, barY + barH - 4);
 
         // Deck + Graveyard (right side)
         ctx.fillStyle = 'rgba(180,180,180,0.7)';
