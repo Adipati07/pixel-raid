@@ -1074,49 +1074,14 @@
             <div id="battle-canvas-container"></div>
         </div>
 
-        <!-- Battle Info Strip (below canvas) -->
-        <div class="battle-info-strip">
-            <div class="info-strip-left">
-                <span id="turn-display" class="battle-turn-text">Turn 1</span>
-                <span id="phase-display" class="battle-phase-text">🃏 Main Phase</span>
-            </div>
-            <div class="info-strip-right">
-                <span class="deck-info">📚 Deck: <span id="deck-count">0</span></span>
-                <span class="graveyard-info">⚰️ GY: <span id="graveyard-count">0</span></span>
-            </div>
-        </div>
-
         <!-- Card Hand Area — scrollable on mobile -->
         <div id="card-hand-area" class="card-hand-area"></div>
 
-        <!-- Action Buttons -->
-        <div class="battle-action-row">
-            <button class="btn btn-gold" id="btn-end-turn" style="display:none;">⏭ End Phase</button>
-        </div>
-
-        <!-- Battle Controls -->
-        <div class="battle-progress" style="display:none;">
-            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-            <div class="progress-info">
-                <span>Stage <span id="stage-number">1</span> — Wave <span id="wave-number">1</span>/3</span>
-                <span id="progress-text"></span>
-            </div>
-        </div>
-
+        <!-- Battle Controls — only Start and Auto Next -->
         <div class="battle-controls">
             <button class="btn btn-gold" id="btn-start-battle">⚔️ Start Battle</button>
-            <button class="btn btn-secondary" id="btn-pause" style="display:none">⏸ Pause</button>
             <button class="btn btn-secondary" id="btn-auto-next">🔄 Auto Next Stage</button>
-            <div class="speed-controls">
-                <button class="speed-btn active" data-speed="1">1x</button>
-                <button class="speed-btn" data-speed="2">2x</button>
-                <button class="speed-btn" data-speed="3">3x</button>
-            </div>
         </div>
-
-        <div class="turn-order-bar" id="turn-order-display"></div>
-
-        <div class="battle-log" id="battle-log"></div>
 
     </div>
 

@@ -41,6 +41,7 @@ const BattleEngine = {
     _attackQueue: [],
     _mainPhaseTimer: null,
     _phaseTimer: null,
+    _autoAdvanceTimer: null,
 
     // ===== START BATTLE =====
     startBattle(playerHeroCard, playerCardIds, enemyHeroCard, enemyCardIds, onComplete) {
@@ -64,6 +65,7 @@ const BattleEngine = {
         // Clear any leftover timers
         if (this._mainPhaseTimer) { clearTimeout(this._mainPhaseTimer); this._mainPhaseTimer = null; }
         if (this._phaseTimer) { clearTimeout(this._phaseTimer); this._phaseTimer = null; }
+        if (this._autoAdvanceTimer) { clearTimeout(this._autoAdvanceTimer); this._autoAdvanceTimer = null; }
 
         // Initialize player combatant with Yu-Gi-Oh field
         this.player = this._initCombatant(playerHeroCard, playerCardIds, true);
@@ -303,6 +305,8 @@ const BattleEngine = {
             CardHand.animateCardPlay(handIndex, () => {
                 this._summonHero(this.player, handIndex, zoneIndex, this.enemy);
                 this._playerHasSummoned = true;
+                // Auto-advance to battle phase after a card is played
+                this._scheduleAutoAdvance();
             });
             return true;
         } else if (card.cardType === 'skill') {
@@ -310,6 +314,8 @@ const BattleEngine = {
             CardHand.animateCardPlay(handIndex, () => {
                 this._activateSkill(this.player, handIndex, this.enemy);
                 this._playerHasUsedSkill = true;
+                // Auto-advance to battle phase after a card is played
+                this._scheduleAutoAdvance();
             });
             return true;
         }
@@ -1184,7 +1190,7 @@ const BattleEngine = {
             CardHand.render(this.player.hand, this.player, false);
         }
 
-        // Update deck count display
+        // Update deck count display (element may have been removed from DOM)
         const deckEl = document.getElementById('deck-count');
         if (deckEl) deckEl.textContent = this.player.deck.length;
 
@@ -1205,7 +1211,7 @@ const BattleEngine = {
             turnEl.textContent = `Turn ${this.turnNumber} — ${this.isPlayerTurn ? 'Your Turn' : 'Enemy Turn'}`;
         }
 
-        // End turn button
+        // End turn button (removed from DOM — no-op)
         const endTurnBtn = document.getElementById('btn-end-turn');
         if (endTurnBtn) {
             endTurnBtn.style.display = (this.isPlayerTurn && this.currentPhase === 'main') ? 'block' : 'none';
@@ -1229,6 +1235,10 @@ const BattleEngine = {
         if (this._mainPhaseTimer) {
             clearTimeout(this._mainPhaseTimer);
             this._mainPhaseTimer = null;
+        }
+        if (this._autoAdvanceTimer) {
+            clearTimeout(this._autoAdvanceTimer);
+            this._autoAdvanceTimer = null;
         }
 
         if (result === 'win') {
@@ -1307,11 +1317,27 @@ const BattleEngine = {
         }
     },
 
+    /**
+     * Schedule auto-advance to battle phase after playing a card.
+     * Gives player ~1000ms to play another card, then auto-starts combat.
+     */
+    _scheduleAutoAdvance() {
+        if (this._autoAdvanceTimer) clearTimeout(this._autoAdvanceTimer);
+        this._autoAdvanceTimer = setTimeout(() => {
+            this._autoAdvanceTimer = null;
+            if (this.isPlayerTurn && this.currentPhase === 'main' && this.isRunning) {
+                this.addLog('⚔️ Auto-advancing to Battle Phase', 'info');
+                this._startBattlePhase();
+            }
+        }, 1000);
+    },
+
     stop() {
         this.isRunning = false;
         this.isPaused = false;
         this.currentPhase = 'idle';
         if (this._mainPhaseTimer) clearTimeout(this._mainPhaseTimer);
+        if (this._autoAdvanceTimer) { clearTimeout(this._autoAdvanceTimer); this._autoAdvanceTimer = null; }
         CardHand.clear();
     },
 

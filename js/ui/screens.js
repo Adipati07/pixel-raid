@@ -53,10 +53,16 @@ const UI = {
 
     // ===== BATTLE SCREEN =====
     renderBattleScreen() {
-        document.getElementById('stage-number').textContent = GameState.player.stage;
-        document.getElementById('wave-number').textContent = GameState.player.wave;
-        const progress = ((GameState.player.wave - 1) / GameState.player.maxWave) * 100;
-        document.getElementById('progress-fill').style.width = progress + '%';
+        // Update header stats if stage/wave elements exist
+        const stageEl = document.getElementById('stage-number');
+        if (stageEl) stageEl.textContent = GameState.player.stage;
+        const waveEl = document.getElementById('wave-number');
+        if (waveEl) waveEl.textContent = GameState.player.wave;
+        const progressEl = document.getElementById('progress-fill');
+        if (progressEl) {
+            const progress = ((GameState.player.wave - 1) / GameState.player.maxWave) * 100;
+            progressEl.style.width = progress + '%';
+        }
         
         // Render initial battle canvas (skip if Phaser handles rendering)
         const canvas = document.getElementById('battle-canvas');
@@ -83,40 +89,8 @@ const UI = {
             btn.textContent = GameState.autoNext ? '⏹️ Stop Auto' : '🔄 Auto Next Stage';
         });
 
-        // End Turn button
-        const endTurnBtn = document.getElementById('btn-end-turn');
-        if (endTurnBtn) {
-            endTurnBtn.addEventListener('click', () => {
-                BattleEngine.endTurn();
-            });
-        }
-
-        // Pause button
-        const pauseBtn = document.getElementById('btn-pause');
-        if (pauseBtn) {
-            pauseBtn.addEventListener('click', () => {
-                BattleEngine.togglePause();
-                pauseBtn.textContent = BattleEngine.isPaused ? '▶️ Resume' : '⏸ Pause';
-            });
-        }
-
-        document.querySelectorAll('.speed-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                GameState.battleSpeed = parseInt(btn.dataset.speed);
-                localStorage.setItem('pixelraid_speed', GameState.battleSpeed);
-            });
-        });
-
-        // Restore saved speed
-        const savedSpeed = parseInt(localStorage.getItem('pixelraid_speed'));
-        if (savedSpeed && [1, 2, 3].includes(savedSpeed)) {
-            GameState.battleSpeed = savedSpeed;
-            document.querySelectorAll('.speed-btn').forEach(btn => {
-                btn.classList.toggle('active', parseInt(btn.dataset.speed) === savedSpeed);
-            });
-        }
+        // Default battle speed = 2x (fast) — no speed buttons in UI
+        GameState.battleSpeed = 2;
     },
 
     startBattle() {
@@ -145,29 +119,17 @@ const UI = {
 
         // Initialize card hand renderer with the hand area container
         CardHand.init('card-hand-area');
-
-        // Clear battle log
-        document.getElementById('battle-log').innerHTML = '';
         
         document.getElementById('btn-start-battle').disabled = true;
 
-        // Show pause button during battle
-        const pauseBtn = document.getElementById('btn-pause');
-        if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸ Pause'; }
-
-        // Initialize Phaser renderer (WebGL) or fallback to Canvas BattleArenaScene
-        if (typeof BattlePhaser !== 'undefined') {
-            BattlePhaser.init('battle-canvas-container');
-            BattlePhaser.enter(playerHero, enemyHero, () => {
-                // Phaser scene transition complete
-            });
+        // Click on battle container for hero info
+        const battleContainer = document.getElementById('battle-canvas-container');
+        if (battleContainer) {
+            battleContainer.onclick = (e) => {
+                if (!BattleEngine.isRunning) return;
+                this.showEnemyInfo(BattleEngine.isPlayerTurn ? BattleEngine.enemy.hero : BattleEngine.player.hero);
+            };
         }
-        // Also init BattleArenaScene as fallback (won't render since container changed)
-        BattleArenaScene.init('battle-canvas-container');
-
-        BattleEngine.onTurnChange = () => {
-            this.renderTurnOrder();
-        };
 
         // Set phase banner callback to use BattlePhaser or BattleArenaScene
         BattleEngine.onPhaseChange = (phase, isPlayerTurn) => {
@@ -181,86 +143,89 @@ const UI = {
             }
         };
 
-        // Click on battle container for hero info
-        const battleContainer = document.getElementById('battle-canvas-container');
-        if (battleContainer) {
-            battleContainer.onclick = (e) => {
-                if (!BattleEngine.isRunning) return;
-                this.showEnemyInfo(BattleEngine.isPlayerTurn ? BattleEngine.enemy.hero : BattleEngine.player.hero);
-            };
-        }
-
-        BattleEngine.startBattle(playerHero, playerSkillIds, enemyHero, enemySkillIds, (result, log, turns) => {
-            // Exit battle scene (Phaser or Canvas)
-            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                BattlePhaser.exit(() => {
+        // BUG FIX: Wait for Phaser scene to be ready before starting the battle engine.
+        // BattlePhaser.enter() is async — cards render before Phaser scene is ready on retry.
+        const startEngine = () => {
+            BattleEngine.startBattle(playerHero, playerSkillIds, enemyHero, enemySkillIds, (result, log, turns) => {
+                // Exit battle scene (Phaser or Canvas)
+                if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                    BattlePhaser.exit(() => {
+                        document.getElementById('btn-start-battle').disabled = false;
+                    });
+                }
+                BattleArenaScene.exit(() => {
                     document.getElementById('btn-start-battle').disabled = false;
-                    if (pauseBtn) pauseBtn.style.display = 'none';
-                    document.getElementById('turn-order-display').innerHTML = '';
                 });
-            }
-            BattleArenaScene.exit(() => {
-                document.getElementById('btn-start-battle').disabled = false;
-                // Hide pause button after battle
-                if (pauseBtn) pauseBtn.style.display = 'none';
-                document.getElementById('turn-order-display').innerHTML = '';
-            });
 
-            // Process results after exit transition completes
-            setTimeout(() => {
+                // Process results after exit transition completes
+                setTimeout(() => {
 
-            if (result === 'win') {
-                GameState.stats.battlesWon++;
+                if (result === 'win') {
+                    GameState.stats.battlesWon++;
 
-                // Process wave
-                if (GameState.player.wave < GameState.player.maxWave) {
-                    GameState.player.wave++;
-                } else {
-                    // Stage complete!
-                    const rewards = Economy.processStageReward(stage);
-                    GameState.player.stage++;
-                    GameState.player.wave = 1;
-                    GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
+                    // Process wave
+                    if (GameState.player.wave < GameState.player.maxWave) {
+                        GameState.player.wave++;
+                    } else {
+                        // Stage complete!
+                        const rewards = Economy.processStageReward(stage);
+                        GameState.player.stage++;
+                        GameState.player.wave = 1;
+                        GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
 
-                    // Show stage clear modal with rewards
-                    setTimeout(() => this.showStageClearModal(rewards, stage), 800);
+                        // Show stage clear modal with rewards
+                        setTimeout(() => this.showStageClearModal(rewards, stage), 800);
 
-                    // Hero EXP distribution
-                    const levelUps = BattleEngine.distributeEXP(true);
-                    if (levelUps.length > 0) {
-                        levelUps.forEach(lu => {
-                            this.toast(`⬆️ ${lu.name} reached Lv.${lu.level}! +${lu.boost} all stats`, 'success');
-                        });
-                    }
+                        // Hero EXP distribution
+                        const levelUps = BattleEngine.distributeEXP(true);
+                        if (levelUps.length > 0) {
+                            levelUps.forEach(lu => {
+                                this.toast(`⬆️ ${lu.name} reached Lv.${lu.level}! +${lu.boost} all stats`, 'success');
+                            });
+                        }
 
-                    if (rewards.leveledUp) {
-                        this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
-                        if (typeof Sound !== 'undefined') Sound.levelUp();
+                        if (rewards.leveledUp) {
+                            this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
+                            if (typeof Sound !== 'undefined') Sound.levelUp();
 
-                        // Show unlock notification
-                        if (rewards.unlock) {
-                            setTimeout(() => this.showUnlockPopup(rewards.unlock), 800);
+                            // Show unlock notification
+                            if (rewards.unlock) {
+                                setTimeout(() => this.showUnlockPopup(rewards.unlock), 800);
+                            }
                         }
                     }
+                } else {
+                    GameState.stats.battlesLost++;
+                    // Show defeat modal
+                    setTimeout(() => this.showDefeatModal(), 800);
                 }
-            } else {
-                GameState.stats.battlesLost++;
-                // Show defeat modal
-                setTimeout(() => this.showDefeatModal(), 800);
-            }
 
-            GameState.save();
-            this.updateHeader();
-            this.renderBattleScreen();
+                GameState.save();
+                this.updateHeader();
+                this.renderBattleScreen();
 
-            // Auto next
-            if (GameState.autoNext && result === 'win') {
-                const delay = GameState.player.wave === 1 ? 2500 : 1500;
-                setTimeout(() => this.startBattle(), delay);
-            }
+                // Auto next
+                if (GameState.autoNext && result === 'win') {
+                    const delay = GameState.player.wave === 1 ? 2500 : 1500;
+                    setTimeout(() => this.startBattle(), delay);
+                }
 
-            }, 900); // end setTimeout — wait for exit transition
-        });
+                }, 900); // end setTimeout — wait for exit transition
+            });
+        };
+
+        // Initialize Phaser renderer and wait for scene to be ready before starting battle
+        if (typeof BattlePhaser !== 'undefined') {
+            BattlePhaser.init('battle-canvas-container');
+            BattlePhaser.enter(playerHero, enemyHero, () => {
+                // Phaser scene is ready — safe to start battle engine now
+                startEngine();
+            });
+        } else {
+            // Fallback: init canvas scene and start immediately
+            BattleArenaScene.init('battle-canvas-container');
+            startEngine();
+        }
     },
 
     showRewards(rewards) {
@@ -935,7 +900,7 @@ const UI = {
     // ===== TURN ORDER DISPLAY =====
     renderTurnOrder() {
         const container = document.getElementById('turn-order-display');
-        if (!container) return;
+        if (!container) return; // element removed from DOM — no-op
         const turnOrder = BattleEngine.getNextTurnOrder(5);
         if (turnOrder.length === 0) {
             container.innerHTML = '';

@@ -21,7 +21,11 @@ const CardHand = {
             console.warn('CardHand container not found:', containerId);
             return;
         }
+        // Clear old state on re-init (e.g. after retry)
+        this.container.innerHTML = '';
         this.container.classList.add('card-hand-container');
+        this.selectedCard = null;
+        this.enabled = false;
     },
 
     /**
