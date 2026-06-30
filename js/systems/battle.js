@@ -736,6 +736,9 @@ const BattleEngine = {
             defender.lp = Math.max(0, defender.lp - lpDamage);
             this.addLog(`⚔️ ${atkHero.name} attacks directly! ${lpDamage} damage! (LP: ${defender.lp})`, 'dmg');
             defender._lastHitZone = 0;
+            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                BattlePhaser.animateAttack(atkIdx, 0, this.isPlayerTurn, lpDamage, lpDamage > 800);
+            }
             if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
                 BattleArenaScene.playAttack(atkIdx, 0, this.isPlayerTurn, lpDamage, lpDamage > 800);
             }
@@ -779,6 +782,9 @@ const BattleEngine = {
             // Trigger attack lunge animation
             defHero._lastHitZone = defIdx;
             atkHero._lastHitZone = atkIdx;
+            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                BattlePhaser.animateAttack(atkIdx, defIdx, this.isPlayerTurn, Math.abs(damage), isCrit);
+            }
             if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
                 BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, Math.abs(damage), isCrit);
             }
@@ -811,6 +817,10 @@ const BattleEngine = {
         } else {
             // ATK vs DEF battle
             defHero._lastHitZone = defIdx;
+            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                const dmg = totalAtk > totalDef ? totalAtk - totalDef : totalDef - totalAtk;
+                BattlePhaser.animateAttack(atkIdx, defIdx, this.isPlayerTurn, dmg, dmg > 800);
+            }
             if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
                 const dmg = totalAtk > totalDef ? totalAtk - totalDef : totalDef - totalAtk;
                 BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, dmg, dmg > 800);
@@ -1004,7 +1014,21 @@ const BattleEngine = {
     },
 
     _triggerAnimation(type) {
-        // Use BattleArenaScene if active, otherwise fall back to CSS
+        // Use BattlePhaser (WebGL) or BattleArenaScene (Canvas) or CSS fallback
+        if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+            switch (type) {
+                case 'hit':
+                    BattlePhaser.triggerShake(5, 0.3);
+                    break;
+                case 'crit':
+                    BattlePhaser.triggerShake(10, 0.6);
+                    break;
+                case 'skill':
+                    BattlePhaser.showPhaseBanner('SKILL ACTIVATE!', this.isPlayerTurn);
+                    break;
+            }
+            return;
+        }
         if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
             switch (type) {
                 case 'hit':
@@ -1048,6 +1072,23 @@ const BattleEngine = {
     },
 
     _showDamageNum(target, text, color) {
+        if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+            const pos = BattlePhaser.getHeroZonePosition(
+                target._lastHitZone || 0,
+                target.isPlayer
+            );
+            if (color === '#44ff88' || color === '#22cc66') {
+                BattlePhaser.spawnHealText(parseInt(text.replace(/[^0-9]/g, '')) || 0, pos.x, pos.y - 20);
+            } else {
+                BattlePhaser.spawnDmgText(
+                    parseInt(text.replace(/[^0-9]/g, '')) || text,
+                    pos.x + (Math.random() - 0.5) * 30,
+                    pos.y - 20,
+                    color
+                );
+            }
+            return;
+        }
         if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
             // Use Canvas-based damage numbers via BattleArenaScene
             const pos = BattleArenaScene.getHeroZonePosition(
@@ -1100,6 +1141,11 @@ const BattleEngine = {
             battle: 'BATTLE PHASE',
             end: 'END PHASE',
         };
+        if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+            if (phaseNames[phase]) {
+                BattlePhaser.showPhaseBanner(phaseNames[phase], this.isPlayerTurn);
+            }
+        } else
         if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
             // Canvas-based phase banner via scene
             if (phaseNames[phase]) {
@@ -1113,9 +1159,10 @@ const BattleEngine = {
 
     // ===== RENDERING =====
     _renderBattle() {
-        // BattleArenaScene handles all rendering via its own render loop
-        // We only need to update DOM elements (LP displays, card hand, deck count, etc.)
-        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+        // BattlePhaser (Phaser.js WebGL) or BattleArenaScene (Canvas) handles field rendering
+        if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+            BattlePhaser.renderField(this.player, this.enemy);
+        } else if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
             // Scene renders itself — just update companion DOM elements
         } else if (typeof BattleRenderer !== 'undefined' && BattleRenderer.renderBattle) {
             // Fallback to old renderer if scene not active

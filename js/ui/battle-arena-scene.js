@@ -47,8 +47,8 @@ const BattleArenaScene = {
     // ===== INIT =====
     init(canvasId) {
         this.canvas = document.getElementById(canvasId || 'battle-canvas');
-        if (!this.canvas) {
-            console.error('BattleArenaScene: canvas not found');
+        if (!this.canvas || this.canvas.tagName !== 'CANVAS') {
+            // No canvas element found — BattlePhaser is likely handling rendering
             return;
         }
         this.ctx = this.canvas.getContext('2d');

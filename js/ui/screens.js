@@ -153,33 +153,50 @@ const UI = {
         const pauseBtn = document.getElementById('btn-pause');
         if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸ Pause'; }
 
-        // Initialize BattleArenaScene and enter with transition
-        BattleArenaScene.init('battle-canvas');
-        BattleArenaScene.enter(playerHero, enemyHero, () => {
-            // Scene transition complete — battle is now fully visible
-        });
+        // Initialize Phaser renderer (WebGL) or fallback to Canvas BattleArenaScene
+        if (typeof BattlePhaser !== 'undefined') {
+            BattlePhaser.init('battle-canvas-container');
+            BattlePhaser.enter(playerHero, enemyHero, () => {
+                // Phaser scene transition complete
+            });
+        }
+        // Also init BattleArenaScene as fallback (won't render since container changed)
+        BattleArenaScene.init('battle-canvas-container');
 
         BattleEngine.onTurnChange = () => {
             this.renderTurnOrder();
         };
 
-        // Set phase banner callback to use BattleArenaScene
+        // Set phase banner callback to use BattlePhaser or BattleArenaScene
         BattleEngine.onPhaseChange = (phase, isPlayerTurn) => {
             const phaseNames = { draw: 'DRAW PHASE', main: 'MAIN PHASE', battle: 'BATTLE PHASE', end: 'END PHASE' };
             if (phaseNames[phase]) {
-                BattleArenaScene.showPhaseBanner(phaseNames[phase], isPlayerTurn);
+                if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                    BattlePhaser.showPhaseBanner(phaseNames[phase], isPlayerTurn);
+                } else {
+                    BattleArenaScene.showPhaseBanner(phaseNames[phase], isPlayerTurn);
+                }
             }
         };
 
-        // Canvas click for hero info
-        const canvas = document.getElementById('battle-canvas');
-        canvas.onclick = (e) => {
-            if (!BattleEngine.isRunning) return;
-            this.showEnemyInfo(BattleEngine.isPlayerTurn ? BattleEngine.enemy.hero : BattleEngine.player.hero);
-        };
+        // Click on battle container for hero info
+        const battleContainer = document.getElementById('battle-canvas-container');
+        if (battleContainer) {
+            battleContainer.onclick = (e) => {
+                if (!BattleEngine.isRunning) return;
+                this.showEnemyInfo(BattleEngine.isPlayerTurn ? BattleEngine.enemy.hero : BattleEngine.player.hero);
+            };
+        }
 
         BattleEngine.startBattle(playerHero, playerSkillIds, enemyHero, enemySkillIds, (result, log, turns) => {
-            // Exit battle scene with transition
+            // Exit battle scene (Phaser or Canvas)
+            if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
+                BattlePhaser.exit(() => {
+                    document.getElementById('btn-start-battle').disabled = false;
+                    if (pauseBtn) pauseBtn.style.display = 'none';
+                    document.getElementById('turn-order-display').innerHTML = '';
+                });
+            }
             BattleArenaScene.exit(() => {
                 document.getElementById('btn-start-battle').disabled = false;
                 // Hide pause button after battle

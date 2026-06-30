@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <title>PIXEL RAID — Play</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -230,9 +231,9 @@
 
         /* Battle Screen — Premium card arena */
         .battle-canvas-wrap { position: relative; margin-bottom: 12px; overflow: hidden; border-radius: 4px; }
-        #battle-canvas {
+        #battle-canvas-container {
             width: 100%; max-width: 600px; display: block; margin: 0 auto;
-            image-rendering: pixelated;
+            min-height: 200px;
             border: 3px solid var(--gold);
             box-shadow:
                 0 0 20px rgba(255,215,0,0.15),
@@ -998,7 +999,7 @@
             .nav-btn { font-size: 7px; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
             .card { padding: 8px; }
             .card-name { font-size: 7px; }
-            #battle-canvas { height: 200px; }
+            #battle-canvas-container { height: 200px; }
             .btn { font-size: 7px; padding: 10px 16px; min-height: 44px; }
             .hand-card { width: 100px; min-height: 140px; }
         }
@@ -1070,7 +1071,7 @@
 
         <!-- Battle Canvas — Full Yu-Gi-Oh field layout -->
         <div class="battle-canvas-wrap">
-            <canvas id="battle-canvas" width="600" height="400"></canvas>
+            <div id="battle-canvas-container"></div>
         </div>
 
         <!-- Battle Info Strip (below canvas) -->
@@ -1173,6 +1174,10 @@
     <script src="js/ui/animations.js?v=5a4ced5"></script>
     <script src="js/ui/renderer.js?v=5a4ced5"></script>
     <script src="js/ui/battle-arena-scene.js?v=5a4ced5"></script>
+    <script src="js/phaser/battle-scene.js"></script>
+    <script src="js/phaser/card-sprite.js"></script>
+    <script src="js/phaser/animations.js"></script>
+    <script src="js/phaser/bridge.js"></script>
     <script src="js/ui/cardhand.js?v=5a4ced5"></script>
     <script src="js/ui/tutorial.js?v=5a4ced5"></script>
     <script src="js/ui/screens.js?v=5a4ced5"></script>
