@@ -1,5 +1,6 @@
 /* ========================================
  * BattlePhaser — Integration Bridge
+ * Hero-as-Entity Edition (v5)
  * Connects vanilla battle.js with Phaser rendering
  * ======================================== */
 
@@ -21,11 +22,9 @@ var BattlePhaser = {
             return;
         }
 
-        // Always use 800x500 for Phaser internal resolution (pixel art native)
         var W = 800;
         var H = 500;
 
-        // Create Phaser game instance
         var config = {
             type: Phaser.AUTO,
             width: W,
@@ -52,12 +51,13 @@ var BattlePhaser = {
             return;
         }
 
-        // Wait for scene to be ready
         var self = this;
         var checkScene = function () {
             if (self._game.scene && self._game.scene.getScene('PhaserBattleScene')) {
                 self._scene = self._game.scene.getScene('PhaserBattleScene');
-                PhaserAnimations.init(self._scene);
+                if (typeof PhaserAnimations !== 'undefined') {
+                    PhaserAnimations.init(self._scene);
+                }
                 console.log('BattlePhaser: Phaser scene ready');
             } else {
                 setTimeout(checkScene, 100);
@@ -69,7 +69,6 @@ var BattlePhaser = {
     // ===== LIFECYCLE =====
     enter: function (player, enemy, onComplete) {
         if (!this._scene) {
-            // Retry after scene loads
             var self = this;
             setTimeout(function () { self.enter(player, enemy, onComplete); }, 200);
             return;
@@ -126,13 +125,12 @@ var BattlePhaser = {
             hideEls[i].style.display = 'none';
         }
 
-        // Resize Phaser game to fill viewport
+        // Resize
         var self = this;
         requestAnimationFrame(function () {
             self._resizeToViewport();
         });
 
-        // Style the Phaser canvas to fill container
         var styleCanvas = function () {
             if (self._game && self._game.canvas) {
                 var c = self._game.canvas;
@@ -164,11 +162,9 @@ var BattlePhaser = {
             this._active = false;
             this._transitioning = false;
 
-            // Restore from fullscreen
             var container = document.getElementById(this._containerId);
             var screenBattle = document.getElementById('screen-battle');
 
-            // Move elements back
             var movedEls = ['#card-hand-area', '.battle-action-row', '.battle-info-strip', '.battle-controls'];
             for (var i = 0; i < movedEls.length; i++) {
                 var el = document.querySelector(movedEls[i]);
@@ -182,13 +178,11 @@ var BattlePhaser = {
                 container.style.cssText = '';
             }
 
-            // Restore hidden UI elements
             var showEls = document.querySelectorAll('.game-nav, .game-header');
             for (var i = 0; i < showEls.length; i++) {
                 showEls[i].style.display = '';
             }
 
-            // Resize back to standard
             if (this._game) {
                 this._game.scale.resize(800, 500);
             }
@@ -200,8 +194,6 @@ var BattlePhaser = {
     // ===== RESIZE =====
     _resizeToViewport: function () {
         if (!this._game) return;
-        // Keep Phaser internal resolution at 800x500 (pixel art native)
-        // Just scale the canvas via CSS to fill viewport
         var canvas = this._game.canvas;
         if (canvas) {
             canvas.style.width = '100%';
@@ -213,7 +205,7 @@ var BattlePhaser = {
         }
     },
 
-    // ===== RENDER FIELD =====
+    // ===== RENDER FIELD — Hero-as-Entity =====
     renderField: function (player, enemy) {
         if (!this._scene || !this._active) return;
         this._scene.renderField(player, enemy);
@@ -222,14 +214,17 @@ var BattlePhaser = {
     // ===== ANIMATE CARD PLAY =====
     animateCardPlay: function (card, zoneIndex, isPlayer) {
         if (!this._scene || !this._active) return;
-        var zonePos = this._scene.getHeroZonePosition(zoneIndex, isPlayer);
-        PhaserAnimations.heroSummon(zonePos.x, zonePos.y);
+        // Skill cards activate at hero position
+        var pos = this.getHeroZonePosition(0, isPlayer);
+        if (typeof PhaserAnimations !== 'undefined') {
+            PhaserAnimations.heroSummon(pos.x, pos.y);
+        }
     },
 
     // ===== ANIMATE ATTACK =====
     animateAttack: function (attackerIdx, targetIdx, isPlayer, damage, isCrit) {
         if (!this._scene || !this._active) return;
-        this._scene.playAttack(attackerIdx, targetIdx || 0, isPlayer, damage, isCrit || false);
+        this._scene.playAttack(0, 0, isPlayer, damage, isCrit || false);
     },
 
     // ===== SPAWN DAMAGE TEXT =====
@@ -251,11 +246,19 @@ var BattlePhaser = {
         this._scene.showPhaseBanner(phase, isPlayer);
     },
 
-    // ===== UPDATE LP =====
-    updateLP: function (isPlayer, current, max) {
+    // ===== UPDATE HERO HP (replaces updateLP) =====
+    updateHeroHP: function (isPlayer, current, max) {
         if (!this._scene || !this._active) return;
         var side = isPlayer ? 'player' : 'enemy';
-        this._scene.updateLPBar(side, { lp: current, deck: [], graveyard: [] });
+        // Force a full field render to update hero panel
+        if (BattleEngine.player && BattleEngine.enemy) {
+            this._scene.renderField(BattleEngine.player, BattleEngine.enemy);
+        }
+    },
+
+    // ===== LEGACY: UPDATE LP (redirects to hero HP) =====
+    updateLP: function (isPlayer, current, max) {
+        this.updateHeroHP(isPlayer, current, max);
     },
 
     // ===== TRIGGER SHAKE =====
@@ -264,7 +267,7 @@ var BattlePhaser = {
         this._scene.triggerShake(intensity, duration);
     },
 
-    // ===== GET HERO ZONE POSITION =====
+    // ===== GET HERO POSITION (for damage numbers) =====
     getHeroZonePosition: function (zoneIndex, isPlayer) {
         if (!this._scene) return { x: 300, y: 200 };
         return this._scene.getHeroZonePosition(zoneIndex, isPlayer);
@@ -279,25 +282,25 @@ var BattlePhaser = {
         return this._transitioning;
     },
 
-    // ===== PLAY ATTACK (BattleArenaScene-compatible API) =====
+    // ===== PLAY ATTACK =====
     playAttack: function (attackIdx, targetIdx, isPlayerAttacking, damage, isCrit) {
         if (!this._scene || !this._active) return;
-        this._scene.playAttack(attackIdx, targetIdx, isPlayerAttacking, damage, isCrit);
+        this._scene.playAttack(0, 0, isPlayerAttacking, damage, isCrit);
     },
 
-    // ===== SPAWN DAMAGE NUMBER (BattleArenaScene-compatible) =====
+    // ===== SPAWN DAMAGE NUMBER =====
     spawnDamageNumber: function (x, y, amount, isCrit) {
         if (!this._scene || !this._active) return;
         this._scene.spawnDamageNumber(x, y, amount, isCrit);
     },
 
-    // ===== SPAWN HEAL NUMBER (BattleArenaScene-compatible) =====
+    // ===== SPAWN HEAL NUMBER =====
     spawnHealNumber: function (x, y, amount) {
         if (!this._scene || !this._active) return;
         this._scene.spawnHealNumber(x, y, amount);
     },
 
-    // ===== SHOW PHASE BANNER (BattleArenaScene-compatible) =====
+    // ===== SHOW PHASE BANNER =====
     showPhaseBanner: function (text, isPlayer) {
         if (!this._scene || !this._active) return;
         this._scene.showPhaseBanner(text, isPlayer);
@@ -306,7 +309,9 @@ var BattlePhaser = {
     // ===== DESTROY =====
     destroy: function () {
         this._active = false;
-        PhaserAnimations.stop();
+        if (typeof PhaserAnimations !== 'undefined') {
+            PhaserAnimations.stop();
+        }
         if (this._game) {
             this._game.destroy(true);
             this._game = null;
