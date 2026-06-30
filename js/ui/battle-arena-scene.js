@@ -322,24 +322,49 @@ const BattleArenaScene = {
 
     // ===== BACKGROUND =====
     _drawBackground(ctx, W, H) {
-        // Dark gradient with subtle grid
+        // Cinematic gradient — deep space/sky at top, warm arena floor at bottom
         const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, '#0d0d2b');   // enemy side — darker blue
-        grad.addColorStop(0.45, '#0f1030');
-        grad.addColorStop(0.55, '#100d20');
-        grad.addColorStop(1, '#1a0d0d');   // player side — warmer
+        grad.addColorStop(0, '#050515');    // deep void
+        grad.addColorStop(0.2, '#0a0a2e');  // dark blue
+        grad.addColorStop(0.45, '#0f0d28');
+        grad.addColorStop(0.55, '#120e20');
+        grad.addColorStop(0.8, '#1a100d');  // warm ground
+        grad.addColorStop(1, '#200d0d');    // player warm
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
-        // Subtle grid lines
-        ctx.strokeStyle = 'rgba(68,136,255,0.04)';
-        ctx.lineWidth = 1;
-        for (let gx = 0; gx < W; gx += 30) {
-            ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+        // Animated floating particles
+        if (!this._particles) {
+            this._particles = [];
+            for (let i = 0; i < 30; i++) {
+                this._particles.push({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    r: Math.random() * 2 + 0.5,
+                    speed: Math.random() * 0.3 + 0.1,
+                    alpha: Math.random() * 0.3 + 0.1,
+                    color: ['#4488ff', '#ff6644', '#88ff44', '#ff44ff'][Math.floor(Math.random() * 4)]
+                });
+            }
         }
-        for (let gy = 0; gy < H; gy += 30) {
-            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
-        }
+        this._particles.forEach(p => {
+            p.y -= p.speed;
+            if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; }
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        });
+
+        // Center arena glow
+        const arenaGlow = ctx.createRadialGradient(W/2, H*0.45, 0, W/2, H*0.45, W*0.35);
+        arenaGlow.addColorStop(0, 'rgba(68,136,255,0.06)');
+        arenaGlow.addColorStop(0.5, 'rgba(40,80,160,0.03)');
+        arenaGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = arenaGlow;
+        ctx.fillRect(0, 0, W, H);
     },
 
     // ===== LP BAR =====
@@ -463,13 +488,27 @@ const BattleArenaScene = {
     },
 
     _drawVignette(ctx, W, H) {
-        // Dark vignette at edges for dramatic effect
-        const grad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.7);
+        // Strong dramatic vignette — dark edges, bright center
+        const grad = ctx.createRadialGradient(W / 2, H * 0.45, W * 0.2, W / 2, H * 0.45, W * 0.75);
         grad.addColorStop(0, 'rgba(0,0,0,0)');
-        grad.addColorStop(0.7, 'rgba(0,0,0,0.15)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+        grad.addColorStop(0.5, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.8, 'rgba(0,0,0,0.35)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.65)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
+
+        // Top/bottom extra darkening
+        const topGrad = ctx.createLinearGradient(0, 0, 0, H * 0.15);
+        topGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(0, 0, W, H * 0.15);
+
+        const botGrad = ctx.createLinearGradient(0, H * 0.85, 0, H);
+        botGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        botGrad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = botGrad;
+        ctx.fillRect(0, H * 0.85, W, H * 0.15);
     },
 
     _drawField(ctx, combatant, isPlayer, rect) {
