@@ -26,7 +26,7 @@ const BattleEngine = {
     // Field zones per player
     HERO_ZONE_COUNT: 3,
     SKILL_ZONE_COUNT: 2,
-    MAX_HAND: 7,
+    MAX_HAND: 4,
     STARTING_HAND: 4,       // 4 skill cards (hero is separate entity, not a card)
 
     // Cards per turn limit

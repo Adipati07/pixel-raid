@@ -53,6 +53,11 @@ const UI = {
 
     // ===== BATTLE SCREEN =====
     renderBattleScreen() {
+        // BUG FIX: Always re-enable start button when rendering battle screen
+        // (prevents stuck-disabled after page refresh during battle)
+        const startBtn = document.getElementById('btn-start-battle');
+        if (startBtn) startBtn.disabled = false;
+
         // Show deck preview (hero + skill cards) when battle is not active
         this.renderBattleDeckPreview();
 
