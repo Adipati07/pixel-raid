@@ -232,7 +232,7 @@ const UI = {
 
         // Show battle canvas container (hidden when not in battle)
         const battleContainer = document.getElementById('battle-canvas-container');
-        if (battleContainer) battleContainer.style.display = '';
+        if (battleContainer) battleContainer.style.display = 'block';
         
         document.getElementById('btn-start-battle').disabled = true;
 
