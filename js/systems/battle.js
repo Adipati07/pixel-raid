@@ -735,6 +735,10 @@ const BattleEngine = {
             const lpDamage = totalAtk;
             defender.lp = Math.max(0, defender.lp - lpDamage);
             this.addLog(`⚔️ ${atkHero.name} attacks directly! ${lpDamage} damage! (LP: ${defender.lp})`, 'dmg');
+            defender._lastHitZone = 0;
+            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+                BattleArenaScene.playAttack(atkIdx, 0, this.isPlayerTurn, lpDamage, lpDamage > 800);
+            }
             this._showDamageNum(defender, `-${lpDamage}`, '#ff4444');
             this._triggerAnimation('crit');
             if (typeof BattleAnimations !== 'undefined') {
@@ -770,6 +774,14 @@ const BattleEngine = {
         if (defHero.position === 'attack') {
             // ATK vs ATK battle
             const damage = totalAtk - (defHero.stats.atk + defHero.atkBuff);
+            const isCrit = Math.abs(damage) > 800;
+
+            // Trigger attack lunge animation
+            defHero._lastHitZone = defIdx;
+            atkHero._lastHitZone = atkIdx;
+            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+                BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, Math.abs(damage), isCrit);
+            }
 
             if (totalAtk > (defHero.stats.atk + defHero.atkBuff)) {
                 // Attacker wins: defender destroyed, defender takes damage
@@ -779,7 +791,7 @@ const BattleEngine = {
                 defender.lp = Math.max(0, defender.lp - lpDmg);
                 this.addLog(`  💥 ${defender.name} takes ${lpDmg} battle damage! (LP: ${defender.lp})`, 'dmg');
                 this._showDamageNum(defender, `-${lpDmg}`, '#ff4444');
-                this._triggerAnimation('hit');
+                this._triggerAnimation(isCrit ? 'crit' : 'hit');
             } else if (totalAtk < (defHero.stats.atk + defHero.atkBuff)) {
                 // Defender wins: attacker destroyed, attacker takes damage
                 this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) vs ${defHero.name} (${defHero.stats.atk + defHero.atkBuff} ATK)`, 'dmg');
@@ -788,7 +800,7 @@ const BattleEngine = {
                 attacker.lp = Math.max(0, attacker.lp - lpDmg);
                 this.addLog(`  💥 ${attacker.name} takes ${lpDmg} battle damage! (LP: ${attacker.lp})`, 'dmg');
                 this._showDamageNum(attacker, `-${lpDmg}`, '#ff4444');
-                this._triggerAnimation('hit');
+                this._triggerAnimation(isCrit ? 'crit' : 'hit');
             } else {
                 // Tie: both destroyed
                 this.addLog(`⚔️ ${atkHero.name} vs ${defHero.name} — Mutual destruction!`, 'dmg');
@@ -798,6 +810,12 @@ const BattleEngine = {
             }
         } else {
             // ATK vs DEF battle
+            defHero._lastHitZone = defIdx;
+            if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+                const dmg = totalAtk > totalDef ? totalAtk - totalDef : totalDef - totalAtk;
+                BattleArenaScene.playAttack(atkIdx, defIdx, this.isPlayerTurn, dmg, dmg > 800);
+            }
+
             if (defHero.faceUp) {
                 this.addLog(`⚔️ ${atkHero.name} (${totalAtk} ATK) attacks ${defHero.name} (DEF Position, ${totalDef} DEF)`, 'dmg');
             } else {
@@ -986,6 +1004,25 @@ const BattleEngine = {
     },
 
     _triggerAnimation(type) {
+        // Use BattleArenaScene if active, otherwise fall back to CSS
+        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            switch (type) {
+                case 'hit':
+                    BattleArenaScene.triggerShake(5, 0.3);
+                    break;
+                case 'crit':
+                    BattleArenaScene.triggerShake(10, 0.6);
+                    break;
+                case 'heal':
+                    // Heal glow handled by spawnHealNumber in _showDamageNum
+                    break;
+                case 'skill':
+                    BattleArenaScene.showPhaseBanner('SKILL ACTIVATE!', this.isPlayerTurn);
+                    break;
+            }
+            return;
+        }
+        // Fallback: CSS class-based animation
         const canvas = document.getElementById('battle-canvas');
         if (!canvas) return;
         canvas.classList.remove('battle-shake', 'battle-shake-crit', 'battle-flash-red', 'battle-flash-yellow', 'battle-heal-glow');
@@ -1011,20 +1048,38 @@ const BattleEngine = {
     },
 
     _showDamageNum(target, text, color) {
+        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            // Use Canvas-based damage numbers via BattleArenaScene
+            const pos = BattleArenaScene.getHeroZonePosition(
+                target._lastHitZone || 0,
+                target.isPlayer
+            );
+            if (color === '#44ff88' || color === '#22cc66') {
+                // Heal
+                BattleArenaScene.spawnHealNumber(pos.x, pos.y - 20, parseInt(text.replace(/[^0-9]/g, '')) || 0);
+            } else {
+                // Damage
+                const isCrit = text.includes('CRIT') || text.includes('💥');
+                BattleArenaScene.spawnDamageNumber(
+                    pos.x + (Math.random() - 0.5) * 30,
+                    pos.y - 20,
+                    parseInt(text.replace(/[^0-9]/g, '')) || text,
+                    isCrit
+                );
+            }
+            return;
+        }
         if (typeof BattleAnimations !== 'undefined') {
             const canvas = document.getElementById('battle-canvas');
             if (canvas) {
-                // Position based on which side took damage
                 const x = canvas.width * (0.4 + Math.random() * 0.2);
                 const y = target.isPlayer ? canvas.height * 0.65 : canvas.height * 0.25;
                 BattleAnimations.spawnDamageNumber(x, y, text, color);
-                // Also shake screen for big damage
                 if (text.includes('-') && parseInt(text.replace(/[^0-9]/g, '')) > 500) {
                     BattleAnimations.shakeScreen(4, 0.3);
                 }
             }
         } else {
-            // Fallback
             const wrap = document.querySelector('.battle-canvas-wrap');
             if (!wrap) return;
             const num = document.createElement('div');
@@ -1039,14 +1094,18 @@ const BattleEngine = {
     },
 
     _onPhaseChange(phase) {
-        // Show animated phase banner
         const phaseNames = {
             draw: 'DRAW PHASE',
             main: 'MAIN PHASE',
             battle: 'BATTLE PHASE',
             end: 'END PHASE',
         };
-        if (typeof BattleAnimations !== 'undefined' && phaseNames[phase]) {
+        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            // Canvas-based phase banner via scene
+            if (phaseNames[phase]) {
+                BattleArenaScene.showPhaseBanner(phaseNames[phase], this.isPlayerTurn);
+            }
+        } else if (typeof BattleAnimations !== 'undefined' && phaseNames[phase]) {
             BattleAnimations.showPhaseBanner(phaseNames[phase], this.isPlayerTurn);
         }
         if (this.onPhaseChange) this.onPhaseChange(phase, this.isPlayerTurn);
@@ -1054,8 +1113,12 @@ const BattleEngine = {
 
     // ===== RENDERING =====
     _renderBattle() {
-        // Update canvas renderer
-        if (typeof BattleRenderer !== 'undefined' && BattleRenderer.renderBattle) {
+        // BattleArenaScene handles all rendering via its own render loop
+        // We only need to update DOM elements (LP displays, card hand, deck count, etc.)
+        if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            // Scene renders itself — just update companion DOM elements
+        } else if (typeof BattleRenderer !== 'undefined' && BattleRenderer.renderBattle) {
+            // Fallback to old renderer if scene not active
             try {
                 BattleRenderer.renderBattle(this.player, this.enemy);
             } catch (e) {

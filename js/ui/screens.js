@@ -153,8 +153,22 @@ const UI = {
         const pauseBtn = document.getElementById('btn-pause');
         if (pauseBtn) { pauseBtn.style.display = ''; pauseBtn.textContent = '⏸ Pause'; }
 
+        // Initialize BattleArenaScene and enter with transition
+        BattleArenaScene.init('battle-canvas');
+        BattleArenaScene.enter(playerHero, enemyHero, () => {
+            // Scene transition complete — battle is now fully visible
+        });
+
         BattleEngine.onTurnChange = () => {
             this.renderTurnOrder();
+        };
+
+        // Set phase banner callback to use BattleArenaScene
+        BattleEngine.onPhaseChange = (phase, isPlayerTurn) => {
+            const phaseNames = { draw: 'DRAW PHASE', main: 'MAIN PHASE', battle: 'BATTLE PHASE', end: 'END PHASE' };
+            if (phaseNames[phase]) {
+                BattleArenaScene.showPhaseBanner(phaseNames[phase], isPlayerTurn);
+            }
         };
 
         // Canvas click for hero info
@@ -165,10 +179,16 @@ const UI = {
         };
 
         BattleEngine.startBattle(playerHero, playerSkillIds, enemyHero, enemySkillIds, (result, log, turns) => {
-            document.getElementById('btn-start-battle').disabled = false;
-            // Hide pause button after battle
-            if (pauseBtn) pauseBtn.style.display = 'none';
-            document.getElementById('turn-order-display').innerHTML = '';
+            // Exit battle scene with transition
+            BattleArenaScene.exit(() => {
+                document.getElementById('btn-start-battle').disabled = false;
+                // Hide pause button after battle
+                if (pauseBtn) pauseBtn.style.display = 'none';
+                document.getElementById('turn-order-display').innerHTML = '';
+            });
+
+            // Process results after exit transition completes
+            setTimeout(() => {
 
             if (result === 'win') {
                 GameState.stats.battlesWon++;
@@ -219,6 +239,8 @@ const UI = {
                 const delay = GameState.player.wave === 1 ? 2500 : 1500;
                 setTimeout(() => this.startBattle(), delay);
             }
+
+            }, 900); // end setTimeout — wait for exit transition
         });
     },
 
