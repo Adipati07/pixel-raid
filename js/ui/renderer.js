@@ -164,92 +164,185 @@ const CardRenderer = {
         }
     },
 
-    // Draw full card with info
+    // Draw full card with Pokemon TCG Chaos Rising style
     drawFullCard(canvas, card, width, height) {
         const ctx = canvas.getContext('2d');
         canvas.width = width;
         canvas.height = height;
 
         const rarityColor = RARITIES[card.rarity] ? RARITIES[card.rarity].color : '#aaa';
+        const cls = CLASSES[card.class] || {};
+        const clsColor = cls.color || '#888';
 
-        // Card background
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#1a1a3a');
-        grad.addColorStop(1, '#0a0a1a');
-        ctx.fillStyle = grad;
+        const darken = (hex, amt) => {
+            const num = parseInt(hex.replace('#',''), 16);
+            const r = Math.max(0, (num >> 16) - amt);
+            const g = Math.max(0, ((num >> 8) & 0xFF) - amt);
+            const b = Math.max(0, (num & 0xFF) - amt);
+            return `rgb(${r},${g},${b})`;
+        };
+        const lighten = (hex, amt) => {
+            const num = parseInt(hex.replace('#',''), 16);
+            const r = Math.min(255, (num >> 16) + amt);
+            const g = Math.min(255, ((num >> 8) & 0xFF) + amt);
+            const b = Math.min(255, (num & 0xFF) + amt);
+            return `rgb(${r},${g},${b})`;
+        };
+
+        const pad = 4;
+
+        // 1. Outer border — class-colored
+        ctx.fillStyle = clsColor;
         ctx.fillRect(0, 0, width, height);
 
-        // Border
-        ctx.strokeStyle = rarityColor;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(2, 2, width - 4, height - 4);
+        // 2. Inner dark border
+        ctx.fillStyle = '#111';
+        ctx.fillRect(pad, pad, width - pad * 2, height - pad * 2);
 
-        // Sprite area
-        const spriteSize = Math.min(width - 20, height * 0.5);
-        const spriteX = Math.floor((width - spriteSize) / 2);
+        // 3. Card body gradient
+        const bodyGrad = ctx.createLinearGradient(0, 0, 0, height);
+        bodyGrad.addColorStop(0, lighten(clsColor, 30));
+        bodyGrad.addColorStop(0.15, darken(clsColor, 60));
+        bodyGrad.addColorStop(0.85, darken(clsColor, 80));
+        bodyGrad.addColorStop(1, darken(clsColor, 40));
+        ctx.fillStyle = bodyGrad;
+        ctx.fillRect(pad + 1, pad + 1, width - (pad + 1) * 2, height - (pad + 1) * 2);
+
+        const innerX = pad + 4;
+        const innerW = width - (pad + 4) * 2;
+
+        // 4. Header: Name + HP
+        const headerY = pad + 4;
+        const headerH = 16;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(innerX, headerY, innerW, headerH);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px "Press Start 2P"';
+        ctx.textAlign = 'left';
+        ctx.fillText(card.name, innerX + 3, headerY + 12);
+
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 10px "Press Start 2P"';
+        ctx.textAlign = 'right';
+        ctx.fillText(`HP ${card.stats.hp}`, innerX + innerW - 3, headerY + 12);
+
+        // Class emoji + rarity stars
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(cls.emoji || '⚔', innerX + 1, headerY + 8);
+
+        const starCount = { common: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 }[card.rarity] || 1;
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '6px sans-serif';
+        ctx.fillText('★'.repeat(starCount), innerX + 16, headerY + 7);
+
+        // 5. Artwork window
+        const artY = headerY + headerH + 3;
+        const artH = height * 0.35;
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(innerX, artY, innerW, artH);
+
+        // Draw sprite
+        const spriteSize = Math.min(innerW - 8, artH - 8);
+        const spriteX2 = innerX + (innerW - spriteSize) / 2;
         const template = getTemplateByName(card.templateId || card.name);
 
         if (template && template.image) {
             const img = _loadImage(template.image);
             if (img.complete && img.naturalWidth > 0 && !img._failed) {
                 ctx.imageSmoothingEnabled = false;
-                ctx.drawImage(img, spriteX, 15, spriteSize, spriteSize);
+                ctx.drawImage(img, spriteX2, artY + 4, spriteSize, spriteSize);
             } else {
                 const spriteCanvas = document.createElement('canvas');
                 this.drawCardSprite(spriteCanvas, card, spriteSize);
-                ctx.drawImage(spriteCanvas, spriteX, 15);
+                ctx.drawImage(spriteCanvas, spriteX2, artY + 4);
             }
         } else {
             const spriteCanvas = document.createElement('canvas');
             this.drawCardSprite(spriteCanvas, card, spriteSize);
-            ctx.drawImage(spriteCanvas, spriteX, 15);
+            ctx.drawImage(spriteCanvas, spriteX2, artY + 4);
         }
 
-        // Name
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        const nameY = spriteSize + 30;
-        ctx.fillText(card.name, width / 2, nameY);
+        // Golden artwork frame
+        ctx.strokeStyle = '#c8a832';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(innerX, artY, innerW, artH);
 
-        // Rarity
-        ctx.fillStyle = rarityColor;
-        ctx.font = '8px "Press Start 2P"';
-        ctx.fillText(RARITIES[card.rarity] ? RARITIES[card.rarity].name : '', width / 2, nameY + 14);
-
-        // Class
-        const cls = CLASSES[card.class];
-        if (cls) {
-            ctx.fillStyle = cls.color;
-            ctx.fillText(cls.emoji + ' ' + cls.name, width / 2, nameY + 28);
+        // Holographic shimmer for rare+
+        if (card.rarity !== 'common') {
+            const shimGrad = ctx.createLinearGradient(0, artY, width, artY + artH);
+            shimGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            shimGrad.addColorStop(0.35, 'rgba(255,255,255,0.08)');
+            shimGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+            shimGrad.addColorStop(0.65, 'rgba(255,255,255,0.08)');
+            shimGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = shimGrad;
+            ctx.fillRect(innerX + 1, artY + 1, innerW - 2, artH - 2);
         }
 
-        // Stats
+        // 6. Type info line
+        const infoY = artY + artH + 3;
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(innerX, infoY, innerW, 10);
+
+        ctx.fillStyle = clsColor;
         ctx.font = '7px "Press Start 2P"';
         ctx.textAlign = 'left';
-        const statsY = nameY + 44;
-        const stats = [
-            { label: 'HP', value: card.stats.hp, color: '#44cc44' },
+        ctx.fillText(cls.name || 'Hero', innerX + 3, infoY + 8);
+
+        ctx.fillStyle = rarityColor;
+        ctx.textAlign = 'right';
+        ctx.fillText(RARITIES[card.rarity] ? RARITIES[card.rarity].name : '', innerX + innerW - 3, infoY + 8);
+
+        // 7. Stats box
+        const statsY = infoY + 13;
+        const statsH = height - statsY - pad - 4;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(innerX, statsY, innerW, statsH);
+
+        // HP Bar
+        const hpBarY3 = statsY + 4;
+        const hpBarH3 = 8;
+        ctx.fillStyle = '#222';
+        ctx.fillRect(innerX + 3, hpBarY3, innerW - 6, hpBarH3);
+        ctx.fillStyle = '#44cc44';
+        ctx.fillRect(innerX + 3, hpBarY3, innerW - 6, hpBarH3);
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(innerX + 3, hpBarY3, innerW - 6, hpBarH3);
+        ctx.fillStyle = '#fff';
+        ctx.font = '5px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${card.stats.hp}/${card.stats.hp}`, innerX + innerW / 2, hpBarY3 + 6);
+
+        // Stats rows (ATK, DEF, SPD, CRIT)
+        const statDefs = [
             { label: 'ATK', value: card.stats.atk, color: '#ff6644' },
             { label: 'DEF', value: card.stats.def, color: '#4488ff' },
             { label: 'SPD', value: card.stats.spd, color: '#ffaa00' },
             { label: 'CRIT', value: card.stats.crit + '%', color: '#ff44aa' },
         ];
 
-        stats.forEach((stat, i) => {
-            const x = 12;
-            const y = statsY + i * 14;
+        ctx.font = '7px "Press Start 2P"';
+        const statRowY = hpBarY3 + hpBarH3 + 6;
+        statDefs.forEach((stat, i) => {
+            const sx = innerX + 3;
+            const sy = statRowY + i * 12;
+            if (sy + 10 > statsY + statsH) return;
             ctx.fillStyle = '#888';
-            ctx.fillText(stat.label, x, y);
+            ctx.textAlign = 'left';
+            ctx.fillText(stat.label, sx, sy + 8);
             ctx.fillStyle = stat.color;
-            ctx.fillText(String(stat.value), x + 40, y);
+            ctx.fillText(String(stat.value), sx + 40, sy + 8);
         });
 
-        // Power
+        // Power (bottom center)
         ctx.fillStyle = '#ffd700';
         ctx.textAlign = 'center';
         ctx.font = '8px "Press Start 2P"';
-        ctx.fillText('PWR ' + getCardPower(card), width / 2, height - 10);
+        ctx.fillText('PWR ' + getCardPower(card), width / 2, height - pad - 6);
     },
 };
 
@@ -498,16 +591,6 @@ const BattleRenderer = {
         ctx.fillStyle = 'rgba(10,10,30,0.9)';
         ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
 
-        // Glow effect for active cards
-        if (card.canAttack && !card.hasAttacked && card.position === 'attack') {
-            ctx.shadowColor = '#ffd700';
-            ctx.shadowBlur = 8;
-            ctx.strokeStyle = '#ffd700';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-            ctx.shadowBlur = 0;
-        }
-
         if (zoneType === 'hero') {
             this._drawHeroCard(ctx, card, x, y, w, h, isPlayer);
         } else {
@@ -516,11 +599,98 @@ const BattleRenderer = {
     },
 
     _drawHeroCard(ctx, card, x, y, w, h, isPlayer) {
-        const spriteSize = Math.min(w - 16, h * 0.4);
-        const spriteX = x + (w - spriteSize) / 2;
-        const spriteY = y + 14;
+        // ===== POKEMON TCG CHAOS RISING STYLE CARD =====
+        const cls = CLASSES[card.class || card.type] || {};
+        const clsColor = cls.color || '#888';
+        const rarityColor = RARITIES[card.rarity] ? RARITIES[card.rarity].color : '#aaa';
+
+        // Helper: darken a hex color
+        const darken = (hex, amt) => {
+            const num = parseInt(hex.replace('#',''), 16);
+            const r = Math.max(0, (num >> 16) - amt);
+            const g = Math.max(0, ((num >> 8) & 0xFF) - amt);
+            const b = Math.max(0, (num & 0xFF) - amt);
+            return `rgb(${r},${g},${b})`;
+        };
+        const lighten = (hex, amt) => {
+            const num = parseInt(hex.replace('#',''), 16);
+            const r = Math.min(255, (num >> 16) + amt);
+            const g = Math.min(255, ((num >> 8) & 0xFF) + amt);
+            const b = Math.min(255, (num & 0xFF) + amt);
+            return `rgb(${r},${g},${b})`;
+        };
+
+        const pad = 3;
+
+        // 1. Outer border — class-colored thick frame
+        ctx.fillStyle = clsColor;
+        ctx.fillRect(x, y, w, h);
+
+        // 2. Inner border — dark outline
+        ctx.fillStyle = '#111';
+        ctx.fillRect(x + pad, y + pad, w - pad * 2, h - pad * 2);
+
+        // 3. Card body gradient — class-tinted
+        const bodyGrad = ctx.createLinearGradient(x, y, x, y + h);
+        bodyGrad.addColorStop(0, lighten(clsColor, 30));
+        bodyGrad.addColorStop(0.15, darken(clsColor, 60));
+        bodyGrad.addColorStop(0.85, darken(clsColor, 80));
+        bodyGrad.addColorStop(1, darken(clsColor, 40));
+        ctx.fillStyle = bodyGrad;
+        ctx.fillRect(x + pad + 1, y + pad + 1, w - (pad + 1) * 2, h - (pad + 1) * 2);
+
+        // 4. Header bar — name + HP
+        const headerH = 14;
+        const headerY = y + pad + 2;
+        const headerX = x + pad + 3;
+        const headerW = w - (pad + 3) * 2;
+
+        // Name banner background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(headerX, headerY, headerW, headerH);
+
+        // Name text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 5px "Press Start 2P"';
+        ctx.textAlign = 'left';
+        ctx.fillText(card.name, headerX + 2, headerY + 10);
+
+        // HP display (top right, Pokemon style)
+        const totalAtk = (card.stats.atk || 0) + (card.atkBuff || 0);
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 5px "Press Start 2P"';
+        ctx.textAlign = 'right';
+        ctx.fillText(`HP ${card.currentHp}`, headerX + headerW - 2, headerY + 10);
+
+        // 5. Class type badge (top-left corner)
+        ctx.fillStyle = clsColor;
+        ctx.font = '6px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(cls.emoji || '⚔', headerX + 1, headerY + 5);
+
+        // Rarity stars (right of class badge)
+        const rarityStars = { common: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
+        const stars = rarityStars[card.rarity] || 1;
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '4px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('★'.repeat(stars), headerX + 12, headerY + 5);
+
+        // 6. Artwork window — large sprite area with golden inner frame
+        const artY = headerY + headerH + 2;
+        const artPad = 2;
+        const artW = headerW - artPad * 2;
+        const artH = h * 0.38;
+
+        // Art background
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(headerX + artPad, artY, artW, artH);
 
         // Draw sprite
+        const spriteSize = Math.min(artW - 4, artH - 4);
+        const spriteX = headerX + artPad + (artW - spriteSize) / 2;
+        const spriteY = artY + (artH - spriteSize) / 2;
+
         const template = getTemplateByName(card.templateId || card.name);
         if (template && template.image) {
             const img = _loadImage(template.image);
@@ -538,66 +708,109 @@ const BattleRenderer = {
             ctx.drawImage(spriteCanvas, spriteX, spriteY);
         }
 
-        // Position indicator
-        if (card.position === 'defense') {
-            // Rotate indicator
-            ctx.fillStyle = 'rgba(68,136,255,0.8)';
-            ctx.font = '7px "Press Start 2P"';
-            ctx.textAlign = 'center';
-            ctx.fillText('DEF', x + w / 2, y + 12);
+        // Golden artwork frame
+        ctx.strokeStyle = '#c8a832';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(headerX + artPad, artY, artW, artH);
+
+        // Holographic shimmer for rare+ cards
+        if (card.rarity !== 'common') {
+            const shimmerGrad = ctx.createLinearGradient(x, artY, x + w, artY + artH);
+            shimmerGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            shimmerGrad.addColorStop(0.3, `rgba(255,255,255,0.06)`);
+            shimmerGrad.addColorStop(0.5, `rgba(255,255,255,0.12)`);
+            shimmerGrad.addColorStop(0.7, `rgba(255,255,255,0.06)`);
+            shimmerGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = shimmerGrad;
+            ctx.fillRect(headerX + artPad + 1, artY + 1, artW - 2, artH - 2);
         }
 
-        // Hero name (top, small)
-        ctx.fillStyle = '#fff';
-        ctx.font = '5px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        ctx.fillText(card.name, x + w / 2, y + 10);
+        // 7. Type info line (below artwork)
+        const infoY = artY + artH + 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(headerX, infoY, headerW, 8);
 
-        // Level stars (top-right)
-        const rarityStars = { common: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
-        const stars = rarityStars[card.rarity] || 1;
-        ctx.fillStyle = '#ffd700';
-        ctx.font = '5px sans-serif';
+        ctx.fillStyle = clsColor;
+        ctx.font = '4px "Press Start 2P"';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${cls.name || 'Hero'}`, headerX + 2, infoY + 6);
+
+        ctx.fillStyle = rarityColor;
         ctx.textAlign = 'right';
-        ctx.fillText('★'.repeat(stars), x + w - 6, y + 10);
+        ctx.fillText(RARITIES[card.rarity] ? RARITIES[card.rarity].name : '', headerX + headerW - 2, infoY + 6);
 
-        // HP bar (below sprite)
-        const hpBarY = spriteY + spriteSize + 2;
-        const hpBarW = w - 16;
-        const hpBarH = 6;
-        const hpBarX = x + 8;
+        // 8. Stats box — ATK | HP bar | DEF
+        const statsBoxY = infoY + 10;
+        const statsBoxH = h - (statsBoxY - y) - pad - 2;
+
+        // Stats background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(headerX, statsBoxY, headerW, statsBoxH);
+
+        // HP Bar (center, wide)
+        const hpBarY2 = statsBoxY + 2;
+        const hpBarH2 = 6;
+        const hpBarX2 = headerX + 2;
+        const hpBarW2 = headerW - 4;
         const hpPct = Math.max(0, card.currentHp / card.maxHp);
 
+        // HP bar background
         ctx.fillStyle = '#222';
-        ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
-        ctx.fillStyle = hpPct > 0.5 ? '#44cc44' : hpPct > 0.25 ? '#ffaa00' : '#ff4444';
-        ctx.fillRect(hpBarX, hpBarY, hpBarW * hpPct, hpBarH);
-
+        ctx.fillRect(hpBarX2, hpBarY2, hpBarW2, hpBarH2);
+        // HP bar fill
+        const hpColor = hpPct > 0.6 ? '#44cc44' : hpPct > 0.3 ? '#ffaa00' : '#ff4444';
+        ctx.fillStyle = hpColor;
+        ctx.fillRect(hpBarX2, hpBarY2, hpBarW2 * hpPct, hpBarH2);
+        // HP bar border
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(hpBarX2, hpBarY2, hpBarW2, hpBarH2);
         // HP text on bar
         ctx.fillStyle = '#fff';
         ctx.font = '4px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText(`${card.currentHp}`, x + w / 2, hpBarY + 5);
+        ctx.fillText(`${card.currentHp}/${card.maxHp}`, headerX + headerW / 2, hpBarY2 + 5);
 
-        // ATK/DEF display (bottom)
-        const statsY = hpBarY + hpBarH + 6;
-        const totalAtk = (card.stats.atk || 0) + (card.atkBuff || 0);
-        const totalDef = (card.stats.def || 0) + (card.defBuff || 0);
+        // ATK (left) and DEF (right) boxes below HP bar
+        const statBoxY = hpBarY2 + hpBarH2 + 2;
+        const halfW = (headerW - 4) / 2;
 
-        // ATK (left, red)
-        ctx.fillStyle = 'rgba(255,50,50,0.7)';
-        ctx.fillRect(x + 4, statsY, 34, 10);
+        // ATK box
+        ctx.fillStyle = 'rgba(180,40,40,0.7)';
+        ctx.fillRect(headerX + 2, statBoxY, halfW, statsBoxH - (statBoxY - statsBoxY) - 2);
         ctx.fillStyle = '#fff';
-        ctx.font = '5px "Press Start 2P"';
+        ctx.font = 'bold 5px "Press Start 2P"';
         ctx.textAlign = 'left';
-        ctx.fillText(`⚔${totalAtk}`, x + 5, statsY + 8);
+        ctx.fillText(`⚔${totalAtk}`, headerX + 4, statBoxY + 7);
 
-        // DEF (right, blue)
-        ctx.fillStyle = 'rgba(50,100,255,0.7)';
-        ctx.fillRect(x + w - 38, statsY, 34, 10);
+        // DEF box
+        const totalDef = (card.stats.def || 0) + (card.defBuff || 0);
+        ctx.fillStyle = 'rgba(40,80,180,0.7)';
+        ctx.fillRect(headerX + 2 + halfW + 2, statBoxY, halfW - 2, statsBoxH - (statBoxY - statsBoxY) - 2);
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'right';
-        ctx.fillText(`🛡${totalDef}`, x + w - 5, statsY + 8);
+        ctx.fillText(`🛡${totalDef}`, headerX + headerW - 4, statBoxY + 7);
+
+        // 9. Attack/Defense position indicator (subtle, not rotated)
+        if (card.position === 'defense') {
+            // Blue shield overlay corner
+            ctx.fillStyle = 'rgba(68,136,255,0.3)';
+            ctx.fillRect(x, y, w, h);
+            ctx.fillStyle = 'rgba(68,136,255,0.9)';
+            ctx.font = 'bold 4px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText('🛡 DEF', x + w / 2, y + h - 4);
+        }
+
+        // 10. Active glow for cards that can attack
+        if (card.canAttack && !card.hasAttacked && card.position === 'attack') {
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 6;
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+            ctx.shadowBlur = 0;
+        }
     },
 
     _drawSkillCard(ctx, card, x, y, w, h) {

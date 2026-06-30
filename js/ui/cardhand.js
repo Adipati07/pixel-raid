@@ -96,27 +96,37 @@ const CardHand = {
         el.style.setProperty('--rarity-glow', rarityColor);
 
         if (card.cardType === 'hero') {
-            // Hero card display (Yu-Gi-Oh monster style)
+            // Hero card — Pokemon TCG Chaos Rising style
             const template = getTemplateByName(card.templateId || card.name);
             const cls = CLASSES[card.class || card.cls];
             const rarityStars = { common: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
             const stars = rarityStars[card.rarity] || 1;
+            const clsColor = cls ? cls.color : '#888';
 
             el.innerHTML = `
-                <div class="card-stars">${'★'.repeat(stars)}</div>
-                <div class="card-art hero-art" style="background:${cls ? cls.color : '#4488ff'}22">
+                <div class="tcg-header" style="background:${clsColor}">
+                    <span class="tcg-name">${card.name}</span>
+                    <span class="tcg-hp" style="color:#ff4444">HP ${card.stats.hp}</span>
+                </div>
+                <div class="tcg-art-window" style="background:${clsColor}22">
                     ${template && template.image
                         ? `<img src="${template.image}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">`
                         : `<div class="card-art-icon">${cls ? cls.emoji : '⚔️'}</div>`
                     }
                 </div>
-                <div class="card-name">${card.name}</div>
-                <div class="card-type-badge" style="color:${cls ? cls.color : '#888'}">${cls ? cls.name : 'Hero'}</div>
-                <div class="card-stats-row">
-                    <span class="card-atk">⚔${card.stats.atk}</span>
-                    <span class="card-def">🛡${card.stats.def}</span>
+                <div class="tcg-info-line" style="color:${clsColor}">
+                    <span>${cls ? cls.name : 'Hero'}</span>
+                    <span class="tcg-stars">${'★'.repeat(stars)}</span>
                 </div>
-                <div class="card-hp">HP: ${card.stats.hp}</div>
+                <div class="tcg-stats-box">
+                    <div class="tcg-hp-bar">
+                        <div class="tcg-hp-fill"></div>
+                    </div>
+                    <div class="tcg-stat-row">
+                        <span class="card-atk">⚔${card.stats.atk}</span>
+                        <span class="card-def">🛡${card.stats.def}</span>
+                    </div>
+                </div>
             `;
         } else {
             // Skill card display (Yu-Gi-Oh spell style)
@@ -252,25 +262,26 @@ const CardHand = {
             .battle-card {
                 width: 85px;
                 min-height: 125px;
-                background: var(--bg-card, #1a1a2e);
-                border: 2px solid #555;
-                border-radius: 6px;
-                padding: 4px;
+                background: #1a1a2e;
+                border: 3px solid #555;
+                border-radius: 4px;
+                padding: 0;
                 cursor: pointer;
                 transition: transform 0.2s ease, box-shadow 0.2s ease;
                 position: relative;
                 display: flex;
                 flex-direction: column;
-                gap: 1px;
                 font-family: 'Press Start 2P', monospace;
                 user-select: none;
                 flex-shrink: 0;
+                overflow: hidden;
             }
             .battle-card.hero-card {
                 border-width: 3px;
             }
             .battle-card.skill-card {
                 border-width: 2px;
+                padding: 4px;
             }
             .battle-card:hover {
                 z-index: 10;
@@ -294,12 +305,80 @@ const CardHand = {
             .battle-card.card-draw-in {
                 animation: card-draw-in 0.5s ease-out;
             }
-            .card-stars {
-                font-size: 5px;
-                color: #ffd700;
-                text-align: right;
-                line-height: 1;
+
+            /* === Pokemon TCG Chaos Rising Style === */
+            .tcg-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 2px 4px;
+                min-height: 16px;
             }
+            .tcg-name {
+                font-size: 5px;
+                color: #fff;
+                font-weight: bold;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 55px;
+            }
+            .tcg-hp {
+                font-size: 5px;
+                font-weight: bold;
+            }
+            .tcg-art-window {
+                width: calc(100% - 4px);
+                height: 50px;
+                margin: 2px;
+                border: 1px solid #c8a832;
+                border-radius: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                position: relative;
+            }
+            .tcg-info-line {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1px 4px;
+                font-size: 4px;
+                background: rgba(0,0,0,0.3);
+            }
+            .tcg-stars {
+                color: #ffd700;
+                font-size: 4px;
+            }
+            .tcg-stats-box {
+                padding: 2px 4px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 2px;
+            }
+            .tcg-hp-bar {
+                width: 100%;
+                height: 5px;
+                background: #222;
+                border-radius: 2px;
+                overflow: hidden;
+            }
+            .tcg-hp-fill {
+                width: 100%;
+                height: 100%;
+                background: #44cc44;
+                border-radius: 2px;
+            }
+            .tcg-stat-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 0 2px;
+                font-size: 5px;
+            }
+
             .card-mana {
                 position: absolute;
                 top: -4px;
@@ -331,9 +410,6 @@ const CardHand = {
                 justify-content: center;
                 margin-top: 2px;
                 overflow: hidden;
-            }
-            .hero-art {
-                height: 50px;
             }
             .card-art-icon {
                 font-size: 22px;
@@ -413,12 +489,10 @@ const CardHand = {
                     width: 70px;
                     min-height: 105px;
                 }
-                .card-art { height: 38px; }
-                .hero-art { height: 42px; }
+                .tcg-art-window { height: 40px; }
                 .card-art-icon { font-size: 18px; }
-                .card-name { font-size: 4px; }
-                .card-desc { font-size: 3.5px; }
-                .card-stats-row { font-size: 4px; }
+                .tcg-name { font-size: 4px; }
+                .tcg-stat-row { font-size: 4px; }
             }
         `;
         document.head.appendChild(style);
