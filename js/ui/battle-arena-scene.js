@@ -46,11 +46,23 @@ const BattleArenaScene = {
 
     // ===== INIT =====
     init(canvasId) {
-        this.canvas = document.getElementById(canvasId || 'battle-canvas');
-        if (!this.canvas || this.canvas.tagName !== 'CANVAS') {
-            // No canvas element found — BattlePhaser is likely handling rendering
-            return;
+        let el = document.getElementById(canvasId || 'battle-canvas');
+        if (!el) return;
+        
+        // If it's a container div (not a canvas), find or create a canvas inside it
+        if (el.tagName !== 'CANVAS') {
+            let cvs = el.querySelector('canvas');
+            if (!cvs) {
+                cvs = document.createElement('canvas');
+                cvs.id = 'battle-canvas';
+                cvs.width = 800;
+                cvs.height = 500;
+                el.appendChild(cvs);
+            }
+            el = cvs;
         }
+        
+        this.canvas = el;
         this.ctx = this.canvas.getContext('2d');
         this.W = this.canvas.width;
         this.H = this.canvas.height;
@@ -249,6 +261,9 @@ const BattleArenaScene = {
         // Draw battlefield background
         this._drawBackground(ctx, W, H);
 
+        // Draw perspective floor grid (2.5D effect)
+        this._drawPerspectiveFloor(ctx, W, H);
+
         // Draw enemy LP bar (top)
         this._drawLPBar(ctx, state.enemy, false, layout.lpEnemy);
 
@@ -263,6 +278,9 @@ const BattleArenaScene = {
 
         // Draw player LP bar (bottom)
         this._drawLPBar(ctx, state.player, true, layout.lpPlayer);
+
+        // Draw vignette (dramatic edge darkening)
+        this._drawVignette(ctx, W, H);
 
         // Draw attack animations
         this._renderAttackAnims(ctx);
@@ -409,7 +427,51 @@ const BattleArenaScene = {
         ctx.fillText(`GY: ${combatant.graveyard ? combatant.graveyard.length : 0}`, x + w - pad, y + h - 3);
     },
 
-    // ===== FIELD ZONES =====
+    // ===== FIELD ZONES (2.5D Perspective) =====
+    _drawPerspectiveFloor(ctx, W, H) {
+        // Vanishing point at center-top of canvas
+        const vpX = W / 2;
+        const vpY = H * 0.12;
+
+        // Horizontal grid lines (perspective depth)
+        ctx.strokeStyle = 'rgba(100,150,255,0.06)';
+        ctx.lineWidth = 1;
+        const numLines = 12;
+        for (let i = 0; i <= numLines; i++) {
+            const t = i / numLines;
+            const ly = vpY + (H - vpY) * t;
+            // Lines get wider as they go down (perspective)
+            const spread = t * t; // quadratic spread
+            const lx1 = vpX - (W * 0.6) * spread;
+            const lx2 = vpX + (W * 0.6) * spread;
+            ctx.beginPath();
+            ctx.moveTo(lx1, ly);
+            ctx.lineTo(lx2, ly);
+            ctx.stroke();
+        }
+
+        // Vertical perspective lines converging to vanishing point
+        const numVLines = 8;
+        for (let i = 0; i <= numVLines; i++) {
+            const t = i / numVLines;
+            const bx = W * 0.05 + (W * 0.9) * t; // bottom x
+            ctx.beginPath();
+            ctx.moveTo(vpX, vpY);
+            ctx.lineTo(bx, H);
+            ctx.stroke();
+        }
+    },
+
+    _drawVignette(ctx, W, H) {
+        // Dark vignette at edges for dramatic effect
+        const grad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.7);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.7, 'rgba(0,0,0,0.15)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+    },
+
     _drawField(ctx, combatant, isPlayer, rect) {
         const { x, y, w, h } = rect;
         const zoneW = this.ZONE_W;
@@ -418,32 +480,56 @@ const BattleArenaScene = {
         const skillH = this.SKILL_ZONE_H;
         const gap = this.ZONE_GAP;
 
-        // 3 hero zones centered
-        const totalHeroW = zoneW * 3 + gap * 2;
-        const heroStartX = x + (w - totalHeroW) / 2;
-        const heroY = y + (h - zoneH) / 2;
+        // 2.5D perspective scaling — enemy (top) smaller, player (bottom) bigger
+        const scale = isPlayer ? 1.05 : 0.85;
+        const scaledZoneW = zoneW * scale;
+        const scaledZoneH = zoneH * scale;
+        const scaledSkillW = skillW * scale;
+        const scaledSkillH = skillH * scale;
+        const scaledGap = gap * scale;
 
-        // Field decoration — subtle zone backgrounds
-        ctx.fillStyle = isPlayer ? 'rgba(0,100,0,0.03)' : 'rgba(0,0,100,0.03)';
+        // 3 hero zones centered
+        const totalHeroW = scaledZoneW * 3 + scaledGap * 2;
+        const heroStartX = x + (w - totalHeroW) / 2;
+        const heroY = y + (h - scaledZoneH) / 2;
+
+        // Field decoration — perspective ground
+        ctx.fillStyle = isPlayer ? 'rgba(0,100,0,0.04)' : 'rgba(0,0,100,0.04)';
         ctx.fillRect(x, y, w, h);
 
-        // Draw 3 hero zones
-        for (let i = 0; i < 3; i++) {
-            const zx = heroStartX + i * (zoneW + gap);
-            const hero = combatant.heroZones ? combatant.heroZones[i] : null;
-            this._drawHeroZone(ctx, zx, heroY, zoneW, zoneH, hero, isPlayer, i);
+        // Draw perspective grid lines for this side
+        const vpX = x + w / 2;
+        const vpY = isPlayer ? y : y + h;
+        ctx.strokeStyle = isPlayer ? 'rgba(50,200,50,0.08)' : 'rgba(50,50,200,0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i++) {
+            const gy = isPlayer ? y + (h * 0.3) + (h * 0.7) * (i / 4) : y + h - (h * 0.3) - (h * 0.7) * (i / 4);
+            const spread = isPlayer ? (i / 4) * (i / 4) : (1 - i / 4) * (1 - i / 4);
+            const gx1 = x + (w * 0.05) + (w * 0.45) * (1 - spread);
+            const gx2 = x + w - (w * 0.05) - (w * 0.45) * (1 - spread);
+            ctx.beginPath();
+            ctx.moveTo(gx1, gy);
+            ctx.lineTo(gx2, gy);
+            ctx.stroke();
         }
 
-        // Draw 2 skill zones flanking
-        const skillY = y + (h - skillH) / 2;
-        const leftSkillX = heroStartX - skillW - 18;
-        const rightSkillX = heroStartX + totalHeroW + 18;
+        // Draw 3 hero zones with perspective scaling
+        for (let i = 0; i < 3; i++) {
+            const zx = heroStartX + i * (scaledZoneW + scaledGap);
+            const hero = combatant.heroZones ? combatant.heroZones[i] : null;
+            this._drawHeroZone(ctx, zx, heroY, scaledZoneW, scaledZoneH, hero, isPlayer, i);
+        }
+
+        // Draw 2 skill zones flanking with perspective scaling
+        const skillY = y + (h - scaledSkillH) / 2;
+        const leftSkillX = heroStartX - scaledSkillW - (18 * scale);
+        const rightSkillX = heroStartX + totalHeroW + (18 * scale);
         
         const leftSkill = combatant.skillZones ? combatant.skillZones[0] : null;
         const rightSkill = combatant.skillZones ? combatant.skillZones[1] : null;
         
-        this._drawSkillZone(ctx, leftSkillX, skillY, skillW, skillH, leftSkill, 0);
-        this._drawSkillZone(ctx, rightSkillX, skillY, skillW, skillH, rightSkill, 1);
+        this._drawSkillZone(ctx, leftSkillX, skillY, scaledSkillW, scaledSkillH, leftSkill, 0);
+        this._drawSkillZone(ctx, rightSkillX, skillY, scaledSkillW, scaledSkillH, rightSkill, 1);
     },
 
     _drawHeroZone(ctx, x, y, w, h, hero, isPlayer, index) {
