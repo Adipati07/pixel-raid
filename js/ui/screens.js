@@ -333,8 +333,15 @@ const UI = {
                 }
             }, 5000);
         } else {
-            // Fallback: init canvas scene and start immediately
+            // Fallback: init canvas scene and enter fullscreen overlay
             BattleArenaScene.init('battle-canvas-container');
+            const enemyDeck = GameState.generateEnemyDeck(GameState.player.stage);
+            const enemySkillIds = GameState.generateEnemySkillDeck(GameState.player.stage);
+            BattleArenaScene.enter(
+                { hero: playerHero, skillCards: playerSkillIds },
+                { hero: enemyHero, skillCards: enemySkillIds },
+                () => {}
+            );
             startEngine();
         }
     },
