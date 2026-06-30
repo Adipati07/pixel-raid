@@ -125,7 +125,22 @@ var BattlePhaser = {
         }
 
         // Resize Phaser game to fill viewport
-        this._resizeToViewport();
+        var self = this;
+        // Wait for DOM to settle after fullscreen
+        requestAnimationFrame(function () {
+            self._resizeToViewport();
+            // Second resize after layout recalc
+            setTimeout(function () { self._resizeToViewport(); }, 100);
+        });
+
+        // Force Phaser canvas to fill container
+        setTimeout(function () {
+            if (self._game && self._game.canvas) {
+                self._game.canvas.style.width = '100%';
+                self._game.canvas.style.height = '100%';
+                self._game.canvas.style.objectFit = 'contain';
+            }
+        }, 150);
 
         // Show enter transition
         this._scene.showTransition('enter', function () {
@@ -181,11 +196,24 @@ var BattlePhaser = {
     _resizeToViewport: function () {
         if (!this._game) return;
         var vw = window.innerWidth;
-        var vh = window.innerHeight - 160; // leave room for card hand + controls
-        var aspect = 600 / 400;
-        var cw = vh * aspect > vw ? vw : vh * aspect;
-        var ch = cw / aspect;
-        this._game.scale.resize(Math.floor(cw), Math.floor(ch));
+        var vh = window.innerHeight;
+        // Leave room for card hand (~180px) at bottom
+        var gameH = vh - 180;
+        var gameW = vw;
+        // Maintain 3:2 aspect ratio
+        var aspect = 3 / 2;
+        if (gameW / gameH > aspect) {
+            gameW = Math.floor(gameH * aspect);
+        } else {
+            gameH = Math.floor(gameW / aspect);
+        }
+        this._game.scale.resize(gameW, gameH);
+        // Center the canvas
+        var canvas = this._game.canvas;
+        if (canvas) {
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+        }
     },
 
     // ===== RENDER FIELD =====
