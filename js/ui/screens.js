@@ -58,15 +58,17 @@ const UI = {
         const progress = ((GameState.player.wave - 1) / GameState.player.maxWave) * 100;
         document.getElementById('progress-fill').style.width = progress + '%';
         
-        // Render initial battle canvas
+        // Render initial battle canvas (skip if Phaser handles rendering)
         const canvas = document.getElementById('battle-canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#0a0a2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ffd700';
-        ctx.font = '14px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Press Start Battle!', canvas.width / 2, canvas.height / 2);
+        if (canvas && canvas.tagName === 'CANVAS') {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a2a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '14px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText('Press Start Battle!', canvas.width / 2, canvas.height / 2);
+        }
     },
 
     bindBattleControls() {

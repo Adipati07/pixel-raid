@@ -394,7 +394,7 @@ const BattleRenderer = {
         this._lastRenderArgs = { player, enemy };
 
         const canvas = document.getElementById('battle-canvas');
-        if (!canvas) return;
+        if (!canvas || canvas.tagName !== 'CANVAS') return;
 
         const container = canvas.parentElement;
         const W = container ? Math.min(container.clientWidth, 600) : 600;
