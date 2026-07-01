@@ -66,7 +66,12 @@ const BattleArenaScene = {
         this.ctx = this.canvas.getContext('2d');
         this.W = this.canvas.width;
         this.H = this.canvas.height;
-        this._setupFonts();
+
+        // Preload arena background image
+        if (!this._arenaImg) {
+            this._arenaImg = new Image();
+            this._arenaImg.src = 'assets/arena/battle-arena.png';
+        }
     },
 
     _setupFonts() {
@@ -426,7 +431,13 @@ const BattleArenaScene = {
 
     // ===== BACKGROUND =====
     _drawBackground(ctx, W, H) {
-        // Cinematic gradient — deep space/sky at top, warm arena floor at bottom
+        // Use arena image if loaded
+        if (this._arenaImg && this._arenaImg.complete && this._arenaImg.naturalWidth > 0) {
+            ctx.drawImage(this._arenaImg, 0, 0, W, H);
+            return;
+        }
+
+        // Fallback: Cinematic gradient — deep space/sky at top, warm arena floor at bottom
         const grad = ctx.createLinearGradient(0, 0, 0, H);
         grad.addColorStop(0, '#050515');    // deep void
         grad.addColorStop(0.2, '#0a0a2e');  // dark blue

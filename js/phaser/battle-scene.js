@@ -51,8 +51,8 @@ const PhaserBattleScene = new Phaser.Class({
     },
 
     preload: function () {
-        // Load arena background image
-        this.load.image('arena-bg', 'assets/arena/battle-arena.png');
+        // Arena image is pre-loaded externally via bridge.preloadArena()
+        // It gets added to texture manager before create() runs
     },
 
     create: function () {
