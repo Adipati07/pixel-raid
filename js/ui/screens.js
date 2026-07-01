@@ -222,7 +222,8 @@ const UI = {
         const battleContainer = document.getElementById('battle-canvas-container');
         if (battleContainer) battleContainer.style.display = 'block';
 
-        document.getElementById('btn-start-battle').disabled = true;
+        // Go fullscreen for battle
+        document.getElementById('screen-battle').classList.add('battle-active');
 
         // Init renderer
         BattleArenaScene.init('battle-canvas-container');
@@ -239,7 +240,7 @@ const UI = {
             setTimeout(() => {
                 BattleArenaScene.stop();
                 if (battleContainer) battleContainer.style.display = 'none';
-                document.getElementById('btn-start-battle').disabled = false;
+                document.getElementById('screen-battle').classList.remove('battle-active');
 
                 if (result === 'player') {
                     GameState.stats.battlesWon++;
