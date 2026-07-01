@@ -231,13 +231,21 @@
         }
         .btn-secondary:hover { background: rgba(255,215,0,0.15); border-color: var(--gold); }
 
-        /* Battle Screen — Premium card arena */
-        .battle-canvas-wrap { position: relative; margin-bottom: 12px; overflow: hidden; border-radius: 4px; }
+        /* Battle Screen — Fullscreen arena when battle is running */
+        #screen-battle.battle-active {
+            max-width: none; padding: 0; margin: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 100; background: #0a0a1a;
+            display: flex; flex-direction: column;
+        }
+        #screen-battle.battle-active #battle-deck-preview,
+        #screen-battle.battle-active #card-hand-area,
+        #screen-battle.battle-active .battle-controls { display: none; }
+        #screen-battle.battle-active .battle-canvas-wrap { flex: 1; }
+        .battle-canvas-wrap { position: relative; overflow: hidden; }
         #battle-canvas-container {
-            width: 100%; max-width: none; display: none; margin: 0;
-            min-height: 200px;
-            border: none;
-            box-shadow: none;
+            width: 100%; height: 100%; display: none; margin: 0;
+            border: none; box-shadow: none;
         }
         .battle-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
         .speed-controls { display: flex; gap: 2px; margin-left: auto; }
@@ -1001,7 +1009,7 @@
             .nav-btn { font-size: 7px; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
             .card { padding: 8px; }
             .card-name { font-size: 7px; }
-            #battle-canvas-container { height: auto; }
+            #battle-canvas-container { width: 100%; height: 100%; }
             .btn { font-size: 7px; padding: 10px 16px; min-height: 44px; }
             .hand-card { width: 100px; min-height: 140px; }
         }
@@ -1136,27 +1144,28 @@
     </div>
 
     <!-- ====== SCRIPTS (load order matters!) ====== -->
-    <script src="js/core/sound.js?v=c5f949"></script>
-    <script src="js/core/heroes.js?v=c5f949"></script>
-    <script src="js/core/cards.js?v=c5f949"></script>
-    <script src="js/core/deck.js?v=c5f949"></script>
-    <script src="js/core/items.js?v=c5f949"></script>
-    <script src="js/core/game.js?v=c5f949"></script>
-    <script src="js/core/units.js?v=board1"></script>
-    <script src="js/systems/battle.js?v=board1"></script>
-    <script src="js/systems/economy.js?v=c5f949"></script>
-    <script src="js/systems/formation.js?v=c5f949"></script>
-    <script src="js/ui/animations.js?v=c5f949"></script>
-    <script src="js/ui/renderer.js?v=c5f949"></script>
-    <script src="js/ui/battle-arena-scene.js?v=board1"></script>
-    <script src="js/phaser/battle-scene.js?v=c5f949"></script>
-    <script src="js/phaser/card-sprite.js?v=c5f949"></script>
-    <script src="js/phaser/animations.js?v=c5f949"></script>
-    <script src="js/phaser/bridge.js?v=f8389ec"></script>
-    <script src="js/ui/cardhand.js?v=c5f949"></script>
-    <script src="js/ui/tutorial.js?v=c5f949"></script>
-    <script src="js/ui/screens.js?v=board1"></script>
-    <script src="js/systems/backend.js?v=c5f949"></script>
-    <script src="js/main.js?v=c5f949"></script>
+    <script src="js/core/sound.js?v=fullscreen1"></script>
+    <script src="js/core/heroes.js?v=fullscreen1"></script>
+    <script src="js/core/cards.js?v=fullscreen1"></script>
+    <script src="js/core/deck.js?v=fullscreen1"></script>
+    <script src="js/core/items.js?v=fullscreen1"></script>
+    <script src="js/core/game.js?v=fullscreen1"></script>
+    <script src="js/core/units.js?v=fullscreen1"></script>
+    <script src="js/systems/battle.js?v=fullscreen1"></script>
+    <script src="js/systems/economy.js?v=fullscreen1"></script>
+    <script src="js/systems/formation.js?v=fullscreen1"></script>
+    <script src="js/ui/animations.js?v=fullscreen1"></script>
+    <script src="js/ui/renderer.js?v=fullscreen1"></script>
+    <script src="js/ui/battle-arena-scene.js?v=fullscreen1"></script>
+    <script src="js/phaser/battle-scene.js?v=fullscreen1"></script>
+    <script src="js/phaser/card-sprite.js?v=fullscreen1"></script>
+    <script src="js/phaser/animations.js?v=fullscreen1"></script>
+    <script src="js/phaser/bridge.js?v=fullscreen1"></script>
+    <script src="js/ui/cardhand.js?v=fullscreen1"></script>
+    <script src="js/ui/tutorial.js?v=fullscreen1"></script>
+    <script src="js/ui/screens.js?v=fullscreen1"></script>
+    <script src="js/systems/blockchain.js?v=fullscreen1"></script>
+    <script src="js/systems/backend.js?v=fullscreen1"></script>
+    <script src="js/main.js?v=fullscreen1"></script>
 </body>
 </html>
