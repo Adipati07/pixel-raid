@@ -111,19 +111,17 @@ const BattleArenaScene = {
         // Resize canvas to fill FULL viewport (cards now drawn in canvas)
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        const aspect = 600 / 400; // 3:2
-        let cw = vh * aspect > vw ? vw : vh * aspect;
-        let ch = cw / aspect;
-        this.canvas.width = Math.floor(cw);
-        this.canvas.height = Math.floor(ch);
+        // Use full viewport — no aspect ratio constraint
+        this.canvas.width = Math.floor(vw);
+        this.canvas.height = Math.floor(vh);
         this.W = this.canvas.width;
         this.H = this.canvas.height;
         this.canvas.style.cssText = `
             display: block;
-            image-rendering: pixelated;
-            width: ${cw}px; height: ${ch}px;
+            image-rendering: auto;
+            width: 100vw; height: 100vh;
             border: none; box-shadow: none;
-            margin: 0 auto;
+            margin: 0; padding: 0;
         `;
 
         // Hide HTML card hand (now drawn in canvas)
@@ -1071,32 +1069,7 @@ const BattleArenaScene = {
         };
         const borderColor = rarityColors[rarity] || '#8a8a8a';
 
-        // Card background
-        ctx.fillStyle = isHovered && isPlayable ? 'rgba(25, 20, 50, 0.98)' : 'rgba(15, 12, 30, 0.95)';
-        ctx.fillRect(x, y, w, h);
-
-        // Card border (rarity color, glow when hovered)
-        if (isHovered && isPlayable) {
-            ctx.shadowColor = '#ffd700';
-            ctx.shadowBlur = 10;
-        }
-        ctx.strokeStyle = isHovered && isPlayable ? '#ffd700' : borderColor;
-        ctx.lineWidth = isHovered ? 3 : 2;
-        ctx.strokeRect(x, y, w, h);
-        ctx.shadowBlur = 0;
-
-        // Playable indicator (subtle glow on non-hovered playable cards)
-        if (isPlayable && !isHovered) {
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.15)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
-        }
-
-        // Color strip at top
-        ctx.fillStyle = color;
-        ctx.fillRect(x + 2, y + 2, w - 4, 4);
-
-        // Card icon (type-specific emoji)
+        // Card type info
         const typeEmojis = {
             attack: '⚔️', damage: '💥', defense: '🛡️', buff: '⬆️',
             debuff: '⬇️', heal: '💚', special: '⭐', draw: '📥',
@@ -1104,58 +1077,169 @@ const BattleArenaScene = {
         };
         const cardType = card.type || card.cardType || '';
         const emoji = typeEmojis[cardType] || '🃏';
-        const iconSize = Math.min(w * 0.35, h * 0.25);
+        const cardName = card.name || 'Card';
+        const damageVal = card.damage || card.value || card.healAmount || 0;
+
+        // Scale fonts based on card size
+        const fontSize = Math.max(6, Math.min(10, w * 0.1));
+        const nameFontSize = Math.max(5, Math.min(9, w * 0.08));
+        const smallFontSize = Math.max(4, Math.min(7, w * 0.06));
+
+        // ===== CARD SHAPE =====
+        // Outer shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(x + 2, y + 2, w, h);
+
+        // Card base (dark background)
+        ctx.fillStyle = isHovered && isPlayable ? '#1e1835' : '#12101f';
+        ctx.fillRect(x, y, w, h);
+
+        // Inner border (rarity colored)
+        const pad = 2;
+        ctx.strokeStyle = isHovered && isPlayable ? '#ffd700' : borderColor;
+        ctx.lineWidth = isHovered ? 2.5 : 1.5;
+        ctx.strokeRect(x + pad, y + pad, w - pad * 2, h - pad * 2);
+
+        // Outer glow when hovered
+        if (isHovered && isPlayable) {
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 12;
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+            ctx.shadowBlur = 0;
+        }
+
+        // Playable indicator glow
+        if (isPlayable && !isHovered) {
+            ctx.shadowColor = 'rgba(255,215,0,0.3)';
+            ctx.shadowBlur = 6;
+            ctx.strokeStyle = 'rgba(255,215,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, w, h);
+            ctx.shadowBlur = 0;
+        }
+
+        // ===== ART AREA (top ~40% of card) =====
+        const artH = h * 0.38;
+        const artY = y + pad + 1;
+        const artW = w - pad * 2 - 2;
+        const artX = x + pad + 1;
+
+        // Art background gradient (color-themed)
+        const artGrad = ctx.createLinearGradient(artX, artY, artX, artY + artH);
+        artGrad.addColorStop(0, color + '60');
+        artGrad.addColorStop(1, color + '15');
+        ctx.fillStyle = artGrad;
+        ctx.fillRect(artX, artY, artW, artH);
+
+        // Big emoji icon centered in art area
+        const iconSize = Math.min(artH * 0.65, artW * 0.5, 28);
         ctx.font = `${iconSize}px sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(emoji, x + w / 2, y + 10 + iconSize * 0.8);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, artX + artW / 2, artY + artH / 2);
 
-        // Card name
-        ctx.font = 'bold 8px "Press Start 2P", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        const name = card.name || 'Card';
-        ctx.fillText(name, x + w / 2, y + 10 + iconSize + 10);
+        // Art area bottom separator line
+        ctx.strokeStyle = borderColor + '60';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(artX, artY + artH);
+        ctx.lineTo(artX + artW, artY + artH);
+        ctx.stroke();
 
-        // Card type
-        ctx.font = '6px "Press Start 2P", monospace';
-        ctx.fillStyle = borderColor;
-        const type = (card.type || '').toUpperCase();
-        ctx.fillText(type, x + w / 2, y + 10 + iconSize + 20);
-
-        // Mana cost (top-right corner)
-        if (card.manaCost !== undefined) {
-            const manaR = 8;
-            const mx = x + w - manaR - 3;
-            const my = y + manaR + 3;
-            ctx.beginPath();
-            ctx.arc(mx, my, manaR, 0, Math.PI * 2);
-            ctx.fillStyle = '#2244aa';
-            ctx.fill();
-            ctx.strokeStyle = '#4488ff';
+        // ===== DAMAGE / VALUE NUMBER (top-right of art) =====
+        if (damageVal > 0) {
+            const numW = Math.min(24, w * 0.28);
+            const numH = Math.min(14, h * 0.1);
+            const numX = artX + artW - numW - 2;
+            const numY = artY + 2;
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(numX, numY, numW, numH);
+            ctx.strokeStyle = '#aa0000';
             ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.font = 'bold 7px "Press Start 2P", monospace';
-            ctx.fillStyle = '#88ccff';
+            ctx.strokeRect(numX, numY, numW, numH);
+            ctx.font = `bold ${smallFontSize}px "Press Start 2P", monospace`;
+            ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(String(card.manaCost), mx, my);
-            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(damageVal, numX + numW / 2, numY + numH / 2);
         }
 
-        // Description (truncated)
-        if (card.description) {
-            ctx.font = '5px "Press Start 2P", monospace';
-            ctx.fillStyle = 'rgba(200, 200, 200, 0.7)';
+        // ===== NAME BANNER (below art) =====
+        const nameY = artY + artH + 2;
+        const nameH = Math.min(16, h * 0.12);
+
+        // Name background strip
+        ctx.fillStyle = borderColor + '30';
+        ctx.fillRect(artX, nameY, artW, nameH);
+
+        // Card name text
+        ctx.font = `${nameFontSize}px "Press Start 2P", monospace`;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Truncate name if too long
+        let displayName = cardName;
+        while (ctx.measureText(displayName).width > artW - 4 && displayName.length > 3) {
+            displayName = displayName.slice(0, -1);
+        }
+        ctx.fillText(displayName, artX + artW / 2, nameY + nameH / 2);
+
+        // ===== DESCRIPTION / TYPE AREA (bottom section) =====
+        const descY = nameY + nameH + 2;
+        const descH = y + h - pad - descY - 2;
+
+        // Type badge
+        ctx.font = `${smallFontSize}px "Press Start 2P", monospace`;
+        ctx.fillStyle = borderColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const typeText = (cardType || 'SKILL').toUpperCase();
+        ctx.fillText(typeText, artX + artW / 2, descY + 2);
+
+        // Card description (truncated)
+        if (card.description && descH > smallFontSize * 3) {
+            ctx.font = `${Math.max(4, smallFontSize - 1)}px "Press Start 2P", monospace`;
+            ctx.fillStyle = '#888888';
             ctx.textAlign = 'center';
-            const desc = card.description.length > 30 ? card.description.slice(0, 28) + '..' : card.description;
-            ctx.fillText(desc, x + w / 2, y + h - 6);
+            ctx.textBaseline = 'top';
+            let desc = card.description;
+            if (desc.length > 30) desc = desc.slice(0, 28) + '...';
+            // Word wrap
+            const words = desc.split(' ');
+            let line = '';
+            let lineY = descY + smallFontSize + 4;
+            for (const word of words) {
+                const test = line + word + ' ';
+                if (ctx.measureText(test).width > artW - 4) {
+                    ctx.fillText(line.trim(), artX + artW / 2, lineY);
+                    line = word + ' ';
+                    lineY += smallFontSize + 2;
+                    if (lineY > y + h - pad - smallFontSize) break;
+                } else {
+                    line = test;
+                }
+            }
+            if (lineY <= y + h - pad - smallFontSize) {
+                ctx.fillText(line.trim(), artX + artW / 2, lineY);
+            }
         }
 
-        // Keybind number (top-left)
-        ctx.font = 'bold 7px "Press Start 2P", monospace';
-        ctx.fillStyle = '#ffcc00';
-        ctx.textAlign = 'left';
-        ctx.fillText(String(index), x + 4, y + 12);
+        // ===== RARITY GEM (bottom-center) =====
+        const gemR = Math.min(5, w * 0.05);
+        const gemX = artX + artW / 2;
+        const gemY = y + h - pad - gemR - 3;
+        ctx.beginPath();
+        ctx.arc(gemX, gemY, gemR, 0, Math.PI * 2);
+        ctx.fillStyle = borderColor;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff40';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        // Reset text baseline
+        ctx.textBaseline = 'alphabetic';
     },
 
     // ===== CARD CLICK & FLY ANIMATION =====

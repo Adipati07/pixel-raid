@@ -292,13 +292,21 @@ const BattleEngine = {
 
         if (card.cardType === 'skill') {
             this._cardsPlayedThisTurn++;
-            // Animate card out, then activate
-            CardHand.animateCardPlay(handIndex, () => {
+            // Check if canvas renderer is active — skip HTML CardHand animation
+            const useCanvas = typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive();
+            if (useCanvas) {
+                // Canvas renderer: activate skill directly (card fly anim handled by canvas)
                 this._activateSkill(this.player, handIndex, this.enemy);
                 this._playerHasUsedSkill = true;
-                // Auto-advance to battle phase after playing card
                 this._scheduleAutoAdvance();
-            });
+            } else {
+                // HTML renderer: animate card out via DOM, then activate
+                CardHand.animateCardPlay(handIndex, () => {
+                    this._activateSkill(this.player, handIndex, this.enemy);
+                    this._playerHasUsedSkill = true;
+                    this._scheduleAutoAdvance();
+                });
+            }
             return true;
         }
 
@@ -932,11 +940,14 @@ const BattleEngine = {
         this._updateLPDisplay('player', this.player);
         this._updateLPDisplay('enemy', this.enemy);
 
-        // Update card hand
-        if (this.isPlayerTurn && this.currentPhase === 'main') {
-            CardHand.render(this.player.hand, this.player, true, { canPlayCard: this._cardsPlayedThisTurn < this.MAX_CARDS_PER_TURN });
-        } else if (this.isPlayerTurn) {
-            CardHand.render(this.player.hand, this.player, false);
+        // Update card hand (skip when canvas renderer handles it)
+        const useCanvasR = typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive();
+        if (!useCanvasR) {
+            if (this.isPlayerTurn && this.currentPhase === 'main') {
+                CardHand.render(this.player.hand, this.player, true, { canPlayCard: this._cardsPlayedThisTurn < this.MAX_CARDS_PER_TURN });
+            } else if (this.isPlayerTurn) {
+                CardHand.render(this.player.hand, this.player, false);
+            }
         }
 
         // Update deck count display
