@@ -231,13 +231,21 @@
         }
         .btn-secondary:hover { background: rgba(255,215,0,0.15); border-color: var(--gold); }
 
-        /* Battle Screen — Premium card arena */
-        .battle-canvas-wrap { position: relative; margin-bottom: 12px; overflow: hidden; border-radius: 4px; }
+        /* Battle Screen — Fullscreen arena when battle is running */
+        #screen-battle.battle-active {
+            max-width: none; padding: 0; margin: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 100; background: #0a0a1a;
+            display: flex; flex-direction: column;
+        }
+        #screen-battle.battle-active #battle-deck-preview,
+        #screen-battle.battle-active #card-hand-area,
+        #screen-battle.battle-active .battle-controls { display: none; }
+        #screen-battle.battle-active .battle-canvas-wrap { flex: 1; }
+        .battle-canvas-wrap { position: relative; overflow: hidden; }
         #battle-canvas-container {
-            width: 100%; max-width: none; display: none; margin: 0;
-            min-height: 200px;
-            border: none;
-            box-shadow: none;
+            width: 100%; height: 100%; display: none; margin: 0;
+            border: none; box-shadow: none;
         }
         .battle-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
         .speed-controls { display: flex; gap: 2px; margin-left: auto; }
@@ -820,6 +828,42 @@
         #btn-connect-wallet.connected { background: linear-gradient(180deg, #00ff88, #00aa55); border-color: #00aa55; }
         #wallet-status { font-size: 8px; color: var(--text-dim); margin-top: 6px; }
 
+        /* Market Screen */
+        .market-tab-content { display: none; }
+        .market-tab-content.active { display: block; }
+        .market-card {
+            background: var(--bg-panel); border: 2px solid var(--border-pixel); border-radius: 8px;
+            padding: 10px; transition: border-color 0.2s; cursor: pointer;
+        }
+        .market-card:hover { border-color: var(--gold); }
+        .market-card-name { font-family: 'Press Start 2P'; font-size: 7px; color: var(--gold); margin-bottom: 4px; line-height: 1.3; }
+        .market-card-set { font-size: 8px; color: var(--text-dim); margin-bottom: 4px; }
+        .market-card-grade { font-family: 'Press Start 2P'; font-size: 8px; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        .market-card-price { font-family: 'Press Start 2P'; font-size: 9px; color: #00ff88; margin-top: 4px; }
+        .market-card-img { width: 100%; max-width: 120px; border-radius: 4px; margin: 0 auto 6px; display: block; }
+        .pack-card {
+            background: var(--bg-panel); border: 2px solid var(--border-pixel); border-radius: 8px;
+            padding: 14px; margin-bottom: 10px;
+        }
+        .pack-name { font-family: 'Press Start 2P'; font-size: 10px; color: var(--gold); margin-bottom: 6px; }
+        .pack-price { font-size: 9px; color: var(--text-dim); margin-bottom: 4px; }
+        .pack-ev { font-family: 'Press Start 2P'; font-size: 9px; }
+        .pack-ev.positive { color: #00ff88; }
+        .pack-ev.negative { color: #ff4444; }
+        .cert-card {
+            background: var(--bg-panel); border: 2px solid var(--gold); border-radius: 8px;
+            padding: 16px; text-align: center;
+        }
+        .cert-card img { max-width: 200px; border-radius: 8px; margin: 0 auto 10px; display: block; }
+        .portfolio-card {
+            background: var(--bg-panel); border: 2px solid var(--border-pixel); border-radius: 8px;
+            padding: 10px; position: relative;
+        }
+        .portfolio-remove {
+            position: absolute; top: 4px; right: 8px; cursor: pointer;
+            font-size: 12px; color: #ff4444; background: none; border: none;
+        }
+
         /* Tutorial Overlay */
         .tutorial-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
         .tutorial-overlay.active { opacity: 1; }
@@ -1001,7 +1045,7 @@
             .nav-btn { font-size: 7px; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
             .card { padding: 8px; }
             .card-name { font-size: 7px; }
-            #battle-canvas-container { height: auto; }
+            #battle-canvas-container { width: 100%; height: 100%; }
             .btn { font-size: 7px; padding: 10px 16px; min-height: 44px; }
             .hand-card { width: 100px; min-height: 140px; }
         }
@@ -1064,6 +1108,7 @@
         <button class="nav-btn" data-screen="formation" title="Build your hero & skill deck">📐 Strategy</button>
         <button class="nav-btn" data-screen="inventory" title="Card packs, items & rewards">🎒 Inventory</button>
         <button class="nav-btn" data-screen="shop" title="Buy packs, gold & special offers">🏪 Shop</button>
+        <button class="nav-btn" data-screen="market" title="Live Renaiss marketplace data">📈 Market</button>
     </div>
 
     <!-- Wallet Connect -->
@@ -1135,28 +1180,96 @@
         <div id="shop-content"></div>
     </div>
 
+    <!-- ====== MARKET SCREEN (Renaiss Live Data) ====== -->
+    <div class="screen" id="screen-market">
+        <h2 style="font-family:'Press Start 2P';font-size:12px;color:var(--gold);margin-bottom:12px;">📈 LIVE MARKET</h2>
+
+        <!-- Sub-tabs -->
+        <div class="shop-tabs" id="market-tabs">
+            <button class="shop-tab active" data-tab="market-search">🔍 Search</button>
+            <button class="shop-tab" data-tab="market-packs">📦 Gacha EV</button>
+            <button class="shop-tab" data-tab="market-lookup">🔎 Cert Lookup</button>
+            <button class="shop-tab" data-tab="market-portfolio">💼 Portfolio</button>
+        </div>
+
+        <!-- Search Tab -->
+        <div id="market-search" class="market-tab-content active">
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                <input type="text" id="market-search-input" placeholder="Search cards... (e.g. Pikachu, Carrot, Luffy)"
+                    style="flex:1;min-width:120px;font-family:'Press Start 2P';font-size:8px;padding:8px 12px;background:var(--bg-panel);border:2px solid var(--border-pixel);color:var(--gold);border-radius:4px;">
+                <select id="market-game-filter"
+                    style="font-family:'Press Start 2P';font-size:8px;padding:8px;background:var(--bg-panel);border:2px solid var(--border-pixel);color:var(--text-dim);border-radius:4px;">
+                    <option value="">All Games</option>
+                    <option value="pokemon">⚡ Pokémon</option>
+                    <option value="one-piece">🏴‍☠️ One Piece</option>
+                    <option value="yu-gi-oh">🎴 Yu-Gi-Oh</option>
+                </select>
+                <button id="btn-market-search" class="btn btn-gold" style="font-size:8px;">🔍 Search</button>
+            </div>
+            <div id="market-search-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;"></div>
+            <div id="market-search-status" style="font-size:8px;color:var(--text-dim);margin-top:8px;text-align:center;"></div>
+        </div>
+
+        <!-- Gacha EV Tab -->
+        <div id="market-packs" class="market-tab-content" style="display:none;">
+            <div id="packs-content"></div>
+        </div>
+
+        <!-- Cert Lookup Tab -->
+        <div id="market-lookup" class="market-tab-content" style="display:none;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <input type="text" id="cert-input" placeholder="Enter cert (e.g. PSA151238633)"
+                    style="flex:1;font-family:'Press Start 2P';font-size:8px;padding:8px 12px;background:var(--bg-panel);border:2px solid var(--border-pixel);color:var(--gold);border-radius:4px;">
+                <button id="btn-cert-lookup" class="btn btn-gold" style="font-size:8px;">🔎 Lookup</button>
+            </div>
+            <div id="cert-result"></div>
+        </div>
+
+        <!-- Portfolio Tab -->
+        <div id="market-portfolio" class="market-tab-content" style="display:none;">
+            <div style="margin-bottom:12px;">
+                <div style="font-family:'Press Start 2P';font-size:9px;color:var(--gold);margin-bottom:8px;">💼 MY PORTFOLIO</div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <input type="text" id="portfolio-cert-input" placeholder="Add card cert (e.g. PSA151238633)"
+                        style="flex:1;font-family:'Press Start 2P';font-size:8px;padding:8px 12px;background:var(--bg-panel);border:2px solid var(--border-pixel);color:var(--gold);border-radius:4px;">
+                    <button id="btn-add-to-portfolio" class="btn btn-gold" style="font-size:8px;">+ Add</button>
+                </div>
+                <div id="portfolio-total" style="font-family:'Press Start 2P';font-size:10px;color:var(--gold);margin-bottom:8px;"></div>
+                <div id="portfolio-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
+            </div>
+        </div>
+
+        <!-- Attribution -->
+        <div style="font-size:7px;color:var(--text-dim);margin-top:12px;text-align:center;opacity:0.5;">
+            Data: Renaiss OS Index (beta) — experimental, not verified market facts
+        </div>
+    </div>
+
     <!-- ====== SCRIPTS (load order matters!) ====== -->
-    <script src="js/core/sound.js?v=c5f949"></script>
-    <script src="js/core/heroes.js?v=c5f949"></script>
-    <script src="js/core/cards.js?v=c5f949"></script>
-    <script src="js/core/deck.js?v=c5f949"></script>
-    <script src="js/core/items.js?v=c5f949"></script>
-    <script src="js/core/game.js?v=c5f949"></script>
-    <script src="js/core/units.js?v=board1"></script>
-    <script src="js/systems/battle.js?v=board1"></script>
-    <script src="js/systems/economy.js?v=c5f949"></script>
-    <script src="js/systems/formation.js?v=c5f949"></script>
-    <script src="js/ui/animations.js?v=c5f949"></script>
-    <script src="js/ui/renderer.js?v=c5f949"></script>
-    <script src="js/ui/battle-arena-scene.js?v=board1"></script>
-    <script src="js/phaser/battle-scene.js?v=c5f949"></script>
-    <script src="js/phaser/card-sprite.js?v=c5f949"></script>
-    <script src="js/phaser/animations.js?v=c5f949"></script>
-    <script src="js/phaser/bridge.js?v=f8389ec"></script>
-    <script src="js/ui/cardhand.js?v=c5f949"></script>
-    <script src="js/ui/tutorial.js?v=c5f949"></script>
-    <script src="js/ui/screens.js?v=board1"></script>
-    <script src="js/systems/backend.js?v=c5f949"></script>
-    <script src="js/main.js?v=c5f949"></script>
+    <script src="js/core/sound.js?v=fullscreen1"></script>
+    <script src="js/core/heroes.js?v=fullscreen1"></script>
+    <script src="js/core/cards.js?v=fullscreen1"></script>
+    <script src="js/core/deck.js?v=fullscreen1"></script>
+    <script src="js/core/items.js?v=fullscreen1"></script>
+    <script src="js/core/game.js?v=fullscreen1"></script>
+    <script src="js/core/units.js?v=fullscreen1"></script>
+    <script src="js/systems/battle.js?v=fullscreen1"></script>
+    <script src="js/systems/economy.js?v=fullscreen1"></script>
+    <script src="js/systems/formation.js?v=fullscreen1"></script>
+    <script src="js/ui/animations.js?v=fullscreen1"></script>
+    <script src="js/ui/renderer.js?v=fullscreen1"></script>
+    <script src="js/ui/battle-arena-scene.js?v=fullscreen1"></script>
+    <script src="js/phaser/battle-scene.js?v=fullscreen1"></script>
+    <script src="js/phaser/card-sprite.js?v=fullscreen1"></script>
+    <script src="js/phaser/animations.js?v=fullscreen1"></script>
+    <script src="js/phaser/bridge.js?v=fullscreen1"></script>
+    <script src="js/ui/cardhand.js?v=fullscreen1"></script>
+    <script src="js/ui/tutorial.js?v=fullscreen1"></script>
+    <script src="js/ui/screens.js?v=fullscreen1"></script>
+    <script src="js/systems/blockchain.js?v=fullscreen1"></script>
+    <script src="js/systems/backend.js?v=fullscreen1"></script>
+    <script src="js/systems/renaiss.js?v=fullscreen1"></script>
+    <script src="js/ui/market.js?v=fullscreen1"></script>
+    <script src="js/main.js?v=fullscreen1"></script>
 </body>
 </html>
