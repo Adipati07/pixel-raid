@@ -171,6 +171,19 @@ const BattleArenaScene = {
             this.playAttack(0, 0, info.isPlayerAttacking, info.damage, info.isCrit);
         };
 
+        // Hook battle engine draw callback
+        BattleEngine.onDraw = (info) => {
+            if (info.isPlayer) {
+                this._cardDrawAnims.push({
+                    startTime: performance.now(),
+                    duration: 400,
+                    x: this.W + 50, // start off-screen right
+                    targetX: 0, // will be set in _renderCardDrawAnims
+                });
+            }
+        };
+        this._cardDrawAnims = [];
+
         // Transition complete callback
         setTimeout(() => {
             this.transitioning = false;
@@ -311,6 +324,9 @@ const BattleArenaScene = {
 
         // Draw card fly animations (on top of everything)
         this._renderCardFlyAnims(ctx);
+
+        // Draw card draw animations
+        this._renderCardDrawAnims(ctx);
 
         // Draw vignette (dramatic edge darkening)
         this._drawVignette(ctx, W, H);
@@ -1041,15 +1057,18 @@ const BattleArenaScene = {
         ctx.fillStyle = color;
         ctx.fillRect(x + 2, y + 2, w - 4, 4);
 
-        // Card icon area (colored rectangle)
-        const iconSize = Math.min(w * 0.3, h * 0.25);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.3;
-        ctx.fillRect(x + (w - iconSize) / 2, y + 10, iconSize, iconSize);
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x + (w - iconSize) / 2, y + 10, iconSize, iconSize);
+        // Card icon (type-specific emoji)
+        const typeEmojis = {
+            attack: '⚔️', damage: '💥', defense: '🛡️', buff: '⬆️',
+            debuff: '⬇️', heal: '💚', special: '⭐', draw: '📥',
+            shield: '🛡️', speed: '💨', poison: '☠️', burn: '🔥',
+        };
+        const cardType = card.type || card.cardType || '';
+        const emoji = typeEmojis[cardType] || '🃏';
+        const iconSize = Math.min(w * 0.35, h * 0.25);
+        ctx.font = `${iconSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(emoji, x + w / 2, y + 10 + iconSize * 0.8);
 
         // Card name
         ctx.font = 'bold 8px "Press Start 2P", monospace';
@@ -1255,6 +1274,50 @@ const BattleArenaScene = {
                 return false;
             }
             return true;
+        });
+    },
+
+    // ===== CARD DRAW ANIMATION =====
+    _renderCardDrawAnims(ctx) {
+        if (!this._cardDrawAnims || !this._cardDrawAnims.length) return;
+        const now = performance.now();
+        const layout = this._calcLayout();
+        const handRect = layout.hand;
+
+        this._cardDrawAnims = this._cardDrawAnims.filter(anim => {
+            const t = Math.min(1, (now - anim.startTime) / anim.duration);
+            const ease = 1 - Math.pow(1 - t, 3);
+
+            // Animate from right side to hand area
+            const startX = this.W + 50;
+            const endX = handRect.x + handRect.w / 2;
+            const y = handRect.y + handRect.h / 2;
+            const cx = startX + (endX - startX) * ease;
+
+            // Draw card sliding in
+            const cw = 60 * (0.5 + ease * 0.5);
+            const ch = 80 * (0.5 + ease * 0.5);
+
+            ctx.save();
+            ctx.globalAlpha = ease;
+            ctx.shadowColor = '#4488ff';
+            ctx.shadowBlur = 15 * (1 - ease);
+
+            ctx.fillStyle = 'rgba(15, 12, 30, 0.95)';
+            ctx.fillRect(cx - cw / 2, y - ch / 2, cw, ch);
+            ctx.strokeStyle = '#4488ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx - cw / 2, y - ch / 2, cw, ch);
+
+            ctx.shadowBlur = 0;
+            ctx.font = '6px "Press Start 2P"';
+            ctx.fillStyle = '#4488ff';
+            ctx.textAlign = 'center';
+            ctx.fillText('📥 DRAW', cx, y + 3);
+
+            ctx.restore();
+
+            return t < 1;
         });
     },
 

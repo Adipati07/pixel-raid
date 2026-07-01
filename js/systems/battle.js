@@ -19,6 +19,7 @@ const BattleEngine = {
     onCardPlayed: null,
     onFieldUpdate: null,
     onAttack: null,
+    onDraw: null,
     log: [],
 
     // LP (Life Points) — kept for compatibility, hero HP is primary
@@ -225,6 +226,7 @@ const BattleEngine = {
             const drawn = this._drawOneCard(current);
             if (drawn) {
                 this.addLog(`📥 ${current.name} draws a card`, 'info');
+                if (this.onDraw) this.onDraw({ isPlayer: this.isPlayerTurn });
             } else {
                 this.addLog(`📥 ${current.name} can't draw (deck empty or hand full)`, 'info');
             }
