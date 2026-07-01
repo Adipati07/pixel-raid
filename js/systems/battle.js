@@ -18,6 +18,7 @@ const BattleEngine = {
     onPhaseChange: null,
     onCardPlayed: null,
     onFieldUpdate: null,
+    onAttack: null,
     log: [],
 
     // LP (Life Points) — kept for compatibility, hero HP is primary
@@ -597,6 +598,17 @@ const BattleEngine = {
         this._showDamageNum(defender, `-${finalDamage}${isCrit ? ' 💥' : ''}`, isCrit ? '#ff4444' : '#ffaa00');
         this._triggerAnimation(isCrit ? 'crit' : 'hit');
 
+        // Notify attack callback (for canvas animation)
+        if (this.onAttack) {
+            this.onAttack({
+                isPlayerAttacking: this.isPlayerTurn,
+                damage: finalDamage,
+                isCrit: isCrit,
+                attackerName: hero.name,
+                targetName: target.name,
+            });
+        }
+
         // Animate via Phaser
         if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
             BattlePhaser.triggerShake(isCrit ? 10 : 5, isCrit ? 0.5 : 0.3);
@@ -753,6 +765,11 @@ const BattleEngine = {
         overlay.innerHTML = `<div class="battle-overlay-text battle-overlay-${type}">${text}</div>`;
         wrap.appendChild(overlay);
         setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 1500);
+
+        // Also show canvas-based battle end overlay
+        if ((type === 'clear' || type === 'defeat') && typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
+            BattleArenaScene.showBattleEnd(type === 'clear' ? 'win' : 'lose');
+        }
     },
 
     _triggerAnimation(type) {

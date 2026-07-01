@@ -166,6 +166,11 @@ const BattleArenaScene = {
         // Start render loop
         this._startRenderLoop();
 
+        // Hook battle engine attack callback
+        BattleEngine.onAttack = (info) => {
+            this.playAttack(0, 0, info.isPlayerAttacking, info.damage, info.isCrit);
+        };
+
         // Transition complete callback
         setTimeout(() => {
             this.transitioning = false;
@@ -318,6 +323,9 @@ const BattleArenaScene = {
 
         // Draw phase banner if active
         this._renderPhaseBanner(ctx);
+
+        // Draw battle end overlay if active
+        this._renderBattleEnd(ctx);
 
         ctx.restore();
 
@@ -1256,17 +1264,10 @@ const BattleArenaScene = {
         const fieldSrc = isPlayerAttacking ? layout.fieldPlayer : layout.fieldEnemy;
         const fieldDst = isPlayerAttacking ? layout.fieldEnemy : layout.fieldPlayer;
 
-        // Source position (attacker zone center)
-        const zoneW = this.ZONE_W;
-        const gap = this.ZONE_GAP;
-        const totalHeroW = zoneW * 3 + gap * 2;
-        const heroStartX = fieldSrc.x + (fieldSrc.w - totalHeroW) / 2;
-        const srcX = heroStartX + attackIdx * (zoneW + gap) + zoneW / 2;
+        // Single hero centered in field
+        const srcX = fieldSrc.x + fieldSrc.w / 2;
         const srcY = fieldSrc.y + fieldSrc.h / 2;
-
-        // Target position
-        const tgtStartX = fieldDst.x + (fieldDst.w - totalHeroW) / 2;
-        const tgtX = tgtStartX + targetIdx * (zoneW + gap) + zoneW / 2;
+        const tgtX = fieldDst.x + fieldDst.w / 2;
         const tgtY = fieldDst.y + fieldDst.h / 2;
 
         this.attackAnims.push({
@@ -1487,6 +1488,81 @@ const BattleArenaScene = {
         ctx.restore();
     },
 
+    // ===== BATTLE END OVERLAY =====
+    showBattleEnd(result) {
+        this._battleEnd = {
+            result: result, // 'win' or 'lose'
+            alpha: 0,
+            scale: 0.5,
+            phase: 'in',
+            startTime: performance.now(),
+        };
+    },
+
+    _renderBattleEnd(ctx) {
+        const be = this._battleEnd;
+        if (!be) return;
+
+        if (be.phase === 'in') {
+            be.alpha = Math.min(1, be.alpha + 0.03);
+            be.scale = Math.min(1.0, be.scale + 0.025);
+            if (be.alpha >= 1) be.phase = 'hold';
+        }
+
+        const W = this.W;
+        const H = this.H;
+
+        // Full screen dark overlay
+        ctx.fillStyle = `rgba(0,0,0,${be.alpha * 0.7})`;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.globalAlpha = be.alpha;
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(be.scale, be.scale);
+
+        const isWin = be.result === 'win';
+        const color = isWin ? '#ffd700' : '#ff4444';
+        const text = isWin ? '🏆 VICTORY!' : '💀 DEFEATED';
+        const subText = isWin ? 'Stage Clear!' : 'Try Again...';
+
+        // Glow
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 30;
+
+        // Main text
+        ctx.fillStyle = color;
+        ctx.font = 'bold 20px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, 0, -10);
+
+        // Sub text
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText(subText, 0, 20);
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Particles burst for victory
+        if (isWin && be.alpha > 0.5) {
+            const t = (performance.now() - be.startTime) / 1000;
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 + t;
+                const dist = 50 + t * 40;
+                const px = W / 2 + Math.cos(angle) * dist;
+                const py = H / 2 + Math.sin(angle) * dist;
+                ctx.beginPath();
+                ctx.arc(px, py, 2, 0, Math.PI * 2);
+                ctx.fillStyle = ['#ffd700', '#ff6644', '#44ff88', '#4488ff'][i % 4];
+                ctx.globalAlpha = Math.max(0, 1 - t * 0.3);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+    },
+
     // ===== SCREEN SHAKE =====
     triggerShake(intensity, duration) {
         this.shakeDecay = duration || 0.3;
@@ -1554,10 +1630,9 @@ const BattleArenaScene = {
     getHeroZonePosition(zoneIndex, isPlayer) {
         const layout = this._calcLayout();
         const field = isPlayer ? layout.fieldPlayer : layout.fieldEnemy;
-        const totalHeroW = this.ZONE_W * 3 + this.ZONE_GAP * 2;
-        const heroStartX = field.x + (field.w - totalHeroW) / 2;
+        // Single hero centered in field
         return {
-            x: heroStartX + zoneIndex * (this.ZONE_W + this.ZONE_GAP) + this.ZONE_W / 2,
+            x: field.x + field.w / 2,
             y: field.y + field.h / 2,
         };
     },
