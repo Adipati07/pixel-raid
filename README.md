@@ -5,8 +5,8 @@
 > Live on **BNB Smart Chain (BSC) Testnet**.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![BscScan](https://img.shields.io/badge/contract-BSC%20testnet-orange.svg)](https://testnet.bscscan.com/address/0xB96eFfe282b5a8B71895CCF83fA4792A0f0933AC)
-[![GitHub stars](https://img.shields.io/github/stars/Adipati07/pixel-raid.svg)](https://github.com/Adipati07/pixel-raid/stargazers)
+[![BscScan](https://img.shields.io/badge/contract-BSC%20testnet-orange.svg)](https://testnet.bscscan.com/address/0xFB44693a41CaFAa2CfeDb7694A2b7F70A41F7C13)
+[![GitHub stars](https://img.shields.io/github/stars/0xluccid/pixel-raid.svg)](https://github.com/0xluccid/pixel-raid/stargazers)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
 
 ---
@@ -29,9 +29,9 @@ Every card is an **ERC-721 NFT** on BSC testnet — owned by you, tradable in-ga
 
 | Channel | URL |
 |---------|-----|
-| 🌐 Web (live) | **<https://pixel.brebross.xyz>** |
-| 📜 Smart contract | `0xB96eFfe282b5a8B71895CCF83fA4792A0f0933AC` (BSC testnet) |
-| 🔍 Explorer | <https://testnet.bscscan.com/address/0xB96eFfe282b5a8B71895CCF83fA4792A0f0933AC> |
+| 🌐 Web (live) | **<https://0xluccid.github.io/pixel-raid>** |
+| 📜 Smart contract | `0xFB44693a41CaFAa2CfeDb7694A2b7F70A41F7C13` (BSC testnet) |
+| 🔍 Explorer | <https://testnet.bscscan.com/address/0xFB44693a41CaFAa2CfeDb7694A2b7F70A41F7C13> |
 
 To play locally: clone the repo and open `index.html` in a desktop browser (Chrome/Firefox/Brave).
 Connect MetaMask → switch to BSC Testnet → start earning hero cards.
@@ -54,7 +54,7 @@ Connect MetaMask → switch to BSC Testnet → start earning hero cards.
 - PocketBase (`pb_data/`) — leaderboard, user progress, hero pool
 
 **Hosting**
-- nginx on VPS (`pixel.brebross.xyz`)
+- GitHub Pages (`0xluccid.github.io/pixel-raid`)
 - Cloudflare DNS + proxy + cache
 
 **Procedural Pixel Art**
@@ -65,7 +65,7 @@ Connect MetaMask → switch to BSC Testnet → start earning hero cards.
 ## 📂 Project Layout
 
 ```
-Adipati07/pixel-raid/
+0xluccid/pixel-raid/
 ├── index.html              ← Landing page (rad-first experience)
 ├── game.html               ← Game canvas + gameplay loop
 ├── landing.html            ← (legacy copy, kept for fallback)
@@ -107,7 +107,7 @@ Adipati07/pixel-raid/
 ## 🧪 Hacker Quickstart
 
 ```bash
-git clone https://github.com/Adipati07/pixel-raid
+git clone https://github.com/0xluccid/pixel-raid
 cd pixel-raid
 # open index.html in browser
 xdg-open index.html  # Linux
@@ -138,7 +138,7 @@ Single source of truth: `js/systems/blockchain.js::BlockchainBridge.CONTRACT_ADD
 
 ## 🤝 Contributing
 
-- **Owner**: [@Lil-Vorsex](https://github.com/Lil-Vorsex) (Adipati07 / Raden) — manages `main`
+- **Owner**: [@Lil-Vorsex](https://github.com/Lil-Vorsex) (0xluccid / Raden) — manages `main`
 - **Active contributor**: [@brebros](https://github.com/brebros) (Bre) — frontend polish, contract wiring
 - **PRs welcome** — fork → feature branch → PR. We squash-merge to `main`.
 
@@ -150,7 +150,7 @@ Single source of truth: `js/systems/blockchain.js::BlockchainBridge.CONTRACT_ADD
 - [x] Wallet → marketplace flow (BSC testnet)
 - [x] Tutorial UX polish + accessibility
 - [ ] Public mint flow (server-side trusted relayer)
-- [ ] BSCscan contract source verification
+- [x] BSCscan contract source verification
 - [ ] Demo video + hackathon submission packet
 
 ---
@@ -158,14 +158,14 @@ Single source of truth: `js/systems/blockchain.js::BlockchainBridge.CONTRACT_ADD
 ## ⚠️ Caveats
 
 - This runs on **BSC testnet** — no real-money value. The deployed contract is for demo only.
-- The Pinion-verified NFT metadata URL pattern: `https://pixel.brebross.xyz/metadata/{tokenId}.json`
+- The Pinion-verified NFT metadata URL pattern: `https://0xluccid.github.io/pixel-raid/metadata/{tokenId}.json`
 - Trust model: `mintCard` is `onlyOwner` (admin wallet). Users acquire cards via gameplay events triggered by server-side relayer; this is intentional for hackathon scope.
 
 ---
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 — Adipati07, brebros, contributors.
+[MIT](LICENSE) © 2026 — 0xluccid, brebros, contributors.
 
 ---
 
