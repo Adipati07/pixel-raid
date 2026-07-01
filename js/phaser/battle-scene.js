@@ -431,7 +431,7 @@ const PhaserBattleScene = new Phaser.Class({
     updateCenterDivider: function (state) {
         if (this.turnText) this.turnText.setText('Turn ' + state.turn);
         if (this.phaseText) {
-            var phaseNames = { draw: 'DRAW', main: 'MAIN', battle: 'BATTLE', end: 'END' };
+            var phaseNames = { draw: 'DRAW', energy: 'ENERGY', play: 'PLAY', arrange: 'ARRANGE', battle: 'BATTLE', result: 'RESULT' };
             this.phaseText.setText(phaseNames[state.phase] || '');
         }
     },

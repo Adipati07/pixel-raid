@@ -1,13 +1,13 @@
 /* ========================================
- * PIXEL RAID — Tactical Auto Battler Engine (Phase 1)
+ * PIXEL RAID — Tactical Auto Battler Engine (Sprint 2)
  * Board-based: 5 slots per side, energy system, auto battle
- * Flow: Draw → Main (play cards) → End Turn → Auto Battle → repeat
+ * Flow: Draw → Energy → Play → Arrange → Battle → Result
  * ======================================== */
 
 const BattleEngine = {
     // ===== STATE =====
     isRunning: false,
-    currentPhase: 'idle',   // idle, draw, main, battle, end
+    currentPhase: 'idle',   // idle, draw, energy, play, arrange, battle, result
     turnNumber: 0,
     onComplete: null,
     onPhaseChange: null,
@@ -91,10 +91,6 @@ const BattleEngine = {
             this.enemy.maxEnergy = Math.min(this.MAX_ENERGY, this.enemy.maxEnergy + this.ENERGY_PER_TURN);
         }
 
-        // Refill energy
-        this.player.energy = this.player.maxEnergy;
-        this.enemy.energy = this.enemy.maxEnergy;
-
         // Draw cards
         for (let i = 0; i < this.DRAWS_PER_TURN; i++) {
             this._drawCard(this.player);
@@ -104,16 +100,32 @@ const BattleEngine = {
         this._log(`\n— Turn ${this.turnNumber} —`);
         this._setPhase('draw');
 
-        // Auto advance to main phase after brief delay
+        // Auto advance to energy phase after brief delay
         this._phaseTimer = setTimeout(() => {
-            this._setPhase('main');
-            this._notifyFieldUpdate();
+            this._enterEnergyPhase();
         }, 600);
     },
 
-    // ===== MAIN PHASE — Player plays cards =====
+    // ===== ENERGY PHASE =====
+    _enterEnergyPhase() {
+        // Refill energy
+        const gained = this.player.maxEnergy - this.player.energy;
+        this.player.energy = this.player.maxEnergy;
+        this.enemy.energy = this.enemy.maxEnergy;
+
+        this._log(`⚡ +${gained} Energy (${this.player.energy}/${this.player.maxEnergy})`);
+        this._setPhase('energy');
+
+        // Auto advance to play phase after brief delay
+        this._phaseTimer = setTimeout(() => {
+            this._setPhase('play');
+            this._notifyFieldUpdate();
+        }, 400);
+    },
+
+    // ===== PLAY PHASE — Player plays cards =====
     playCard(handIndex, slotIndex) {
-        if (this.currentPhase !== 'main') return false;
+        if (this.currentPhase !== 'play') return false;
         if (handIndex < 0 || handIndex >= this.player.hand.length) return false;
         if (slotIndex < 0 || slotIndex >= this.BOARD_SIZE) return false;
         if (this.player.board[slotIndex] !== null) return false;
@@ -147,10 +159,42 @@ const BattleEngine = {
         return true;
     },
 
-    // ===== END TURN → Auto Battle =====
-    endTurn() {
-        if (this.currentPhase !== 'main') return;
+    // ===== ADVANCE PHASE =====
+    advancePhase() {
+        if (this.currentPhase === 'play') {
+            this._setPhase('arrange');
+            this._log('📐 Arrange your units!');
+            this._notifyFieldUpdate();
+        } else if (this.currentPhase === 'arrange') {
+            this._enterBattlePhase();
+        }
+    },
 
+    // ===== ARRANGE PHASE — Rearrange units on board =====
+    rearrangeUnit(fromSlot, toSlot) {
+        if (this.currentPhase !== 'arrange') return false;
+        if (fromSlot < 0 || fromSlot >= this.BOARD_SIZE) return false;
+        if (toSlot < 0 || toSlot >= this.BOARD_SIZE) return false;
+        if (fromSlot === toSlot) return false;
+
+        const unit = this.player.board[fromSlot];
+        const target = this.player.board[toSlot];
+
+        // Swap units
+        this.player.board[fromSlot] = target;
+        this.player.board[toSlot] = unit;
+
+        // Update slot references
+        if (this.player.board[fromSlot]) this.player.board[fromSlot].slot = fromSlot;
+        if (this.player.board[toSlot]) this.player.board[toSlot].slot = toSlot;
+
+        this._log(`📐 Moved unit from Slot ${fromSlot + 1} → Slot ${toSlot + 1}`);
+        this._notifyFieldUpdate();
+        return true;
+    },
+
+    // ===== BATTLE PHASE =====
+    _enterBattlePhase() {
         // Enemy AI: play cards greedily
         this._enemyPlayCards();
 
@@ -186,20 +230,21 @@ const BattleEngine = {
 
     _executeAttackSequence(attacks, index) {
         if (index >= attacks.length) {
-            // All attacks done → check win/lose → next turn
+            // All attacks done → check win/lose → result phase
             this._battleStepTimer = setTimeout(() => {
                 this._cleanupDead();
                 this._notifyFieldUpdate();
 
                 const result = this._checkWinLose();
                 if (result) {
-                    this._setPhase('end');
+                    // Win or lose → show result
+                    this._setPhase('result');
                     this._log(result === 'player' ? '🎉 Victory!' : '💀 Defeat!');
                     if (this.onComplete) this.onComplete(result);
                     return;
                 }
 
-                // Next turn
+                // No winner yet → next turn
                 this._startTurn();
             }, 400);
             return;

@@ -1,7 +1,7 @@
 /* ========================================
  * PIXEL RAID — Premium Canvas Renderer (v4)
  * Yu-Gi-Oh style field with TCG Chaos Rising aesthetics
- * Dark gradient backgrounds, glowing zones, animated LP bars
+ * Dark gradient backgrounds, glowing zones, animated HP bars
  * ======================================== */
 
 // Image cache to avoid re-loading
@@ -486,7 +486,7 @@ const BattleRenderer = {
         ctx.fillRect(0, 0, W, H);
     },
 
-    // ===== INFO BAR — LP bar with gradient fill (green→yellow→red) =====
+    // ===== INFO BAR — HP bar with gradient fill (green→yellow→red) =====
     _drawInfoBar(ctx, combatant, x, y, w, h, isPlayer) {
         // Background — dark panel
         const grad = ctx.createLinearGradient(x, y, x, y + h);
@@ -522,7 +522,7 @@ const BattleRenderer = {
         ctx.textAlign = 'left';
         ctx.fillText(combatant.name || 'Unknown', x + padding + 22, textY - 6);
 
-        // LP Bar — with green→yellow→red gradient
+        // HP Bar — with green→yellow→red gradient
         const lpBarX = x + 160;
         const lpBarW = Math.min(200, w - 320);
         const lpBarH = 14;
@@ -537,12 +537,12 @@ const BattleRenderer = {
             if (animatedHP !== null) {
                 displayHP = animatedHP;
                 const animPct = Math.max(0, animatedHP / maxHP);
-                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, animPct, displayHP, maxHP);
+                this._drawHPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, animPct, displayHP, maxHP);
             } else {
-                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
+                this._drawHPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
             }
         } else {
-            this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
+            this._drawHPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
         }
 
         // Deck count (right side)
@@ -558,14 +558,14 @@ const BattleRenderer = {
     },
 
     /**
-     * Draw an LP bar with green→yellow→red gradient fill
+     * Draw an HP bar with green→yellow→red gradient fill
      */
-    _drawLPBar(ctx, x, y, w, h, pct, currentLP, maxLP) {
+    _drawHPBar(ctx, x, y, w, h, pct, currentHP, maxHP) {
         // Bar background
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(x, y, w, h);
 
-        // LP fill with gradient based on health percentage
+        // HP fill with gradient based on health percentage
         if (pct > 0) {
             const fillGrad = ctx.createLinearGradient(x, y, x + w * pct, y);
             if (pct > 0.55) {
@@ -601,7 +601,7 @@ const BattleRenderer = {
         ctx.fillStyle = PR_COLORS.textPrimary;
         ctx.font = 'bold 7px "Press Start 2P"';
         ctx.textAlign = 'center';
-        ctx.fillText(`LP ${currentLP} / ${maxLP}`, x + w / 2, y + h - 3);
+        ctx.fillText(`HP ${currentHP} / ${maxHP}`, x + w / 2, y + h - 3);
     },
 
     // ===== FIELD ZONES — Monster zones (3) + Spell/Trap zones (2) =====

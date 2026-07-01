@@ -241,7 +241,7 @@ const CardHand = {
         if (!cards) return;
 
         cards.forEach((el, i) => {
-            // Yu-Gi-Oh style: all cards playable during main phase (no mana system)
+            // Auto battler: all cards playable during play phase
             if (hand[i]) {
                 el.classList.remove('card-disabled');
                 el.classList.add('card-playable');
@@ -253,8 +253,13 @@ const CardHand = {
     },
 
     /**
-     * Clear the hand display
+     * Convenience: render hand using BattleEngine state
+     * Automatically enables cards only during 'play' phase
      */
+    renderHand(hand, energy) {
+        const canPlay = typeof BattleEngine !== 'undefined' && BattleEngine.currentPhase === 'play';
+        this.render(hand, energy, canPlay);
+    },
     clear() {
         if (this.container) this.container.innerHTML = '';
         this.selectedCard = null;

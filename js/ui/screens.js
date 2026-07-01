@@ -6,6 +6,7 @@ const UI = {
     currentScreen: 'battle',
     selectedCard: null,
     marketListings: [],
+    _arrangeDragState: null,
 
     init() {
         this.bindNav();
@@ -53,15 +54,14 @@ const UI = {
 
     // ===== BATTLE SCREEN =====
     renderBattleScreen() {
-        // BUG FIX: Always re-enable start button when rendering battle screen
-        // (prevents stuck-disabled after page refresh during battle)
+        // Always re-enable start button when rendering battle screen
         const startBtn = document.getElementById('btn-start-battle');
         if (startBtn) startBtn.disabled = false;
 
-        // Show deck preview (hero + skill cards) when battle is not active
+        // Show deck preview when battle is not active
         this.renderBattleDeckPreview();
 
-        // Update header stats if stage/wave elements exist
+        // Update header stats
         const stageEl = document.getElementById('stage-number');
         if (stageEl) stageEl.textContent = GameState.player.stage;
         const waveEl = document.getElementById('wave-number');
@@ -72,7 +72,7 @@ const UI = {
             progressEl.style.width = progress + '%';
         }
 
-        // ISSUE 4: Hide black canvas area when battle is not active
+        // Hide canvas when battle is not active
         const canvasContainer = document.getElementById('battle-canvas-container');
         if (canvasContainer) {
             if (typeof BattleEngine !== 'undefined' && BattleEngine.isRunning) {
@@ -93,15 +93,10 @@ const UI = {
         }
     },
 
-    /**
-     * Render battle deck preview — shows active hero + skill deck cards
-     * Visible when battle is NOT running, hidden during battle
-     */
     renderBattleDeckPreview() {
         const preview = document.getElementById('battle-deck-preview');
         if (!preview) return;
 
-        // Hide preview when battle is active
         if (typeof BattleEngine !== 'undefined' && BattleEngine.isRunning) {
             preview.style.display = 'none';
             return;
@@ -113,7 +108,6 @@ const UI = {
             ? GameState.getSkillDeckCards()
             : SKILL_CARD_TEMPLATES.slice(0, 4).map(t => ({ ...t }));
 
-        // No hero in deck — prompt user
         if (deckCards.length === 0) {
             preview.innerHTML = `
                 <div style="text-align:center;padding:24px 12px;">
@@ -131,7 +125,6 @@ const UI = {
         const rarity = RARITIES[hero.rarity] || {};
         const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
 
-        // Hero preview section
         let heroHTML = `
             <div class="battle-preview-hero">
                 <div class="battle-preview-hero-sprite" id="battle-preview-sprite"></div>
@@ -148,7 +141,6 @@ const UI = {
             </div>
         `;
 
-        // Skill cards section
         let skillsHTML = '<div class="battle-preview-skills">';
         skillCards.forEach(card => {
             const typeIcon = typeIcons[card.type] || '🃏';
@@ -165,7 +157,7 @@ const UI = {
 
         preview.innerHTML = heroHTML + skillsHTML;
 
-        // Draw hero sprite (image with canvas fallback)
+        // Draw hero sprite
         const spriteContainer = document.getElementById('battle-preview-sprite');
         if (spriteContainer) {
             if (template && template.image) {
@@ -198,12 +190,11 @@ const UI = {
             this.startBattle();
         });
 
-        // Default battle speed = 2x (fast) — no speed buttons in UI
+        // Default battle speed = 2x (fast)
         GameState.battleSpeed = 2;
     },
 
     startBattle() {
-        // Tactical Auto Battler — unit cards on board
         const stage = GameState.player.stage;
 
         // Generate unit decks (10 cards each)
@@ -225,8 +216,71 @@ const UI = {
         // Go fullscreen for battle
         document.getElementById('screen-battle').classList.add('battle-active');
 
-        // Init Phaser renderer (sole renderer after Sprint 1 cleanup)
+        // Init Phaser renderer
         BattlePhaser.init('battle-canvas-container');
+
+        // Create or update the action row for phase buttons
+        this._ensureActionRow();
+
+        // Create or update the phase bar
+        this._ensurePhaseBar();
+
+        // Wire up BattleEngine event handlers
+        BattleEngine.onPhaseChange = (phase) => {
+            this._updatePhaseBar(phase);
+            this._updateActionButtons(phase);
+
+            // Show phase banner in Phaser
+            const phaseNames = {
+                draw: 'DRAW', energy: 'ENERGY', play: 'PLAY',
+                arrange: 'ARRANGE', battle: 'BATTLE', result: 'RESULT'
+            };
+            BattlePhaser.showPhaseBanner(phaseNames[phase] || phase.toUpperCase(), true);
+
+            // Update Phaser center divider
+            if (BattleEngine.player && BattleEngine.enemy) {
+                BattlePhaser.renderField(BattleEngine.player, BattleEngine.enemy);
+            }
+        };
+
+        BattleEngine.onFieldUpdate = () => {
+            const state = BattleEngine.getFieldState();
+            BattlePhaser.renderField(state.player, state.enemy);
+
+            // Re-render card hand if in play phase
+            if (BattleEngine.currentPhase === 'play' && typeof CardHand !== 'undefined') {
+                CardHand.renderHand(BattleEngine.player.hand, BattleEngine.player.energy);
+            }
+
+            // Update arrange UI if in arrange phase
+            if (BattleEngine.currentPhase === 'arrange') {
+                this._renderArrangeOverlay();
+            }
+        };
+
+        BattleEngine.onAttack = (data) => {
+            const attacker = data.attacker;
+            const isPlayer = attacker.side === 'player';
+            const pos = BattlePhaser.getHeroZonePosition(0, isPlayer);
+            const tgtPos = data.targetIsHero
+                ? BattlePhaser.getHeroZonePosition(0, !isPlayer)
+                : BattlePhaser.getHeroZonePosition(0, !isPlayer);
+
+            BattlePhaser.playAttack(0, 0, isPlayer, data.damage, false);
+
+            // Update hero HP display
+            if (data.targetIsHero) {
+                const targetSide = data.targetSide;
+                const combatant = targetSide === 'player' ? BattleEngine.player : BattleEngine.enemy;
+                BattlePhaser.updateHeroHP(targetSide === 'player', combatant.heroHp, combatant.heroMaxHp);
+            }
+        };
+
+        BattleEngine.onDraw = (card) => {
+            if (typeof CardHand !== 'undefined') {
+                CardHand.renderHand(BattleEngine.player.hand, BattleEngine.player.energy);
+            }
+        };
 
         // Start the battle engine
         BattleEngine.startBattle(playerDeck, enemyDeck, {
@@ -234,36 +288,266 @@ const UI = {
             enemyName: `Stage ${stage} Enemy`,
         });
 
-        // Handle battle completion
+        // Handle battle completion (from result phase)
         BattleEngine.onComplete = (result) => {
-            // Wait a moment, then show result
-            setTimeout(() => {
-                BattlePhaser.exit();
-                if (battleContainer) battleContainer.style.display = 'none';
-                document.getElementById('screen-battle').classList.remove('battle-active');
-
-                if (result === 'player') {
-                    GameState.stats.battlesWon++;
-                    if (GameState.player.wave < GameState.player.maxWave) {
-                        GameState.player.wave++;
-                    } else {
-                        const rewards = Economy.processStageReward(stage);
-                        GameState.player.stage++;
-                        GameState.player.wave = 1;
-                        GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
-                        setTimeout(() => this.showStageClearModal(rewards, stage), 500);
-                    }
-                    this.toast('🎉 Victory!', 'success');
-                } else {
-                    GameState.stats.battlesLost++;
-                    setTimeout(() => this.showDefeatModal(), 500);
-                }
-
-                GameState.save();
-                this.updateHeader();
-                this.renderBattleScreen();
-            }, 1500);
+            // Don't immediately exit — the result phase handles display
+            // onComplete is called when user clicks "Continue"
         };
+    },
+
+    // ===== PHASE BAR =====
+    _ensurePhaseBar() {
+        let bar = document.getElementById('battle-phase-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'battle-phase-bar';
+            bar.style.cssText = 'display:flex;justify-content:center;gap:4px;padding:6px 8px;background:rgba(10,10,26,0.95);border-bottom:1px solid rgba(255,215,0,0.2);';
+            const container = document.getElementById('battle-canvas-container');
+            if (container && container.parentElement) {
+                container.parentElement.insertBefore(bar, container);
+            }
+        }
+
+        const phases = [
+            { key: 'draw', label: 'DRAW', icon: '🂠' },
+            { key: 'energy', label: 'ENERGY', icon: '⚡' },
+            { key: 'play', label: 'PLAY', icon: '🃏' },
+            { key: 'arrange', label: 'ARRANGE', icon: '📐' },
+            { key: 'battle', label: 'BATTLE', icon: '⚔️' },
+            { key: 'result', label: 'RESULT', icon: '🏆' },
+        ];
+
+        bar.innerHTML = phases.map((p, i) => `
+            <div class="phase-gem" data-phase="${p.key}" style="
+                display:flex;flex-direction:column;align-items:center;gap:2px;
+                padding:3px 6px;border-radius:4px;
+                font-family:'Press Start 2P',monospace;font-size:6px;
+                color:rgba(255,255,255,0.3);transition:all 0.3s;
+                border:1px solid transparent;
+            ">
+                <span style="font-size:12px;">${p.icon}</span>
+                <span>${p.label}</span>
+            </div>
+            ${i < phases.length - 1 ? '<div style="color:rgba(255,255,255,0.15);align-self:center;font-size:10px;">›</div>' : ''}
+        `).join('');
+
+        // Mark initial phase
+        this._updatePhaseBar(BattleEngine.currentPhase);
+    },
+
+    _updatePhaseBar(phase) {
+        const gems = document.querySelectorAll('#battle-phase-bar .phase-gem');
+        const phaseOrder = ['draw', 'energy', 'play', 'arrange', 'battle', 'result'];
+        const currentIdx = phaseOrder.indexOf(phase);
+
+        gems.forEach(gem => {
+            const gemPhase = gem.dataset.phase;
+            const gemIdx = phaseOrder.indexOf(gemPhase);
+
+            if (gemIdx < currentIdx) {
+                // Completed
+                gem.style.color = 'rgba(255,215,0,0.3)';
+                gem.style.borderColor = 'rgba(255,215,0,0.15)';
+                gem.style.background = 'transparent';
+            } else if (gemIdx === currentIdx) {
+                // Active — gold glow
+                gem.style.color = '#ffd700';
+                gem.style.borderColor = '#ffd700';
+                gem.style.background = 'rgba(255,215,0,0.12)';
+                gem.style.boxShadow = '0 0 8px rgba(255,215,0,0.4)';
+            } else {
+                // Upcoming
+                gem.style.color = 'rgba(255,255,255,0.3)';
+                gem.style.borderColor = 'transparent';
+                gem.style.background = 'transparent';
+                gem.style.boxShadow = 'none';
+            }
+        });
+    },
+
+    // ===== ACTION BUTTONS =====
+    _ensureActionRow() {
+        let row = document.querySelector('.battle-action-row');
+        if (!row) {
+            row = document.createElement('div');
+            row.className = 'battle-action-row';
+            row.style.cssText = 'display:flex;justify-content:center;gap:8px;padding:4px 0;background:rgba(10,10,26,0.9);';
+            const container = document.getElementById('battle-canvas-container');
+            if (container && container.parentElement) {
+                container.parentElement.appendChild(row);
+            }
+        }
+        this._updateActionButtons('draw');
+    },
+
+    _updateActionButtons(phase) {
+        const row = document.querySelector('.battle-action-row');
+        if (!row) return;
+
+        if (phase === 'play') {
+            row.innerHTML = `
+                <button class="btn btn-gold" id="btn-done-playing" onclick="BattleEngine.advancePhase(); UI._updateActionButtons(BattleEngine.currentPhase);">
+                    ✅ Done Playing
+                </button>
+            `;
+            row.style.display = 'flex';
+        } else if (phase === 'arrange') {
+            row.innerHTML = `
+                <button class="btn btn-gold" id="btn-end-turn" onclick="BattleEngine.advancePhase(); UI._updateActionButtons(BattleEngine.currentPhase);">
+                    ⚔️ End Turn
+                </button>
+            `;
+            row.style.display = 'flex';
+        } else if (phase === 'result') {
+            this._renderResultScreen();
+            row.style.display = 'none';
+        } else {
+            row.innerHTML = '';
+            row.style.display = 'none';
+        }
+    },
+
+    // ===== ARRANGE PHASE OVERLAY =====
+    _renderArrangeOverlay() {
+        // Show/hide the arrange instruction overlay on Phaser canvas area
+        let overlay = document.getElementById('arrange-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'arrange-overlay';
+            overlay.style.cssText = `
+                position:absolute;top:0;left:0;right:0;bottom:0;
+                pointer-events:none;z-index:10001;
+                display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+                padding-top:8px;
+            `;
+            const canvasContainer = document.getElementById('battle-canvas-container');
+            if (canvasContainer) {
+                canvasContainer.style.position = 'relative';
+                canvasContainer.appendChild(overlay);
+            }
+        }
+
+        if (BattleEngine.currentPhase !== 'arrange') {
+            overlay.style.display = 'none';
+            return;
+        }
+
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div style="
+                background:rgba(10,10,30,0.85);border:1px solid rgba(255,215,0,0.3);
+                padding:6px 16px;border-radius:6px;font-family:'Press Start 2P',monospace;
+                font-size:8px;color:#ffd700;text-align:center;
+                pointer-events:auto;
+            ">
+                📐 Drag units to rearrange positions
+            </div>
+        `;
+    },
+
+    // ===== RESULT SCREEN =====
+    _renderResultScreen() {
+        const result = BattleEngine._checkWinLose();
+        const isWin = result === 'player';
+
+        // Create result overlay
+        let overlay = document.getElementById('battle-result-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'battle-result-overlay';
+            overlay.style.cssText = `
+                position:fixed;top:0;left:0;right:0;bottom:0;
+                z-index:99999;display:flex;align-items:center;justify-content:center;
+                background:rgba(0,0,0,0.7);animation:fadeIn 0.3s ease;
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        overlay.style.display = 'flex';
+
+        const stage = GameState.player.stage;
+        let rewardHTML = '';
+        if (isWin) {
+            const goldReward = 50 + stage * 20;
+            rewardHTML = `
+                <div style="margin:12px 0;font-size:10px;color:#ffd700;">
+                    💰 +${goldReward} Gold
+                </div>
+            `;
+        }
+
+        overlay.innerHTML = `
+            <div style="
+                background:linear-gradient(135deg,#0a0a2e,#141432);
+                border:2px solid ${isWin ? '#ffd700' : '#ff4444'};
+                border-radius:12px;padding:24px 32px;text-align:center;
+                max-width:320px;width:90%;box-shadow:0 0 30px ${isWin ? 'rgba(255,215,0,0.3)' : 'rgba(255,68,68,0.3)'};
+            ">
+                <div style="font-family:'Press Start 2P',monospace;font-size:18px;color:${isWin ? '#ffd700' : '#ff4444'};margin-bottom:12px;text-shadow:0 0 10px ${isWin ? 'rgba(255,215,0,0.5)' : 'rgba(255,68,68,0.5)'};">
+                    ${isWin ? '🎉 Victory!' : '💀 Defeat!'}
+                </div>
+                <div style="font-size:9px;color:rgba(255,255,255,0.6);margin-bottom:8px;">
+                    Turn ${BattleEngine.turnNumber}
+                </div>
+                ${rewardHTML}
+                <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
+                    <button class="btn btn-gold" onclick="UI._handleBattleResult('${isWin ? 'win' : 'lose'}')">
+                        ${isWin ? '▶ Continue' : '🔄 Retry'}
+                    </button>
+                    ${isWin ? '' : '<button class="btn btn-secondary" onclick="UI._handleBattleResult(\'back\')">Back</button>'}
+                </div>
+            </div>
+        `;
+    },
+
+    _handleBattleResult(type) {
+        // Remove overlay
+        const overlay = document.getElementById('battle-result-overlay');
+        if (overlay) overlay.remove();
+
+        // Remove arrange overlay
+        const arrangeOverlay = document.getElementById('arrange-overlay');
+        if (arrangeOverlay) arrangeOverlay.remove();
+
+        // Remove phase bar
+        const phaseBar = document.getElementById('battle-phase-bar');
+        if (phaseBar) phaseBar.remove();
+
+        // Remove action row content
+        const actionRow = document.querySelector('.battle-action-row');
+        if (actionRow) { actionRow.innerHTML = ''; actionRow.style.display = 'none'; }
+
+        const stage = GameState.player.stage;
+        const battleContainer = document.getElementById('battle-canvas-container');
+
+        if (type === 'win') {
+            GameState.stats.battlesWon++;
+            if (GameState.player.wave < GameState.player.maxWave) {
+                GameState.player.wave++;
+            } else {
+                const rewards = Economy.processStageReward(stage);
+                GameState.player.stage++;
+                GameState.player.wave = 1;
+                GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
+                setTimeout(() => this.showStageClearModal(rewards, stage), 500);
+            }
+            const goldReward = 50 + stage * 20;
+            Economy.addGold(goldReward);
+            this.toast('🎉 Victory!', 'success');
+        } else if (type === 'lose') {
+            GameState.stats.battlesLost++;
+            setTimeout(() => this.showDefeatModal(), 500);
+        }
+
+        // Exit battle
+        BattlePhaser.exit();
+        if (battleContainer) battleContainer.style.display = 'none';
+        document.getElementById('screen-battle').classList.remove('battle-active');
+        BattleEngine.stop();
+
+        GameState.save();
+        this.updateHeader();
+        this.renderBattleScreen();
     },
 
     showRewards(rewards) {
@@ -309,7 +593,6 @@ const UI = {
         `;
 
         document.body.appendChild(modal);
-        // Auto-close after 8s if not interacted
         setTimeout(() => { if (modal.parentNode) modal.remove(); }, 8000);
     },
 
@@ -352,7 +635,6 @@ const UI = {
             return;
         }
 
-        // Sort by rarity then power
         const sorted = [...GameState.collection].sort((a, b) => {
             const rarityOrder = { mythic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
             const rDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
@@ -374,7 +656,6 @@ const UI = {
                 sprite.style.imageRendering = 'pixelated';
                 sprite.src = template.image;
                 sprite.onerror = function() {
-                    // Fallback to canvas procedural art
                     const cvs = document.createElement('canvas');
                     cvs.className = 'card-sprite';
                     cvs.width = 48;
@@ -401,7 +682,6 @@ const UI = {
 
             const stats = document.createElement('div');
             stats.className = 'card-stats';
-            // Calculate max stats for bar scaling (based on highest possible base)
             const maxHP = 140, maxATK = 38, maxDEF = 25, maxSPD = 24;
             const statData = [
                 { label: 'HP',  val: card.stats.hp,  max: maxHP,  color: '#44cc44' },
@@ -418,146 +698,55 @@ const UI = {
             `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>` +
             (card.level > 1 ? `<div class="card-exp-bar" style="margin-top:3px"><div class="card-exp-fill" style="width:${card.expToNext > 0 ? Math.min(100, (card.exp / card.expToNext) * 100) : 0}%"></div></div>` : '');
 
-            el.append(sprite, name, cls, stats);
+            el.appendChild(sprite);
+            el.appendChild(name);
+            el.appendChild(cls);
+            el.appendChild(stats);
             grid.appendChild(el);
         });
     },
 
     showHeroDetail(card) {
-        const detail = document.getElementById('hero-detail');
-        const content = document.getElementById('hero-detail-content');
-        
-        const isEquipped = GameState.deck.includes(card.id);
-        const equipBtnText = isEquipped ? '📤 Remove from Deck' : '📥 Add to Deck';
-        const template = getTemplateByName(card.templateId || card.name);
-        
-        content.innerHTML = `
-            <div style="text-align:center;margin-bottom:16px;">
-                <div id="detail-sprite-container" style="width:96px;height:96px;margin:0 auto;"></div>
-                <h3 style="color:${RARITIES[card.rarity].color};font-size:12px;margin-top:8px;">${card.name}</h3>
-                <div style="color:${CLASSES[card.class].color};font-size:8px;">${CLASSES[card.class].emoji} ${CLASSES[card.class].name} • ${RARITIES[card.rarity].name}</div>
-                ${card.level > 1 ? `<div style="color:#9b59b6;font-size:8px;margin-top:2px;">⭐ Level ${card.level} — EXP: ${card.exp || 0}/${card.expToNext || '?'}</div>` : ''}
-            </div>
-            <div style="font-size:8px;margin-bottom:12px;">
-                ${['HP','ATK','DEF','SPD'].map(s => {
-                    const val = card.stats[s.toLowerCase()];
-                    const max = {HP:140,ATK:38,DEF:25,SPD:24}[s];
-                    const color = {HP:'#44cc44',ATK:'#ff6644',DEF:'#4488ff',SPD:'#ffaa00'}[s];
-                    return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
-                        <span style="color:#888;width:30px;font-size:7px;">${s}</span>
-                        <div style="flex:1;height:6px;background:var(--bg-dark);border-radius:3px;overflow:hidden;"><div style="width:${Math.min(100,(val/max)*100)}%;height:100%;background:${color};border-radius:3px;"></div></div>
-                        <span style="color:${color};width:28px;text-align:right;font-size:8px;font-weight:700;">${val}</span>
-                    </div>`;
-                }).join('')}
-                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
-                    <span style="color:#888">CRIT</span><span style="color:#ff44aa">${card.stats.crit}%</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;padding:4px 0;">
-                    <span style="color:#888">POWER</span><span style="color:var(--gold)">${getCardPower(card)}</span>
-                </div>
-            </div>
-            ${template && template.lore ? `<div style="font-size:7px;color:var(--text-dim);font-style:italic;padding:6px 8px;margin-bottom:10px;background:var(--bg-dark);border-left:2px solid ${RARITIES[card.rarity].color};border-radius:0 4px 4px 0;">"${template.lore}"</div>` : ''}
-            <div style="font-size:7px;background:var(--bg-dark);padding:8px;margin-bottom:12px;">
-                <div style="color:var(--gem);margin-bottom:4px;">✨ Skill: ${card.skill.name}</div>
-                <div style="color:var(--text-dim);">Type: ${card.skill.type} • Chance: ${Math.floor(card.skill.chance * 100)}%</div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="btn btn-primary" onclick="UI.toggleDeck(${card.id})">${equipBtnText}</button>
-                <button class="btn btn-secondary" onclick="UI.sellCardConfirm(${card.id})">💰 Sell (${getCardSellPrice(card)}g)</button>
-                <button class="btn btn-secondary" onclick="UI.closeHeroDetail()">Close</button>
-            </div>
-        `;
-
-        detail.classList.remove('hidden');
-        
-        // Draw sprite — image with canvas fallback
-        const container = document.getElementById('detail-sprite-container');
-        if (template && template.image) {
-            const img = document.createElement('img');
-            img.width = 96;
-            img.height = 96;
-            img.style.imageRendering = 'pixelated';
-            img.src = template.image;
-            img.onerror = function() {
-                const cvs = document.createElement('canvas');
-                cvs.width = 96; cvs.height = 96;
-                CardRenderer.drawCardSprite(cvs, card, 96);
-                container.innerHTML = '';
-                container.appendChild(cvs);
-            };
-            container.innerHTML = '';
-            container.appendChild(img);
-        } else {
-            const cvs = document.createElement('canvas');
-            cvs.width = 96; cvs.height = 96;
-            CardRenderer.drawCardSprite(cvs, card, 96);
-            container.innerHTML = '';
-            container.appendChild(cvs);
-        }
+        // Placeholder for hero detail modal
+        this.toast(`${card.name} — ${CLASSES[card.class].name} Lv.${card.level || 1}`, 'info');
     },
 
-    toggleDeck(cardId) {
-        if (GameState.deck.includes(cardId)) {
-            GameState.removeFromDeck(cardId);
-            this.toast('Card removed from deck', 'info');
-        } else {
-            if (GameState.deck.length >= 4) {
-                this.toast('Deck is full! Remove a card first.', 'error');
-                return;
-            }
-            GameState.addToDeck(cardId);
-            this.toast('Card added to deck!', 'success');
-        }
-        this.closeHeroDetail();
-        this.renderHeroesScreen();
-    },
-
-    sellCardConfirm(cardId) {
-        const card = GameState.getCardById(cardId);
-        if (!card) return;
-        const price = getCardSellPrice(card);
-        if (confirm(`Sell ${card.name} for ${price} gold?`)) {
-            Economy.sellCard(cardId);
-            this.toast(`Sold ${card.name} for ${price}g`, 'success');
-            this.updateHeader();
-            this.closeHeroDetail();
-            this.renderHeroesScreen();
-        }
-    },
-
-    closeHeroDetail() {
-        document.getElementById('hero-detail').classList.add('hidden');
-    },
-
-    // ===== PLAYER NAME =====
-    changePlayerName() {
-        const current = GameState.player.name || 'Adventurer';
-        const newName = prompt('Enter your name:', current);
-        if (newName && newName.trim() && newName.trim() !== current) {
-            const name = newName.trim().substring(0, 16);
-            GameState.player.name = name;
-            document.getElementById('player-name').textContent = name;
-            GameState.save();
-            this.toast(`Name changed to ${name}!`, 'success');
-        }
-    },
-
-    // ===== STRATEGY SCREEN (replaces Formation) =====
-    _selectedStrategyHero: null,
-
+    // ===== STRATEGY / FORMATION SCREEN =====
     renderStrategyScreen() {
-        this._renderHeroSelectionGrid();
-    },
-
-    /**
-     * Section A: Hero Selection Grid — shows all 20 heroes from CARD_TEMPLATES
-     * Owned heroes are clickable; unowned are grayed out with lock icon
-     */
-    _renderHeroSelectionGrid() {
         const container = document.getElementById('strategy-content');
         if (!container) return;
 
-        const selectedDeckHeroId = GameState.deck.length > 0 ? GameState.deck[0] : null;
+        let html = '';
+
+        // Section A: Hero Selection
+        html += this._renderHeroSelectionGrid();
+
+        // Section B: Skill Deck Builder
+        html += this._renderSkillDeckBuilder();
+
+        // Section C: Active Deck Summary
+        html += this._renderDeckSummary();
+
+        container.innerHTML = html;
+
+        // Draw sprites after DOM update
+        setTimeout(() => {
+            container.querySelectorAll('.strategy-hero-sprite').forEach(canvas => {
+                const heroName = canvas.dataset.hero;
+                const hero = GameState.collection.find(c => c.name === heroName);
+                if (hero && typeof CardRenderer !== 'undefined') {
+                    CardRenderer.drawCardSprite(canvas, hero, 48);
+                }
+            });
+        }, 50);
+    },
+
+    /**
+     * Section A: Hero Selection Grid — pick active battle hero
+     */
+    _renderHeroSelectionGrid() {
+        const deckCards = GameState.getDeckCards();
+        const currentHero = deckCards.length > 0 ? deckCards[0] : null;
 
         let html = `
             <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin-bottom:8px;">
@@ -566,137 +755,54 @@ const UI = {
             <div class="strategy-hero-grid">
         `;
 
-        CARD_TEMPLATES.forEach((tmpl, index) => {
-            // Check if player owns this hero (match by templateId or name)
-            const ownedCard = GameState.collection.find(
-                c => (c.templateId === tmpl.name) || (c.name === tmpl.name)
-            );
-            const isOwned = !!ownedCard;
-            const isSelected = isOwned && ownedCard && selectedDeckHeroId === ownedCard.id;
-            const cls = CLASSES[tmpl.cls] || {};
-
-            // Determine default rarity for styling
-            const totalStats = tmpl.hp + tmpl.atk + tmpl.def + tmpl.spd + tmpl.crit;
-            const defaultRarity = totalStats > 200 ? 'epic' : totalStats > 160 ? 'rare' : 'common';
-
-            const opacity = isOwned ? '1' : '0.4';
-            const cursor = isOwned ? 'pointer' : 'not-allowed';
-            const borderGlow = isSelected ? `box-shadow:0 0 12px var(--gold),0 0 4px var(--gold);border-color:var(--gold);` : '';
-
+        GameState.collection.forEach(card => {
+            const isActive = currentHero && currentHero.id === card.id;
+            const cls = CLASSES[card.class] || {};
+            const r = RARITIES[card.rarity] || {};
             html += `
-                <div class="strategy-hero-card" data-hero-index="${index}"
-                     style="opacity:${opacity};cursor:${cursor};${borderGlow}"
-                     onclick="${isOwned ? `UI._selectStrategyHero(${index})` : ''}">
-                    ${!isOwned ? '<div class="strategy-hero-lock">🔒</div>' : ''}
-                    <canvas class="strategy-hero-sprite" data-hero-index="${index}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
-                    <div class="strategy-hero-name" style="color:${isOwned ? (RARITIES[ownedCard?.rarity]?.color || RARITIES[defaultRarity].color) : RARITIES[defaultRarity].color}">${tmpl.name}</div>
-                    <div class="strategy-hero-class">${cls.emoji || ''} ${cls.name || tmpl.cls}</div>
-                    <div class="strategy-hero-stats">
-                        <span style="color:#44cc44">HP:${tmpl.hp}</span>
-                        <span style="color:#ff6644">ATK:${tmpl.atk}</span>
-                        <span style="color:#4488ff">DEF:${tmpl.def}</span>
-                        <span style="color:#ffaa00">SPD:${tmpl.spd}</span>
-                    </div>
-                    ${isSelected ? '<div class="strategy-hero-selected-badge">✅ ACTIVE</div>' : ''}
+                <div class="strategy-hero-card ${isActive ? 'active' : ''}" onclick="UI._selectBattleHero(${card.id})">
+                    <canvas class="strategy-hero-sprite" data-hero="${card.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                    <div style="font-size:7px;color:${r.color};font-weight:700;">${card.name}</div>
+                    <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                    ${isActive ? '<div style="font-size:6px;color:#44ff88;">✅ Active</div>' : ''}
                 </div>
             `;
         });
 
         html += '</div>';
-
-        // Section B: Skill Card Deck Builder (only when hero is selected)
-        if (selectedDeckHeroId) {
-            html += this._renderSkillDeckBuilder();
-        }
-
-        // Section C: Active Deck Summary
-        html += this._renderDeckSummary();
-
-        container.innerHTML = html;
-
-        // Draw hero sprites after DOM is ready
-        setTimeout(() => {
-            document.querySelectorAll('.strategy-hero-sprite').forEach(canvas => {
-                const idx = parseInt(canvas.dataset.heroIndex);
-                const tmpl = CARD_TEMPLATES[idx];
-                if (!tmpl) return;
-                if (tmpl.image) {
-                    const img = new Image();
-                    img.onload = () => {
-                        const ctx = canvas.getContext('2d');
-                        ctx.imageSmoothingEnabled = false;
-                        ctx.drawImage(img, 0, 0, 48, 48);
-                    };
-                    img.onerror = () => {
-                        const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
-                        if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
-                    };
-                    img.src = tmpl.image;
-                } else {
-                    const card = { name: tmpl.name, class: tmpl.cls, rarity: 'common', stats: {hp:tmpl.hp,atk:tmpl.atk,def:tmpl.def,spd:tmpl.spd,crit:tmpl.crit}, artSeed: Math.floor(Math.random()*999999) };
-                    if (typeof CardRenderer !== 'undefined') CardRenderer.drawCardSprite(canvas, card, 48);
-                }
-            });
-        }, 50);
+        return html;
     },
 
     /**
      * Select a hero as the active battle hero
      */
-    _selectStrategyHero(templateIndex) {
-        const tmpl = CARD_TEMPLATES[templateIndex];
-        if (!tmpl) return;
-
-        // Find owned card matching this template
-        const ownedCard = GameState.collection.find(
-            c => (c.templateId === tmpl.name) || (c.name === tmpl.name)
-        );
-        if (!ownedCard) {
-            this.toast('🔒 Hero not owned yet!', 'error');
-            return;
-        }
-
-        // Set as deck hero (single hero for 1v1)
-        GameState.deck = [ownedCard.id];
+    _selectBattleHero(cardId) {
+        GameState.deck = [cardId];
+        GameState.collection.forEach(c => c.inDeck = (c.id === cardId));
         GameState.save();
-        this.toast(`${tmpl.name} set as battle hero!`, 'success');
-
-        // Re-render
-        this._renderHeroSelectionGrid();
+        this.renderStrategyScreen();
+        this.toast('Battle hero updated!', 'success');
     },
 
     /**
-     * Section B: Skill Card Deck Builder — shows all 20 skill cards
+     * Section B: Skill Deck Builder — pick up to 4 skill cards
      */
     _renderSkillDeckBuilder() {
-        const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
-        const currentDeck = GameState.skillDeck || [];
-        const deckCount = currentDeck.length;
-
         let html = `
             <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin:16px 0 8px;">
-                🃏 SKILL DECK BUILDER <span style="font-family:'Silkscreen';font-size:8px;color:var(--text-dim);">(${deckCount}/4 cards)</span>
+                🃏 SKILL DECK (Max 4)
             </div>
             <div class="strategy-skill-grid">
         `;
 
         SKILL_CARD_TEMPLATES.forEach(card => {
-            const inDeck = currentDeck.includes(card.id);
-            const typeIcon = typeIcons[card.type] || '🃏';
+            const inDeck = (GameState.skillDeck || []).includes(card.id);
             const cardType = CARD_TYPES[card.type] || {};
             const rarityColor = RARITIES[card.rarity]?.color || '#aaa';
-            const borderStyle = inDeck ? `border-color:${cardType.color || 'var(--gold)'};box-shadow:0 0 6px ${cardType.color || 'var(--gold)'}44;` : '';
-
             html += `
-                <div class="strategy-skill-card ${inDeck ? 'in-deck' : ''}"
-                     style="${borderStyle}"
-                     onclick="UI._toggleSkillCard('${card.id}')">
-                    ${inDeck ? '<div class="strategy-skill-check">✅</div>' : ''}
-                    <div class="strategy-skill-header">
-                        <span class="strategy-skill-type-icon">${typeIcon}</span>
-                        <span class="strategy-skill-name">${card.name}</span>
-                    </div>
-                    <div class="strategy-skill-meta">
+                <div class="strategy-skill-card ${inDeck ? 'selected' : ''}" onclick="UI._toggleSkillCard('${card.id}')">
+                    <div style="font-size:7px;color:${rarityColor};font-weight:700;">${card.name}</div>
+                    <div style="display:flex;gap:6px;font-size:6px;align-items:center;margin-top:2px;">
                         <span style="color:${rarityColor}">${RARITIES[card.rarity]?.name || card.rarity}</span>
                         <span style="color:${cardType.color || '#aaa'}">💎 ${card.manaCost}</span>
                     </div>
@@ -717,11 +823,9 @@ const UI = {
         const idx = deck.indexOf(cardId);
 
         if (idx >= 0) {
-            // Remove from deck
             deck.splice(idx, 1);
             GameState.skillDeck = deck;
         } else {
-            // Add to deck (max 4)
             if (deck.length >= 4) {
                 this.toast('Skill deck is full! (Max 4 cards)', 'error');
                 return;
@@ -731,13 +835,11 @@ const UI = {
         }
 
         GameState.save();
-
-        // Re-render strategy screen
         this._renderHeroSelectionGrid();
     },
 
     /**
-     * Section C: Active Deck Summary — mini preview of hero + skill cards
+     * Section C: Active Deck Summary
      */
     _renderDeckSummary() {
         const deckCards = GameState.getDeckCards();
@@ -752,7 +854,6 @@ const UI = {
             <div class="strategy-deck-summary">
         `;
 
-        // Hero
         if (deckCards.length > 0) {
             const hero = deckCards[0];
             const cls = CLASSES[hero.class] || {};
@@ -768,7 +869,6 @@ const UI = {
             html += `<div style="font-size:8px;color:var(--text-dim);">No hero selected</div>`;
         }
 
-        // Skill cards
         html += '<div class="strategy-summary-skills">';
         const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
         skillCards.forEach(card => {
@@ -783,15 +883,9 @@ const UI = {
         });
         html += '</div>';
 
-        // Synergy info (simplified for 1v1: check hero class + skill types)
         if (deckCards.length > 0) {
             const hero = deckCards[0];
-            const heroClass = hero.class;
-            const matchingSkills = skillCards.filter(s => {
-                // Simple synergy: attack skills match warrior/assassin, buff match mage, etc.
-                return true; // show general info
-            });
-            const cls = CLASSES[heroClass];
+            const cls = CLASSES[hero.class];
             if (cls) {
                 html += `
                     <div class="strategy-synergy-info">
@@ -804,7 +898,6 @@ const UI = {
         html += '</div>';
         return html;
     },
-
 
     // ===== INVENTORY SCREEN =====
     bindInventoryTabs() {
@@ -825,7 +918,7 @@ const UI = {
         const grid = document.getElementById('inventory-grid');
         grid.innerHTML = '';
 
-        const items = tab === 'equipment' 
+        const items = tab === 'equipment'
             ? GameState.inventory.filter(i => i.type !== 'potion')
             : GameState.inventory.filter(i => i.type === 'potion');
 
@@ -862,7 +955,6 @@ const UI = {
             this.toast('Add cards to your deck first!', 'error');
             return;
         }
-        // Equip to first deck card for simplicity (TODO: card selector)
         const card = deckCards[0];
         if (GameState.equipItem(itemId, card.id)) {
             this.toast(`Equipped to ${card.name}!`, 'success');
@@ -907,7 +999,6 @@ const UI = {
         else if (tab === 'marketplace') this.renderMarketplace(content);
     },
 
-    // ===== TIER-BASED PACKS =====
     renderTierPacks(content) {
         const tierKeys = Object.keys(Economy.TIER_PACKS);
         content.innerHTML = `
@@ -939,7 +1030,6 @@ const UI = {
         `;
     },
 
-    // ===== CLASS PACKS =====
     renderClassPacks(content) {
         const classKeys = Object.keys(Economy.CLASS_PACKS);
         content.innerHTML = `
@@ -972,7 +1062,6 @@ const UI = {
         `;
     },
 
-    // ===== HERO CATALOG (all 20 heroes) =====
     renderHeroCatalog(content) {
         const classOrder = ['warrior', 'mage', 'archer', 'healer', 'assassin'];
         const grouped = {};
@@ -1046,7 +1135,6 @@ const UI = {
         }, 50);
     },
 
-    // ===== MARKETPLACE =====
     renderMarketplace(content) {
         this.marketListings = Economy.generateMarketListings(6);
         content.innerHTML = `
@@ -1082,7 +1170,6 @@ const UI = {
         }, 50);
     },
 
-    // ===== BUY HANDLERS =====
     buyTierPack(tierKey) {
         const pack = Economy.TIER_PACKS[tierKey];
         if (!pack) return;
@@ -1115,10 +1202,8 @@ const UI = {
             this.toast('Not enough currency!', 'error');
             return;
         }
-
         const cards = Economy.buyPack(packType);
         if (!cards) return;
-
         this.updateHeader();
         PackAnimation.show(cost.name, cards);
     },
@@ -1130,11 +1215,9 @@ const UI = {
             this.toast('Not enough gold!', 'error');
             return;
         }
-        
         GameState.player.gold -= listing.price;
         GameState.addToCollection(listing.card);
         this.marketListings.splice(index, 1);
-        
         this.toast(`Bought ${listing.card.name}!`, 'success');
         this.updateHeader();
         this.renderShopContent('marketplace');
@@ -1151,11 +1234,9 @@ const UI = {
         }
     },
 
-    // ===== UNLOCK POPUP =====
     showUnlockPopup(unlock) {
         const overlay = document.createElement('div');
         overlay.className = 'unlock-overlay';
-        
         let cardHTML = '';
         if (unlock.cards.length > 0) {
             const card = unlock.cards[0];
@@ -1172,11 +1253,9 @@ const UI = {
                 </div>
             `;
         }
-        
         let rewardHTML = '';
         if (unlock.rewards.gold) rewardHTML += `<span class="unlock-reward">💰 ${unlock.rewards.gold} Gold</span>`;
         if (unlock.rewards.gems) rewardHTML += `<span class="unlock-reward">💎 ${unlock.rewards.gems} Gems</span>`;
-        
         overlay.innerHTML = `
             <div class="unlock-modal">
                 <div class="unlock-title">🎊 LEVEL ${GameState.player.level} UNLOCK!</div>
@@ -1186,27 +1265,19 @@ const UI = {
                 <button class="btn btn-gold unlock-btn" onclick="this.closest('.unlock-overlay').remove()">✨ AWESOME!</button>
             </div>
         `;
-        
         document.body.appendChild(overlay);
-        
-        // Auto-close after 8s
         setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 8000);
     },
 
-    // ===== TURN ORDER DISPLAY =====
     renderTurnOrder() {
         const container = document.getElementById('turn-order-display');
         if (!container) return;
-        // Turn order display removed for auto battler — no turn-based initiative
         container.innerHTML = '';
     },
 
-    // ===== ENEMY INFO PANEL =====
     showEnemyInfo(unit) {
-        // Remove existing
         const old = document.querySelector('.enemy-info-popup');
         if (old) old.remove();
-
         const popup = document.createElement('div');
         popup.className = 'enemy-info-popup';
         const cls = CLASSES[unit.class] || {};
@@ -1227,7 +1298,6 @@ const UI = {
         setTimeout(() => { if (popup.parentNode) popup.remove(); }, 5000);
     },
 
-    // ===== TOAST =====
     toast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
