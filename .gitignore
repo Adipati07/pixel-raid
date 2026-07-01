@@ -3,3 +3,19 @@
 blockchain/artifacts/
 blockchain/cache/
 blockchain/artifacts.bak-prev1/
+
+# Dependencies
+blockchain/node_modules/
+
+# PocketBase runtime data
+pocketbase/pb_data/
+node_modules/
+
+# Smoke test artifacts
+.smoke/
+
+# Temp files
+*.bak
+*.zip
+*.log
+*.err

@@ -79,6 +79,15 @@ const BlockchainBridge = {
             this.isConnected = true;
             this.updateUI('connected');
 
+            // Sync wallet to Supabase backend
+            if (typeof Backend !== 'undefined' && Backend.supabase) {
+                Backend.connectWallet(this.account).then(result => {
+                    if (result.success) {
+                        console.log('☁️ Backend synced:', result.isNew ? 'new player' : 'loaded');
+                    }
+                });
+            }
+
             // Listen for account/chain changes
             window.ethereum.on('accountsChanged', (accounts) => {
                 this.account = accounts[0] || null;

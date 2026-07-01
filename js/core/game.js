@@ -45,6 +45,12 @@ const GameState = {
             nextItemId: _nextItemId,
         };
         localStorage.setItem('pixelraid_save', JSON.stringify(data));
+
+        // Cloud sync (fire-and-forget, debounced)
+        if (typeof Backend !== 'undefined' && Backend.connected) {
+            clearTimeout(this._cloudSaveTimer);
+            this._cloudSaveTimer = setTimeout(() => Backend.saveToCloud(this), 2000);
+        }
     },
 
     load() {

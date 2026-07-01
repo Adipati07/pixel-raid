@@ -98,6 +98,7 @@ const LoadingScreen = {
     // Init UI
     UI.init();
     if (typeof Sound !== 'undefined') Sound.init();
+    if (typeof Backend !== 'undefined') Backend.init();
 
     // Show loading screen animation
     LoadingScreen.show();

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <title>PIXEL RAID — Play</title>
@@ -1076,7 +1077,7 @@
     <!-- Wallet Connect -->
     <div class="wallet-section">
         <div class="wallet-title">🔗 WALLET</div>
-        <div class="wallet-desc">Connect MetaMask to mint NFT cards on BSC Testnet.</div>
+        <div class="wallet-desc">Connect MetaMask to save progress to cloud & mint NFT cards.</div>
         <button id="btn-connect-wallet">Connect Wallet</button>
         <div class="wallet-info">
             <div>Address: <span id="wallet-address" class="wallet-address"></span></div>
@@ -1164,6 +1165,7 @@
     <script src="js/ui/tutorial.js?v=fullscreen1"></script>
     <script src="js/ui/screens.js?v=fullscreen1"></script>
     <script src="js/systems/blockchain.js?v=fullscreen1"></script>
+    <script src="js/systems/backend.js?v=fullscreen1"></script>
     <script src="js/main.js?v=fullscreen1"></script>
 </body>
 </html>
