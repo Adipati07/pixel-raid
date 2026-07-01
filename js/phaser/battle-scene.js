@@ -50,15 +50,27 @@ const PhaserBattleScene = new Phaser.Class({
         this.enemyData = null;
     },
 
+    preload: function () {
+        // Arena image is pre-loaded externally via bridge.preloadArena()
+        // It gets added to texture manager before create() runs
+    },
+
     create: function () {
         var W = this.W;
         var H = this.H;
 
-        // === BACKGROUND ===
-        this.bgGraphics = this.add.graphics();
-        this._drawBackground();
+        // === BACKGROUND ARENA IMAGE ===
+        if (this.textures.exists('arena-bg')) {
+            var bg = this.add.image(W / 2, H / 2, 'arena-bg');
+            bg.setDisplaySize(W, H);
+            bg.setDepth(-10);
+        } else {
+            // Fallback: programmatic background
+            this.bgGraphics = this.add.graphics();
+            this._drawBackground();
+        }
 
-        // === GRID OVERLAY ===
+        // === GRID OVERLAY (subtle, over the image) ===
         this.gridGraphics = this.add.graphics();
         this._drawGrid();
 

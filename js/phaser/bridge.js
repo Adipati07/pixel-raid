@@ -66,6 +66,35 @@ var BattlePhaser = {
         checkScene();
     },
 
+    // ===== ARENA IMAGE PRELOAD =====
+    preloadArena: function (callback) {
+        var self = this;
+        var src = 'assets/arena/battle-arena.png';
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            // Add to Phaser texture manager when scene is available
+            var tryAdd = function () {
+                var scene = self._scene;
+                if (scene && scene.textures) {
+                    if (!scene.textures.exists('arena-bg')) {
+                        scene.textures.addImage('arena-bg', img);
+                        console.log('BattlePhaser: arena image loaded');
+                    }
+                    if (callback) callback();
+                } else {
+                    setTimeout(tryAdd, 100);
+                }
+            };
+            tryAdd();
+        };
+        img.onerror = function () {
+            console.warn('BattlePhaser: failed to load arena image from', src);
+            if (callback) callback();
+        };
+        img.src = src;
+    },
+
     // ===== LIFECYCLE =====
     enter: function (player, enemy, onComplete) {
         if (!this._scene) {

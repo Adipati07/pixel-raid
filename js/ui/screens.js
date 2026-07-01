@@ -203,153 +203,66 @@ const UI = {
     },
 
     startBattle() {
-        // 1v1 Card Battle: pick 1 hero + skill cards from deck
-        const deckCards = GameState.getDeckCards();
-        if (deckCards.length === 0) {
-            this.toast('Build your deck first! Go to Heroes.', 'error');
+        // Tactical Auto Battler — unit cards on board
+        const stage = GameState.player.stage;
+
+        // Generate unit decks (10 cards each)
+        const playerDeck = typeof generateUnitDeck === 'function' ? generateUnitDeck(10) : [];
+        const enemyDeck = typeof generateEnemyUnitDeck === 'function' ? generateEnemyUnitDeck(stage) : [];
+
+        if (playerDeck.length === 0) {
+            this.toast('Error: Unit data not loaded!', 'error');
             return;
         }
 
-        // Pick first hero in deck as active battle hero
-        const playerHero = deckCards[0];
-
-        // Get skill card IDs for the player
-        let playerSkillIds = GameState.skillDeck.slice();
-        // If no skill deck built, use default starter skill cards
-        if (playerSkillIds.length === 0) {
-            playerSkillIds = SKILL_CARD_TEMPLATES.slice(0, 4).map(c => c.id);
-        }
-
-        // Generate enemy: 1 hero + skill cards
-        const stage = GameState.player.stage;
-        const enemyDeck = GameState.generateEnemyDeck(stage);
-        const enemyHero = enemyDeck[0]; // pick first generated enemy
-        const enemySkillIds = GameState.generateEnemySkillDeck(stage);
-
-        // BUG FIX: Properly reset battle state between battles (Issue 2)
+        // Stop any previous battle
         BattleEngine.stop();
-        CardHand.init('card-hand-area');
 
-        // Show battle canvas container (hidden when not in battle)
+        // Show battle canvas container
         const battleContainer = document.getElementById('battle-canvas-container');
         if (battleContainer) battleContainer.style.display = 'block';
-        
+
         document.getElementById('btn-start-battle').disabled = true;
 
-        // Set phase banner callback
-        BattleEngine.onPhaseChange = (phase, isPlayerTurn) => {
-            const phaseNames = { draw: 'DRAW PHASE', main: 'MAIN PHASE', battle: 'BATTLE PHASE', end: 'END PHASE' };
-            if (phaseNames[phase]) {
-                if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                    BattlePhaser.showPhaseBanner(phaseNames[phase], isPlayerTurn);
-                } else if (typeof BattleArenaScene !== 'undefined' && BattleArenaScene.isActive()) {
-                    BattleArenaScene.showPhaseBanner(phaseNames[phase], isPlayerTurn);
-                }
-            }
-        };
+        // Init renderer
+        BattleArenaScene.init('battle-canvas-container');
 
-        // BUG FIX: Wait for Phaser scene to be ready before starting the battle engine.
-        // BattlePhaser.enter() is async — cards render before Phaser scene is ready on retry.
-        const startEngine = () => {
-            BattleEngine.startBattle(playerHero, playerSkillIds, enemyHero, enemySkillIds, (result, log, turns) => {
-                // Exit battle scene (Phaser or Canvas)
-                if (typeof BattlePhaser !== 'undefined' && BattlePhaser.isActive()) {
-                    BattlePhaser.exit(() => {
-                        document.getElementById('btn-start-battle').disabled = false;
-                    });
-                }
-                BattleArenaScene.exit(() => {
-                    document.getElementById('btn-start-battle').disabled = false;
-                });
+        // Start the battle engine
+        BattleEngine.startBattle(playerDeck, enemyDeck, {
+            playerName: 'You',
+            enemyName: `Stage ${stage} Enemy`,
+        });
 
-                // Process results after exit transition completes
-                setTimeout(() => {
+        // Handle battle completion
+        BattleEngine.onComplete = (result) => {
+            // Wait a moment, then show result
+            setTimeout(() => {
+                BattleArenaScene.stop();
+                if (battleContainer) battleContainer.style.display = 'none';
+                document.getElementById('btn-start-battle').disabled = false;
 
-                if (result === 'win') {
+                if (result === 'player') {
                     GameState.stats.battlesWon++;
-
-                    // Process wave
                     if (GameState.player.wave < GameState.player.maxWave) {
                         GameState.player.wave++;
                     } else {
-                        // Stage complete!
                         const rewards = Economy.processStageReward(stage);
                         GameState.player.stage++;
                         GameState.player.wave = 1;
                         GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
-
-                        // Show stage clear modal with rewards
-                        setTimeout(() => this.showStageClearModal(rewards, stage), 800);
-
-                        // Hero EXP distribution
-                        const levelUps = BattleEngine.distributeEXP(true);
-                        if (levelUps.length > 0) {
-                            levelUps.forEach(lu => {
-                                this.toast(`⬆️ ${lu.name} reached Lv.${lu.level}! +${lu.boost} all stats`, 'success');
-                            });
-                        }
-
-                        if (rewards.leveledUp) {
-                            this.toast(`🎉 Level Up! Now Lv.${GameState.player.level}`, 'success');
-                            if (typeof Sound !== 'undefined') Sound.levelUp();
-
-                            // Show unlock notification
-                            if (rewards.unlock) {
-                                setTimeout(() => this.showUnlockPopup(rewards.unlock), 800);
-                            }
-                        }
+                        setTimeout(() => this.showStageClearModal(rewards, stage), 500);
                     }
+                    this.toast('🎉 Victory!', 'success');
                 } else {
                     GameState.stats.battlesLost++;
-                    // Show defeat modal
-                    setTimeout(() => this.showDefeatModal(), 800);
+                    setTimeout(() => this.showDefeatModal(), 500);
                 }
 
                 GameState.save();
                 this.updateHeader();
                 this.renderBattleScreen();
-
-                }, 900); // end setTimeout — wait for exit transition
-            });
+            }, 1500);
         };
-
-        // Use Canvas renderer (BattleArenaScene) — Yu-Gi-Oh style 2.5D perspective
-        if (typeof BattleArenaScene !== 'undefined') {
-            BattleArenaScene.init('battle-canvas-container');
-            BattleArenaScene.enter(
-                { hero: playerHero, skillCards: playerSkillIds },
-                { hero: enemyHero, skillCards: enemySkillIds },
-                () => {}
-            );
-            startEngine();
-        } else if (typeof BattlePhaser !== 'undefined') {
-            // Phaser fallback
-            BattlePhaser.init('battle-canvas-container');
-            if (BattlePhaser._game) {
-                BattlePhaser._game.loop.wake();
-                if (BattlePhaser._game.scale) BattlePhaser._game.scale.refresh();
-            }
-            BattlePhaser.enter(playerHero, enemyHero, () => {
-                startEngine();
-            });
-            setTimeout(() => {
-                if (!BattleEngine.isRunning) {
-                    console.warn('[Battle] Phaser enter callback timeout — starting engine directly');
-                    startEngine();
-                }
-            }, 5000);
-        } else {
-            // Fallback: init canvas scene and enter fullscreen overlay
-            BattleArenaScene.init('battle-canvas-container');
-            const enemyDeck = GameState.generateEnemyDeck(GameState.player.stage);
-            const enemySkillIds = GameState.generateEnemySkillDeck(GameState.player.stage);
-            BattleArenaScene.enter(
-                { hero: playerHero, skillCards: playerSkillIds },
-                { hero: enemyHero, skillCards: enemySkillIds },
-                () => {}
-            );
-            startEngine();
-        }
     },
 
     showRewards(rewards) {
@@ -1282,18 +1195,9 @@ const UI = {
     // ===== TURN ORDER DISPLAY =====
     renderTurnOrder() {
         const container = document.getElementById('turn-order-display');
-        if (!container) return; // element removed from DOM — no-op
-        const turnOrder = BattleEngine.getNextTurnOrder(5);
-        if (turnOrder.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-        container.innerHTML = turnOrder.map((u, i) => {
-            const arrow = i === 0 ? '👉 ' : '';
-            const opacity = u.alive ? '1' : '0.3';
-            const side = u.isAlly ? '#44cc44' : '#ff4444';
-            return `<span class="turn-order-unit" style="opacity:${opacity}; color:${side}" title="${u.isAlly ? 'Ally' : 'Enemy'}">${arrow}${u.name}</span>`;
-        }).join('');
+        if (!container) return;
+        // Turn order display removed for auto battler — no turn-based initiative
+        container.innerHTML = '';
     },
 
     // ===== ENEMY INFO PANEL =====
