@@ -733,8 +733,8 @@ const BattleArenaScene = {
         ctx.fillText(`${hero.currentHp}/${hero.maxHp}`, x + pad + (w - pad * 2) / 2, hpBarY2 + 5);
 
         // ATK / DEF
-        const totalAtk = (hero.stats.atk || 0) + (hero.atkBuff || 0);
-        const totalDef = (hero.stats.def || 0) + (hero.defBuff || 0);
+        const totalAtk = (hero.stats?.atk || hero.atk || 0) + (hero.atkBuff || 0);
+        const totalDef = (hero.stats?.def || hero.def || 0) + (hero.defBuff || 0);
         const statBoxY = hpBarY2 + hpBarH + 2;
         const halfW = (w - pad * 2 - 6) / 2;
 
