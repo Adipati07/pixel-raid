@@ -135,6 +135,32 @@ const BattleArenaScene = {
         this._hoveredCard = -1;
         this._cardMouseMove = (e) => this._onCanvasMouseMove(e);
         this.canvas.addEventListener('mousemove', this._cardMouseMove);
+
+        // Mobile touch support — tap to play card
+        this._cardTouchHandler = (e) => {
+            e.preventDefault(); // prevent 300ms delay + scroll
+            const touch = e.touches[0] || e.changedTouches[0];
+            if (touch) {
+                const rect = this.canvas.getBoundingClientRect();
+                const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+                this._onCanvasClick(fakeEvent);
+            }
+        };
+        this.canvas.addEventListener('touchend', this._cardTouchHandler, { passive: false });
+        this.canvas.style.touchAction = 'none'; // prevent browser scroll/zoom on canvas
+
+        // Resize listener — adapt canvas on window resize / phone rotation
+        this._resizeHandler = () => {
+            if (!this.running) return;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            this.canvas.width = Math.floor(vw);
+            this.canvas.height = Math.floor(vh);
+            this.W = this.canvas.width;
+            this.H = this.canvas.height;
+        };
+        window.addEventListener('resize', this._resizeHandler);
+
         this._cardFlyAnims = []; // active card fly animations
         this._playingCardIndex = -1; // card currently being animated
 
@@ -204,6 +230,8 @@ const BattleArenaScene = {
             if (this._cardClickHandler && this.canvas) {
                 this.canvas.removeEventListener('click', this._cardClickHandler);
                 this.canvas.removeEventListener('mousemove', this._cardMouseMove);
+                if (this._cardTouchHandler) this.canvas.removeEventListener('touchend', this._cardTouchHandler);
+                if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
                 this._cardClickHandler = null;
                 this._cardMouseMove = null;
             }
@@ -1025,7 +1053,8 @@ const BattleArenaScene = {
         ctx.stroke();
 
         // "YOUR HAND" label
-        ctx.font = '10px "Press Start 2P", monospace';
+        const handLabelSize = Math.max(5, Math.min(10, w * 0.025));
+        ctx.font = handLabelSize + 'px "Press Start 2P", monospace';
         ctx.fillStyle = 'rgba(68, 136, 255, 0.5)';
         ctx.textAlign = 'center';
         ctx.fillText('YOUR HAND', x + w / 2, y + 14);
