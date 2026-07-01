@@ -266,19 +266,19 @@ const BattleArenaScene = {
         // Draw perspective floor grid (2.5D effect)
         this._drawPerspectiveFloor(ctx, W, H);
 
-        // Draw enemy LP bar (top)
+        // Draw enemy LP bar (top-left)
         this._drawLPBar(ctx, state.enemy, false, layout.lpEnemy);
 
-        // Draw enemy field zones (top half)
+        // Draw enemy hero zone (left side, facing right)
         this._drawField(ctx, state.enemy, false, layout.fieldEnemy);
 
-        // Draw center divider (VS badge)
-        this._drawCenterDivider(ctx, state, layout.center);
+        // Draw VS divider (center)
+        this._drawCenterDivider(ctx, state, layout.vsCenter);
 
-        // Draw player field zones (bottom half)
+        // Draw player hero zone (right side, facing left)
         this._drawField(ctx, state.player, true, layout.fieldPlayer);
 
-        // Draw player LP bar (bottom)
+        // Draw player LP bar (top-right)
         this._drawLPBar(ctx, state.player, true, layout.lpPlayer);
 
         // Draw player hand as 2x2 card grid in bottom area
@@ -309,24 +309,28 @@ const BattleArenaScene = {
         const W = this.W;
         const H = this.H;
         const lpH = this.LP_BAR_H;
-        const centerH = this.CENTER_H;
+        const centerW = this.CENTER_H; // reuse for VS divider width
         const gap = this.FIELD_GAP;
 
-        // Reserve bottom 35% for card hand (2x2 grid)
-        const handH = Math.floor(H * 0.35);
+        // Reserve bottom 30% for card hand (2x2 grid)
+        const handH = Math.floor(H * 0.30);
         const battleH = H - handH;
 
-        // Vertical split within battle area: LP_bar | field | center | field | LP_bar
-        const totalFixed = lpH * 2 + centerH + gap * 4;
-        const fieldH = (battleH - totalFixed) / 2;
+        // LP bars at top (enemy left, player right)
+        const lpW = (W - gap * 3) / 2;
+
+        // Battle area below LP bars — HORIZONTAL duel layout
+        const fieldTop = lpH + gap;
+        const fieldH = battleH - lpH - gap * 2;
+        const heroW = Math.floor((W - centerW - gap * 4) / 2);
 
         return {
-            lpEnemy:    { x: 0, y: 0, w: W, h: lpH },
-            fieldEnemy: { x: 0, y: lpH + gap, w: W, h: fieldH },
-            center:     { x: 0, y: lpH + gap + fieldH + gap, w: W, h: centerH },
-            fieldPlayer:{ x: 0, y: lpH + gap + fieldH + gap + centerH + gap, w: W, h: fieldH },
-            lpPlayer:   { x: 0, y: battleH - lpH, w: W, h: lpH },
-            hand:       { x: 0, y: battleH, w: W, h: handH },
+            lpEnemy:     { x: 0, y: 0, w: lpW, h: lpH },
+            lpPlayer:    { x: lpW + gap * 2, y: 0, w: lpW, h: lpH },
+            fieldEnemy:  { x: 0, y: fieldTop, w: heroW, h: fieldH },
+            vsCenter:    { x: heroW + gap, y: fieldTop, w: centerW + gap * 2, h: fieldH },
+            fieldPlayer: { x: heroW + centerW + gap * 3, y: fieldTop, w: heroW, h: fieldH },
+            hand:        { x: 0, y: battleH, w: W, h: handH },
         };
     },
 
@@ -556,42 +560,25 @@ const BattleArenaScene = {
         const skillH = this.SKILL_ZONE_H;
         const gap = this.ZONE_GAP;
 
-        // 2.5D perspective scaling — enemy (top) smaller, player (bottom) bigger
-        const scale = isPlayer ? 1.05 : 0.85;
+        // 2.5D perspective scaling — enemy (left) slightly smaller, player (right) bigger
+        const scale = isPlayer ? 1.1 : 0.9;
         const scaledZoneW = zoneW * scale;
         const scaledZoneH = zoneH * scale;
         const scaledSkillW = skillW * scale;
         const scaledSkillH = skillH * scale;
         const scaledGap = gap * scale;
 
-        // Single hero in center (Yu-Gi-Oh style: 1 hero + 2 skill zones)
-        const totalW = scaledZoneW + scaledSkillW * 2 + scaledGap * 2;
-        const startX = x + (w - totalW) / 2;
-        const heroY = y + (h - scaledZoneH) / 2;
+        // Horizontal layout: hero centered, skills above and below
+        const totalH = scaledZoneH + scaledSkillH * 2 + scaledGap * 2;
+        const startY = y + (h - totalH) / 2;
+        const heroX = x + (w - scaledZoneW) / 2;
 
-        // Field decoration — perspective ground
+        // Field decoration
         ctx.fillStyle = isPlayer ? 'rgba(0,100,0,0.04)' : 'rgba(0,0,100,0.04)';
         ctx.fillRect(x, y, w, h);
 
-        // Draw perspective grid lines for this side
-        const vpX = x + w / 2;
-        const vpY = isPlayer ? y : y + h;
-        ctx.strokeStyle = isPlayer ? 'rgba(50,200,50,0.08)' : 'rgba(50,50,200,0.08)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 5; i++) {
-            const gy = isPlayer ? y + (h * 0.3) + (h * 0.7) * (i / 4) : y + h - (h * 0.3) - (h * 0.7) * (i / 4);
-            const spread = isPlayer ? (i / 4) * (i / 4) : (1 - i / 4) * (1 - i / 4);
-            const gx1 = x + (w * 0.05) + (w * 0.45) * (1 - spread);
-            const gx2 = x + w - (w * 0.05) - (w * 0.45) * (1 - spread);
-            ctx.beginPath();
-            ctx.moveTo(gx1, gy);
-            ctx.lineTo(gx2, gy);
-            ctx.stroke();
-        }
-
-        // Draw the main hero (combatant.hero has the battle hero data)
+        // Draw the main hero
         const rawHero = combatant.hero || (combatant.heroes && combatant.heroes[0]) || null;
-        // Merge battle hero HP into hero object for display
         let hero = rawHero;
         if (rawHero && combatant.battleHero) {
             hero = { ...rawHero };
@@ -604,19 +591,29 @@ const BattleArenaScene = {
             hero.currentHp = rawHero.stats.hp;
             hero.maxHp = rawHero.stats.maxHp;
         }
-        const heroX = startX + scaledSkillW + scaledGap;
-        this._drawHeroZone(ctx, heroX, heroY, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
 
-        // Draw 2 skill zones flanking the hero
-        const skillY = y + (h - scaledSkillH) / 2;
-        const leftSkillX = startX;
-        const rightSkillX = startX + scaledSkillW + scaledGap + scaledZoneW + scaledGap;
-        
+        const heroY = startY + scaledSkillH + scaledGap;
+        // Flip enemy hero to face right, player hero faces left
+        if (!isPlayer) {
+            ctx.save();
+            ctx.translate(heroX + scaledZoneW, heroY);
+            ctx.scale(-1, 1);
+            this._drawHeroZone(ctx, 0, 0, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
+            ctx.restore();
+        } else {
+            this._drawHeroZone(ctx, heroX, heroY, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
+        }
+
+        // Draw skill zones above and below hero
+        const skillX = x + (w - scaledSkillW) / 2;
+        const topSkillY = startY;
+        const botSkillY = startY + scaledSkillH + scaledGap + scaledZoneH + scaledGap;
+
         const leftSkill = combatant.skillZones ? combatant.skillZones[0] : null;
         const rightSkill = combatant.skillZones ? combatant.skillZones[1] : null;
-        
-        this._drawSkillZone(ctx, leftSkillX, skillY, scaledSkillW, scaledSkillH, leftSkill, 0);
-        this._drawSkillZone(ctx, rightSkillX, skillY, scaledSkillW, scaledSkillH, rightSkill, 1);
+
+        this._drawSkillZone(ctx, skillX, topSkillY, scaledSkillW, scaledSkillH, leftSkill, 0);
+        this._drawSkillZone(ctx, skillX, botSkillY, scaledSkillW, scaledSkillH, rightSkill, 1);
     },
 
     _drawHeroZone(ctx, x, y, w, h, hero, isPlayer, index) {
@@ -830,45 +827,42 @@ const BattleArenaScene = {
     _drawCenterDivider(ctx, state, rect) {
         const { x, y, w, h } = rect;
 
-        // Background gradient
-        const grad = ctx.createLinearGradient(0, y, 0, y + h);
-        grad.addColorStop(0, 'rgba(0,0,0,0.95)');
-        grad.addColorStop(0.3, 'rgba(15,15,35,0.95)');
-        grad.addColorStop(0.7, 'rgba(15,15,35,0.95)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+        // Background gradient (vertical stripe)
+        const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+        grad.addColorStop(0, 'rgba(0,0,0,0.9)');
+        grad.addColorStop(0.5, 'rgba(15,15,35,0.95)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.9)');
         ctx.fillStyle = grad;
         ctx.fillRect(x, y, w, h);
 
-        // Gold accent lines
+        // Gold accent lines (left/right edges)
         ctx.fillStyle = 'rgba(255,215,0,0.5)';
-        ctx.fillRect(x, y, w, 1);
-        ctx.fillRect(x, y + h - 1, w, 1);
+        ctx.fillRect(x, y, 1, h);
+        ctx.fillRect(x + w - 1, y, 1, h);
 
-        // VS badge
-        const vsX = w / 2;
+        // VS badge (center)
+        const vsX = x + w / 2;
         const vsY = y + h / 2;
 
         // VS glow
         ctx.shadowColor = '#ffd700';
         ctx.shadowBlur = 12;
         ctx.fillStyle = '#ffd700';
-        ctx.font = 'bold 16px "Press Start 2P"';
+        ctx.font = 'bold 14px "Press Start 2P"';
         ctx.textAlign = 'center';
         ctx.fillText('VS', vsX, vsY + 5);
         ctx.shadowBlur = 0;
 
-        // Turn info (left of VS)
+        // Turn info (above VS)
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
         ctx.font = '6px "Press Start 2P"';
-        ctx.textAlign = 'right';
-        ctx.fillText(`Turn ${state.turn}`, vsX - 40, vsY + 4);
+        ctx.fillText(`Turn ${state.turn}`, vsX, vsY - 20);
 
-        // Phase info (right of VS)
+        // Phase info (below VS)
         const phaseNames = { draw: '📥 DRAW', main: '🃏 MAIN', battle: '⚔️ BATTLE', end: '⏳ END', idle: '' };
         ctx.fillStyle = 'rgba(68,204,136,0.8)';
-        ctx.font = '6px "Press Start 2P"';
-        ctx.textAlign = 'left';
-        ctx.fillText(phaseNames[state.phase] || '', vsX + 40, vsY + 4);
+        ctx.font = '5px "Press Start 2P"';
+        ctx.fillText(phaseNames[state.phase] || '', vsX, vsY + 25);
 
         // Decorative lines from edges toward VS
         const lineGrad = ctx.createLinearGradient(0, 0, w / 2 - 60, 0);
