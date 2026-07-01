@@ -544,33 +544,42 @@ const UI = {
         const battleContainer = document.getElementById('battle-canvas-container');
 
         if (type === 'win') {
-            GameState.stats.battlesWon++;
+            // Generate and apply win rewards using Rewards system
+            const rewards = Rewards.generateWinRewards(stage);
+            Rewards.applyWinRewards(rewards);
+
+            // Stage progression
             if (GameState.player.wave < GameState.player.maxWave) {
                 GameState.player.wave++;
             } else {
-                const rewards = Economy.processStageReward(stage);
+                // Also process economy stage reward for packs/items
+                const ecoRewards = Economy.processStageReward(stage);
                 GameState.player.stage++;
                 GameState.player.wave = 1;
                 GameState.stats.highestStage = Math.max(GameState.stats.highestStage, GameState.player.stage);
-                setTimeout(() => this.showStageClearModal(rewards, stage), 500);
             }
-            const goldReward = 50 + stage * 20;
-            Economy.addGold(goldReward);
-            this.toast('🎉 Victory!', 'success');
+
+            // Show reward popup with new cards
+            Rewards.showRewardPopup(true, rewards, stage);
         } else if (type === 'lose') {
-            GameState.stats.battlesLost++;
-            setTimeout(() => this.showDefeatModal(), 500);
+            // Generate and apply loss rewards
+            const rewards = Rewards.generateLossRewards(stage);
+            Rewards.applyLossRewards(rewards);
+
+            // Show defeat popup with consolation gold
+            Rewards.showRewardPopup(false, rewards, stage);
+        } else {
+            // Back button - just clean up
+            BattlePhaser.exit();
+            if (battleContainer) battleContainer.style.display = 'none';
+            document.getElementById('screen-battle').classList.remove('battle-active');
+            BattleEngine.stop();
+            UI.updateHeader();
+            UI.renderBattleScreen();
         }
 
-        // Exit battle
-        BattlePhaser.exit();
-        if (battleContainer) battleContainer.style.display = 'none';
-        document.getElementById('screen-battle').classList.remove('battle-active');
-        BattleEngine.stop();
-
-        GameState.save();
+        // Update header in all cases
         this.updateHeader();
-        this.renderBattleScreen();
     },
 
     showRewards(rewards) {
@@ -649,89 +658,231 @@ const UI = {
     },
 
     // ===== HEROES SCREEN =====
+    // ===== SPRINT 3: ENHANCED COLLECTION SCREEN =====
     renderHeroesScreen() {
         const grid = document.getElementById('hero-list');
         grid.innerHTML = '';
-        
-        if (GameState.collection.length === 0) {
-            grid.innerHTML = '<div style="font-size:8px;color:var(--text-dim);padding:20px;">No cards yet! Open packs in the Shop.</div>';
-            return;
-        }
 
-        const sorted = [...GameState.collection].sort((a, b) => {
-            const rarityOrder = { mythic: 5, legendary: 4, epic: 3, rare: 2, common: 1 };
-            const rDiff = rarityOrder[b.rarity] - rarityOrder[a.rarity];
-            return rDiff || getCardPower(b) - getCardPower(a);
+        // Build set of owned template IDs for quick lookup
+        const ownedTemplates = new Set();
+        GameState.collection.forEach(c => {
+            ownedTemplates.add(c.templateId || c.name);
         });
 
-        sorted.forEach(card => {
+        // Count unique owned templates
+        const ownedCount = ownedTemplates.size;
+        const totalCount = CARD_TEMPLATES.length;
+
+        // Header: owned counter
+        const header = document.createElement('div');
+        header.style.cssText = 'font-family:"Press Start 2P";font-size:9px;color:var(--gold);margin-bottom:12px;text-align:center;';
+        header.innerHTML = `🃏 Collection — <span style="color:#44ff88">${ownedCount}</span>/${totalCount} Heroes`;
+        grid.appendChild(header);
+        // Show all 20 templates: owned cards full detail, locked as silhouettes
+        CARD_TEMPLATES.forEach(tmpl => {
+            const ownedCard = GameState.collection.find(c => (c.templateId || c.name) === tmpl.name);
+            const isOwned = !!ownedCard;
+
             const el = document.createElement('div');
-            el.className = `card ${card.rarity}`;
-            el.onclick = () => this.showHeroDetail(card);
+            el.style.minHeight = '120px';
 
-            const template = getTemplateByName(card.templateId || card.name);
-            let sprite;
-            if (template && template.image) {
-                sprite = document.createElement('img');
-                sprite.className = 'card-sprite';
-                sprite.width = 48;
-                sprite.height = 48;
-                sprite.style.imageRendering = 'pixelated';
-                sprite.src = template.image;
-                sprite.onerror = function() {
-                    const cvs = document.createElement('canvas');
-                    cvs.className = 'card-sprite';
-                    cvs.width = 48;
-                    cvs.height = 48;
-                    CardRenderer.drawCardSprite(cvs, card, 48);
-                    sprite.replaceWith(cvs);
-                };
+            if (isOwned) {
+                // Full card with stats
+                const card = ownedCard;
+                el.className = `card ${card.rarity}`;
+                el.onclick = () => this.showHeroDetail(card);
+
+                const template = getTemplateByName(card.templateId || card.name);
+                let sprite;
+                if (template && template.image) {
+                    sprite = document.createElement('img');
+                    sprite.className = 'card-sprite';
+                    sprite.width = 48; sprite.height = 48;
+                    sprite.style.imageRendering = 'pixelated';
+                    sprite.src = template.image;
+                    sprite.onerror = function() {
+                        const cvs = document.createElement('canvas');
+                        cvs.className = 'card-sprite'; cvs.width = 48; cvs.height = 48;
+                        CardRenderer.drawCardSprite(cvs, card, 48);
+                        sprite.replaceWith(cvs);
+                    };
+                } else {
+                    sprite = document.createElement('canvas');
+                    sprite.className = 'card-sprite'; sprite.width = 48; sprite.height = 48;
+                    CardRenderer.drawCardSprite(sprite, card, 48);
+                }
+
+                const name = document.createElement('div');
+                name.className = 'card-name';
+                name.style.color = RARITIES[card.rarity].color;
+                name.textContent = card.name + (card.level > 1 ? ` Lv.${card.level}` : '');
+
+                const cls = document.createElement('div');
+                cls.className = 'card-class';
+                cls.textContent = CLASSES[card.class].emoji + ' ' + CLASSES[card.class].name;
+
+                const stats = document.createElement('div');
+                stats.className = 'card-stats';
+                const maxHP = 140, maxATK = 38, maxDEF = 25, maxSPD = 24;
+                const statData = [
+                    { label: 'HP',  val: card.stats.hp,  max: maxHP,  color: '#44cc44' },
+                    { label: 'ATK', val: card.stats.atk, max: maxATK, color: '#ff6644' },
+                    { label: 'DEF', val: card.stats.def, max: maxDEF, color: '#4488ff' },
+                    { label: 'SPD', val: card.stats.spd, max: maxSPD, color: '#ffaa00' },
+                ];
+                stats.innerHTML = statData.map(s => `
+                    <div class="card-stat-row">
+                        <span class="card-stat-label">${s.label}</span>
+                        <div class="card-stat-bar-bg"><div class="card-stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
+                        <span class="card-stat-val" style="color:${s.color}">${s.val}</span>
+                    </div>
+                `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>`;
+
+                el.appendChild(sprite);
+                el.appendChild(name);
+                el.appendChild(cls);
+                el.appendChild(stats);
             } else {
-                sprite = document.createElement('canvas');
-                sprite.className = 'card-sprite';
-                sprite.width = 48;
-                sprite.height = 48;
-                CardRenderer.drawCardSprite(sprite, card, 48);
+                // Locked silhouette
+                el.className = 'card common';
+                el.style.cssText += 'opacity:0.5;filter:grayscale(0.8);cursor:pointer;';
+                el.onclick = () => this.toast('🔒 Unlock from battle rewards or packs!', 'info');
+
+                const lockIcon = document.createElement('div');
+                lockIcon.style.cssText = 'text-align:center;font-size:28px;margin-bottom:4px;';
+                lockIcon.textContent = '🔒';
+
+                const name = document.createElement('div');
+                name.className = 'card-name';
+                name.style.color = '#666';
+                name.textContent = '???';
+
+                const cls = document.createElement('div');
+                cls.className = 'card-class';
+                cls.textContent = CLASSES[tmpl.cls]?.emoji + ' ' + (CLASSES[tmpl.cls]?.name || tmpl.cls);
+                cls.style.color = '#555';
+
+                const stats = document.createElement('div');
+                stats.className = 'card-stats';
+                stats.style.color = '#444';
+                stats.innerHTML = '<span>HP:?</span><span>ATK:?</span><span>DEF:?</span><span>SPD:?</span>';
+
+                el.appendChild(lockIcon);
+                el.appendChild(name);
+                el.appendChild(cls);
+                el.appendChild(stats);
             }
-
-            const name = document.createElement('div');
-            name.className = 'card-name';
-            name.style.color = RARITIES[card.rarity].color;
-            name.textContent = card.name + (card.level > 1 ? ` Lv.${card.level}` : '');
-
-            const cls = document.createElement('div');
-            cls.className = 'card-class';
-            cls.textContent = CLASSES[card.class].emoji + ' ' + CLASSES[card.class].name;
-
-            const stats = document.createElement('div');
-            stats.className = 'card-stats';
-            const maxHP = 140, maxATK = 38, maxDEF = 25, maxSPD = 24;
-            const statData = [
-                { label: 'HP',  val: card.stats.hp,  max: maxHP,  color: '#44cc44' },
-                { label: 'ATK', val: card.stats.atk, max: maxATK, color: '#ff6644' },
-                { label: 'DEF', val: card.stats.def, max: maxDEF, color: '#4488ff' },
-                { label: 'SPD', val: card.stats.spd, max: maxSPD, color: '#ffaa00' },
-            ];
-            stats.innerHTML = statData.map(s => `
-                <div class="card-stat-row">
-                    <span class="card-stat-label">${s.label}</span>
-                    <div class="card-stat-bar-bg"><div class="card-stat-bar-fill" style="width:${Math.min(100, (s.val / s.max) * 100)}%;background:${s.color}"></div></div>
-                    <span class="card-stat-val" style="color:${s.color}">${s.val}</span>
-                </div>
-            `).join('') + `<div class="card-power">⚡ ${getCardPower(card)}</div>` +
-            (card.level > 1 ? `<div class="card-exp-bar" style="margin-top:3px"><div class="card-exp-fill" style="width:${card.expToNext > 0 ? Math.min(100, (card.exp / card.expToNext) * 100) : 0}%"></div></div>` : '');
-
-            el.appendChild(sprite);
-            el.appendChild(name);
-            el.appendChild(cls);
-            el.appendChild(stats);
             grid.appendChild(el);
         });
     },
 
     showHeroDetail(card) {
-        // Placeholder for hero detail modal
-        this.toast(`${card.name} — ${CLASSES[card.class].name} Lv.${card.level || 1}`, 'info');
+        // Remove any existing detail modal
+        const old = document.getElementById('hero-detail-modal');
+        if (old) old.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'hero-detail-modal';
+        overlay.style.cssText = `
+            position:fixed;top:0;left:0;right:0;bottom:0;
+            z-index:99999;display:flex;align-items:center;justify-content:center;
+            background:rgba(0,0,0,0.75);animation:s3FadeIn 0.2s ease;
+        `;
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+        const r = RARITIES[card.rarity] || {};
+        const cls = CLASSES[card.class] || {};
+        const rarityOrder = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
+        const stars = '★'.repeat((rarityOrder[card.rarity] || 0) + 1);
+        const skillDesc = card.skill ? card.skill.name + (card.skill.chance ? ` (${Math.floor(card.skill.chance * 100)}% chance)` : '') : 'None';
+
+        const maxHP = 140, maxATK = 38, maxDEF = 25, maxSPD = 24;
+        const statBars = [
+            { label: 'HP', val: card.stats.hp, max: maxHP, color: '#44cc44' },
+            { label: 'ATK', val: card.stats.atk, max: maxATK, color: '#ff6644' },
+            { label: 'DEF', val: card.stats.def, max: maxDEF, color: '#4488ff' },
+            { label: 'SPD', val: card.stats.spd, max: maxSPD, color: '#ffaa00' },
+        ];
+
+        const spriteContainerId = 'detail-sprite-container';
+
+        overlay.innerHTML = `
+            <div style="
+                background:linear-gradient(135deg,#0a0a2e,#141432);
+                border:2px solid ${r.color || '#888'};
+                border-radius:12px;padding:20px 24px;text-align:center;
+                max-width:320px;width:90%;box-shadow:0 0 30px ${r.color || '#888'}44;
+                max-height:90vh;overflow-y:auto;
+            ">
+                <div id="${spriteContainerId}" style="width:80px;height:80px;margin:0 auto 8px;"></div>
+                <div style="font-family:'Press Start 2P';font-size:10px;color:${r.color};margin-bottom:4px;">
+                    ${card.name}${card.level > 1 ? ` Lv.${card.level}` : ''}
+                </div>
+                <div style="font-size:7px;color:${r.color};margin-bottom:4px;">${stars} ${r.name}</div>
+                <div style="font-size:8px;color:${cls.color};margin-bottom:12px;">
+                    ${cls.emoji} ${cls.name}
+                </div>
+                <div style="text-align:left;margin-bottom:12px;">
+                    ${statBars.map(s => `
+                        <div style="display:flex;align-items:center;gap:6px;margin:3px 0;">
+                            <span style="font-size:7px;color:${s.color};width:28px;">${s.label}</span>
+                            <div style="flex:1;height:8px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);">
+                                <div style="width:${Math.min(100, (s.val / s.max) * 100)}%;height:100%;background:${s.color};"></div>
+                            </div>
+                            <span style="font-size:7px;color:${s.color};width:24px;text-align:right;">${s.val}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="font-size:8px;color:#88ccff;margin-bottom:4px;">
+                    ⚡ Power: ${getCardPower(card)}
+                </div>
+                <div style="font-size:7px;color:#bbddbb;margin-bottom:12px;">
+                    ✨ ${skillDesc}
+                </div>
+                ${card.level > 1 && card.expToNext ? `
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:6px;color:var(--text-dim);margin-bottom:2px;">EXP ${card.exp}/${card.expToNext}</div>
+                        <div style="height:4px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);">
+                            <div style="width:${Math.min(100, (card.exp / card.expToNext) * 100)}%;height:100%;background:#88ccff;"></div>
+                        </div>
+                    </div>
+                ` : ''}
+                <button class="btn btn-gold" onclick="document.getElementById('hero-detail-modal').remove()"
+                    style="min-height:44px;min-width:100px;">✕ Close</button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Draw sprite
+        setTimeout(() => {
+            const container = document.getElementById(spriteContainerId);
+            if (!container) return;
+            const template = getTemplateByName(card.templateId || card.name);
+            if (template && template.image) {
+                const img = new Image();
+                img.width = 80; img.height = 80;
+                img.style.imageRendering = 'pixelated';
+                img.onload = () => {
+                    container.innerHTML = '';
+                    container.appendChild(img);
+                };
+                img.onerror = () => {
+                    const cvs = document.createElement('canvas');
+                    cvs.width = 80; cvs.height = 80;
+                    CardRenderer.drawCardSprite(cvs, card, 80);
+                    container.innerHTML = '';
+                    container.appendChild(cvs);
+                };
+                img.src = template.image;
+            } else if (typeof CardRenderer !== 'undefined') {
+                const cvs = document.createElement('canvas');
+                cvs.width = 80; cvs.height = 80;
+                CardRenderer.drawCardSprite(cvs, card, 80);
+                container.innerHTML = '';
+                container.appendChild(cvs);
+            }
+        }, 50);
     },
 
     // ===== STRATEGY / FORMATION SCREEN =====
@@ -765,31 +916,50 @@ const UI = {
     },
 
     /**
-     * Section A: Hero Selection Grid — pick active battle hero
+     * Section A: Hero Selection Grid — show all 20, only owned are clickable
      */
     _renderHeroSelectionGrid() {
         const deckCards = GameState.getDeckCards();
         const currentHero = deckCards.length > 0 ? deckCards[0] : null;
 
+        // Count owned
+        const ownedTemplates = new Set();
+        GameState.collection.forEach(c => ownedTemplates.add(c.templateId || c.name));
+
         let html = `
             <div style="font-family:'Press Start 2P';font-size:8px;color:var(--gold);margin-bottom:8px;">
-                🦸 SELECT BATTLE HERO
+                🦸 SELECT BATTLE HERO — <span style="color:#44ff88">${ownedTemplates.size}</span>/${CARD_TEMPLATES.length} owned
             </div>
             <div class="strategy-hero-grid">
         `;
 
-        GameState.collection.forEach(card => {
-            const isActive = currentHero && currentHero.id === card.id;
-            const cls = CLASSES[card.class] || {};
-            const r = RARITIES[card.rarity] || {};
-            html += `
-                <div class="strategy-hero-card ${isActive ? 'active' : ''}" onclick="UI._selectBattleHero(${card.id})">
-                    <canvas class="strategy-hero-sprite" data-hero="${card.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
-                    <div style="font-size:7px;color:${r.color};font-weight:700;">${card.name}</div>
-                    <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
-                    ${isActive ? '<div style="font-size:6px;color:#44ff88;">✅ Active</div>' : ''}
-                </div>
-            `;
+        // Show all 20 templates
+        CARD_TEMPLATES.forEach(tmpl => {
+            const ownedCard = GameState.collection.find(c => (c.templateId || c.name) === tmpl.name);
+            const isOwned = !!ownedCard;
+            const isActive = currentHero && ownedCard && currentHero.id === ownedCard.id;
+            const cls = CLASSES[tmpl.cls] || {};
+
+            if (isOwned) {
+                const card = ownedCard;
+                const r = RARITIES[card.rarity] || {};
+                html += `
+                    <div class="strategy-hero-card ${isActive ? 'active' : ''}" onclick="UI._selectBattleHero(${card.id})">
+                        <canvas class="strategy-hero-sprite" data-hero="${card.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
+                        <div style="font-size:7px;color:${r.color};font-weight:700;">${card.name}</div>
+                        <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                        ${isActive ? '<div style="font-size:6px;color:#44ff88;">✅ Active</div>' : ''}
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="strategy-hero-card" style="opacity:0.4;filter:grayscale(0.7);cursor:not-allowed;">
+                        <div style="font-size:24px;text-align:center;line-height:48px;">🔒</div>
+                        <div style="font-size:7px;color:#666;font-weight:700;">???</div>
+                        <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                    </div>
+                `;
+            }
         });
 
         html += '</div>';
@@ -858,15 +1028,16 @@ const UI = {
         }
 
         GameState.save();
-        this._renderHeroSelectionGrid();
+        // Re-render full strategy screen so synergy info updates
+        this.renderStrategyScreen();
     },
 
     /**
-     * Section C: Active Deck Summary
+     * Section C: Active Deck Summary with synergy info and Ready to Battle button
      */
     _renderDeckSummary() {
         const deckCards = GameState.getDeckCards();
-        const skillCards = GameState.skillDeck.length > 0
+        const skillCards = (GameState.skillDeck && GameState.skillDeck.length > 0)
             ? GameState.getSkillDeckCards()
             : SKILL_CARD_TEMPLATES.slice(0, 4);
 
@@ -906,19 +1077,116 @@ const UI = {
         });
         html += '</div>';
 
+        // Synergy info
         if (deckCards.length > 0) {
             const hero = deckCards[0];
             const cls = CLASSES[hero.class];
             if (cls) {
+                // Count skill types for synergy
+                const typeCounts = {};
+                skillCards.forEach(s => {
+                    typeCounts[s.type] = (typeCounts[s.type] || 0) + 1;
+                });
+                const synergies = [];
+                if (hero.class === 'warrior' && typeCounts.defense) synergies.push({ text: '🛡️ Tank Build — bonus DEF from defense skills', color: '#ff6644' });
+                if (hero.class === 'mage' && typeCounts.attack) synergies.push({ text: '🔥 Burst Mage — extra damage from attack skills', color: '#8844ff' });
+                if (hero.class === 'archer' && typeCounts.special) synergies.push({ text: '🎯 Precision — crit chance from special skills', color: '#44cc88' });
+                if (hero.class === 'healer' && typeCounts.buff) synergies.push({ text: '💚 Sustain — enhanced healing from buff skills', color: '#44ffaa' });
+                if (hero.class === 'assassin' && typeCounts.attack) synergies.push({ text: '🗡️ Lethal Strike — burst from attack skills', color: '#ff4488' });
+                if (typeCounts.special >= 2) synergies.push({ text: '⚡ Special Mastery — bonus with 2+ special skills', color: '#ffd700' });
+                if (typeCounts.attack >= 2) synergies.push({ text: '⚔️ Aggressor — 2+ attack skills boost ATK', color: '#ff6644' });
+
                 html += `
                     <div class="strategy-synergy-info">
                         <span style="color:${cls.color};font-size:7px;">${cls.emoji} ${cls.name} — ${skillCards.length} skills equipped</span>
-                    </div>
                 `;
+                if (synergies.length > 0) {
+                    synergies.forEach(s => {
+                        html += `<div style="font-size:6px;color:${s.color};margin-top:3px;">${s.text}</div>`;
+                    });
+                } else {
+                    html += `<div style="font-size:6px;color:var(--text-dim);margin-top:3px;">Mix skill types for synergies!</div>`;
+                }
+                html += '</div>';
             }
         }
 
         html += '</div>';
+
+        // Ready to Battle button
+        const hasHero = deckCards.length > 0;
+        const hasSkills = skillCards.length > 0;
+        if (hasHero && hasSkills) {
+            html += `
+                <div style="text-align:center;margin-top:16px;">
+                    <button class="btn btn-gold" onclick="UI._readyToBattle()" style="min-height:48px;padding:12px 32px;font-size:10px;">
+                        ⚔️ Ready to Battle!
+                    </button>
+                </div>
+            `;
+        }
+
+        // Battle Deck Preview below
+        html += this.renderBattleDeckPreview();
+
+        return html;
+    },
+
+    /**
+     * Go to battle screen with current deck
+     */
+    _readyToBattle() {
+        const deckCards = GameState.getDeckCards();
+        if (deckCards.length === 0) {
+            this.toast('Select a hero first!', 'error');
+            return;
+        }
+        this.showScreen('battle');
+        this.toast('⚔️ Deck ready! Start the battle!', 'info');
+    },
+
+    /**
+     * Show current deck hero + skill cards in battle preview
+     */
+    renderBattleDeckPreview() {
+        const deckCards = GameState.getDeckCards();
+        const skillCards = (GameState.skillDeck && GameState.skillDeck.length > 0)
+            ? GameState.getSkillDeckCards()
+            : SKILL_CARD_TEMPLATES.slice(0, 4);
+
+        if (deckCards.length === 0) return '';
+
+        const hero = deckCards[0];
+        const cls = CLASSES[hero.class] || {};
+        const r = RARITIES[hero.rarity] || {};
+        const typeIcons = { attack: '⚔️', defense: '🛡️', buff: '✨', debuff: '💀', special: '⚡' };
+
+        let html = `
+            <div style="margin-top:16px;padding:12px;background:rgba(0,0,0,0.3);border:1px solid var(--border-color);border-radius:8px;">
+                <div style="font-family:'Press Start 2P';font-size:7px;color:var(--gold);margin-bottom:8px;">
+                    📦 BATTLE DECK PREVIEW
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <div style="text-align:center;min-width:60px;">
+                        <div style="font-size:20px;">${cls.emoji || '🦸'}</div>
+                        <div style="font-size:6px;color:${r.color};font-weight:700;">${hero.name}</div>
+                        <div style="font-size:6px;color:${cls.color};">${cls.name}</div>
+                    </div>
+                    <div style="font-size:16px;color:#555;">→</div>
+        `;
+        skillCards.forEach(s => {
+            const sColor = RARITIES[s.rarity]?.color || '#aaa';
+            html += `
+                <div style="text-align:center;min-width:48px;padding:4px 6px;background:var(--bg-card);border:1px solid ${sColor};border-radius:4px;">
+                    <div style="font-size:12px;">${typeIcons[s.type] || '🃏'}</div>
+                    <div style="font-size:5px;color:${sColor};">${s.name}</div>
+                </div>
+            `;
+        });
+        html += `
+                </div>
+            </div>
+        `;
         return html;
     },
 
