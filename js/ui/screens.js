@@ -216,7 +216,7 @@ const UI = {
         // Go fullscreen for battle
         document.getElementById('screen-battle').classList.add('battle-active');
 
-        // Init Phaser renderer
+        // Init Phaser renderer and activate bridge
         BattlePhaser.init('battle-canvas-container');
 
         // Create or update the action row for phase buttons
@@ -237,15 +237,14 @@ const UI = {
             };
             BattlePhaser.showPhaseBanner(phaseNames[phase] || phase.toUpperCase(), true);
 
-            // Update Phaser center divider
+            // Update Phaser hero panels
             if (BattleEngine.player && BattleEngine.enemy) {
                 BattlePhaser.renderField(BattleEngine.player, BattleEngine.enemy);
             }
         };
 
         BattleEngine.onFieldUpdate = () => {
-            const state = BattleEngine.getFieldState();
-            BattlePhaser.renderField(state.player, state.enemy);
+            BattlePhaser.renderField(BattleEngine.player, BattleEngine.enemy);
 
             // Re-render card hand if in play phase
             if (BattleEngine.currentPhase === 'play' && typeof CardHand !== 'undefined') {
@@ -261,10 +260,6 @@ const UI = {
         BattleEngine.onAttack = (data) => {
             const attacker = data.attacker;
             const isPlayer = attacker.side === 'player';
-            const pos = BattlePhaser.getHeroZonePosition(0, isPlayer);
-            const tgtPos = data.targetIsHero
-                ? BattlePhaser.getHeroZonePosition(0, !isPlayer)
-                : BattlePhaser.getHeroZonePosition(0, !isPlayer);
 
             BattlePhaser.playAttack(0, 0, isPlayer, data.damage, false);
 
@@ -282,11 +277,14 @@ const UI = {
             }
         };
 
-        // Start the battle engine
+        // Start the battle engine FIRST so player/enemy objects exist
         BattleEngine.startBattle(playerDeck, enemyDeck, {
             playerName: 'You',
             enemyName: `Stage ${stage} Enemy`,
         });
+
+        // NOW activate Phaser bridge with player/enemy data
+        BattlePhaser.enter(BattleEngine.player, BattleEngine.enemy, null);
 
         // Handle battle completion (from result phase)
         BattleEngine.onComplete = (result) => {
