@@ -68,8 +68,12 @@ const BlockchainBridge = {
             this.provider = new ethers.BrowserProvider(window.ethereum); // ethers v6 (was .providers.Web3Provider in v5)
             this.signer = await this.provider.getSigner();
 
-            // Check chain (non-blocking)
-            try { await this.checkAndSwitchChain(); } catch (e) { console.warn('⚠️ Chain switch:', e.message); }
+            // Check chain (non-blocking — if fails, still connect wallet)
+            try {
+                await this.checkAndSwitchChain();
+            } catch (chainErr) {
+                console.warn('⚠️ Chain switch failed:', chainErr.message);
+            }
 
             // Initialize contract
             if (this.CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000') {
