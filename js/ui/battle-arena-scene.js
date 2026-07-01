@@ -77,8 +77,9 @@ const BattleArenaScene = {
 
     _resize() {
         const rect = this.canvas.parentElement.getBoundingClientRect();
-        this.W = Math.floor(rect.width);
-        this.H = Math.floor(rect.height);
+        // Clamp to viewport so canvas doesn't overflow
+        this.W = Math.floor(Math.min(rect.width, window.innerWidth));
+        this.H = Math.floor(Math.min(rect.height, window.innerHeight));
         this.canvas.width = this.W;
         this.canvas.height = this.H;
     },
