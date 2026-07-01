@@ -323,9 +323,9 @@ const PhaserBattleScene = new Phaser.Class({
             this.heroSprite[side].setText(emoji);
         }
 
-        // Update HP
-        var hp = battleHero.heroHP || 0;
-        var maxHP = battleHero.heroMaxHP || 1;
+        // Update HP (BattleEngine uses heroHp/heroMaxHp lowercase)
+        var hp = battleHero.heroHp || battleHero.heroHP || 0;
+        var maxHP = battleHero.heroMaxHp || battleHero.heroMaxHP || 1;
         var pct = Math.max(0, Math.min(1, hp / maxHP));
 
         if (this.heroHPText[side]) {
@@ -504,8 +504,9 @@ const PhaserBattleScene = new Phaser.Class({
         };
 
         // Update hero panels
-        this._updateHeroPanel('player', player.battleHero);
-        this._updateHeroPanel('enemy', enemy.battleHero);
+        // Update hero panels — pass player object directly (battleHero is not a sub-property)
+        this._updateHeroPanel('player', player.battleHero || player);
+        this._updateHeroPanel('enemy', enemy.battleHero || enemy);
 
         // Update center divider
         this.updateCenterDivider(state);
