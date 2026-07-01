@@ -527,22 +527,22 @@ const BattleRenderer = {
         const lpBarW = Math.min(200, w - 320);
         const lpBarH = 14;
         const lpBarY = y + (h - lpBarH) / 2;
-        const maxLP = BattleEngine.MAX_LP || 4000;
-        const lpPct = Math.max(0, combatant.lp / maxLP);
+        const maxHP = BattleEngine.HERO_HP || 20;
+        const hpPct = Math.max(0, combatant.heroHp / maxHP);
 
-        // Use animated LP if available
-        let displayLP = combatant.lp;
+        // Use animated HP if available
+        let displayHP = combatant.heroHp;
         if (typeof BattleAnimations !== 'undefined') {
-            const animatedLP = BattleAnimations.getAnimatedLP(isPlayer ? 'player' : 'enemy');
-            if (animatedLP !== null) {
-                displayLP = animatedLP;
-                const animPct = Math.max(0, animatedLP / maxLP);
-                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, animPct, displayLP, maxLP);
+            const animatedHP = BattleAnimations.getAnimatedLP(isPlayer ? 'player' : 'enemy');
+            if (animatedHP !== null) {
+                displayHP = animatedHP;
+                const animPct = Math.max(0, animatedHP / maxHP);
+                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, animPct, displayHP, maxHP);
             } else {
-                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, lpPct, displayLP, maxLP);
+                this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
             }
         } else {
-            this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, lpPct, displayLP, maxLP);
+            this._drawLPBar(ctx, lpBarX, lpBarY, lpBarW, lpBarH, hpPct, displayHP, maxHP);
         }
 
         // Deck count (right side)

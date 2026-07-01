@@ -225,8 +225,8 @@ const UI = {
         // Go fullscreen for battle
         document.getElementById('screen-battle').classList.add('battle-active');
 
-        // Init renderer
-        BattleArenaScene.init('battle-canvas-container');
+        // Init Phaser renderer (sole renderer after Sprint 1 cleanup)
+        BattlePhaser.init('battle-canvas-container');
 
         // Start the battle engine
         BattleEngine.startBattle(playerDeck, enemyDeck, {
@@ -238,7 +238,7 @@ const UI = {
         BattleEngine.onComplete = (result) => {
             // Wait a moment, then show result
             setTimeout(() => {
-                BattleArenaScene.stop();
+                BattlePhaser.exit();
                 if (battleContainer) battleContainer.style.display = 'none';
                 document.getElementById('screen-battle').classList.remove('battle-active');
 

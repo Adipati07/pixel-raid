@@ -75,7 +75,7 @@ const Tutorial = {
         {
             id: 'mana_system',
             title: '❤️ Life Points',
-            text: 'Both duelists start with 4000 LP (Life Points)!\n\nPlay hero cards to your field zones.\nAttack enemy heroes to deal damage.\nReduce enemy LP to 0 to win!\n\nTip: Protect your heroes and attack strategically!',
+            text: 'Both duelists start with 20 Hero HP!\n\nPlay hero cards to your field zones.\nAttack enemy heroes to deal damage.\nReduce enemy Hero HP to 0 to win!\n\nTip: Protect your heroes and attack strategically!',
             target: '#battle-canvas',
             position: 'top',
         },

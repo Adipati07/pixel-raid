@@ -66,7 +66,7 @@ const BlockchainBridge = {
             
             this.account = accounts[0];
             this.provider = new ethers.BrowserProvider(window.ethereum); // ethers v6 (was .providers.Web3Provider in v5)
-            this.signer = this.provider.getSigner();
+            this.signer = await this.provider.getSigner();
 
             // Check chain
             await this.checkAndSwitchChain();

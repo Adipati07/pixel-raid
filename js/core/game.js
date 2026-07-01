@@ -32,7 +32,15 @@ const GameState = {
         highestStage: 1,
     },
 
+    _saveTimeout: null,
+
+    _debouncedSave() {
+        clearTimeout(this._saveTimeout);
+        this._saveTimeout = setTimeout(() => this.save(), 100);
+    },
+
     save() {
+        clearTimeout(this._saveTimeout);
         const data = {
             player: this.player,
             collection: this.collection,
@@ -126,14 +134,14 @@ const GameState = {
     addToCollection(card) {
         this.collection.push(card);
         this.stats.cardsCollected++;
-        this.save();
+        this._debouncedSave();
     },
 
     removeFromCollection(cardId) {
         this.collection = this.collection.filter(c => c.id !== cardId);
         this.deck = this.deck.filter(id => id !== cardId);
         delete this.equippedItems[cardId];
-        this.save();
+        this._debouncedSave();
     },
 
     addToDeck(cardId) {
@@ -143,7 +151,7 @@ const GameState = {
         if (!card) return false;
         this.deck.push(cardId);
         card.inDeck = true;
-        this.save();
+        this._debouncedSave();
         return true;
     },
 
@@ -151,12 +159,12 @@ const GameState = {
         this.deck = this.deck.filter(id => id !== cardId);
         const card = this.getCardById(cardId);
         if (card) card.inDeck = false;
-        this.save();
+        this._debouncedSave();
     },
 
     addItem(item) {
         this.inventory.push(item);
-        this.save();
+        this._debouncedSave();
     },
 
     equipItem(itemId, cardId) {
@@ -179,7 +187,7 @@ const GameState = {
         
         this.equippedItems[cardId][slot] = itemId;
         item.equippedTo = cardId;
-        this.save();
+        this._debouncedSave();
         return true;
     },
 
