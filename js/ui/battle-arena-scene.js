@@ -334,6 +334,23 @@ const BattleArenaScene = {
         // Draw attack animations
         this._renderAttackAnims(ctx);
 
+        // Update hero lunge animation
+        if (this._heroLunge) {
+            const l = this._heroLunge;
+            if (l.phase === 'forward') {
+                l.progress += 0.15;
+                l.offsetX = l.targetOffsetX * Math.min(1, l.progress);
+                if (l.progress >= 1) { l.phase = 'hold'; l.progress = 0; }
+            } else if (l.phase === 'hold') {
+                l.progress += 0.1;
+                if (l.progress >= 0.5) { l.phase = 'back'; l.progress = 0; }
+            } else if (l.phase === 'back') {
+                l.progress += 0.1;
+                l.offsetX = l.targetOffsetX * (1 - Math.min(1, l.progress));
+                if (l.progress >= 1) { this._heroLunge = null; }
+            }
+        }
+
         // Draw floating damage numbers
         this._renderDamageNumbers(ctx);
 
@@ -640,15 +657,22 @@ const BattleArenaScene = {
         }
 
         const heroY = startY + scaledSkillH + scaledGap;
+
+        // Apply hero lunge offset if attacking
+        let lungeOffsetX = 0;
+        if (this._heroLunge && this._heroLunge.isPlayer === isPlayer) {
+            lungeOffsetX = this._heroLunge.offsetX || 0;
+        }
+
         // Flip enemy hero to face right, player hero faces left
         if (!isPlayer) {
             ctx.save();
-            ctx.translate(heroX + scaledZoneW, heroY);
+            ctx.translate(heroX + scaledZoneW + lungeOffsetX, heroY);
             ctx.scale(-1, 1);
             this._drawHeroZone(ctx, 0, 0, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
             ctx.restore();
         } else {
-            this._drawHeroZone(ctx, heroX, heroY, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
+            this._drawHeroZone(ctx, heroX + lungeOffsetX, heroY, scaledZoneW, scaledZoneH, hero, isPlayer, 0);
         }
 
         // Draw skill zones above and below hero
@@ -1332,6 +1356,15 @@ const BattleArenaScene = {
         const srcY = fieldSrc.y + fieldSrc.h / 2;
         const tgtX = fieldDst.x + fieldDst.w / 2;
         const tgtY = fieldDst.y + fieldDst.h / 2;
+
+        // Hero lunge effect — shift hero toward enemy briefly
+        this._heroLunge = {
+            isPlayer: isPlayerAttacking,
+            offsetX: 0,
+            phase: 'forward', // forward → hold → back
+            progress: 0,
+            targetOffsetX: isPlayerAttacking ? -30 : 30, // toward enemy
+        };
 
         this.attackAnims.push({
             srcX, srcY, tgtX, tgtY,
