@@ -120,7 +120,15 @@ const BlockchainBridge = {
     /**
      * Disconnect wallet
      */
-    disconnect() {
+    async disconnect() {
+        // Actually revoke MetaMask permissions so it truly disconnects
+        if (window.ethereum) {
+            try {
+                await window.ethereum.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+            } catch (e) {
+                console.warn('⚠️ revokePermissions failed (non-critical):', e.message);
+            }
+        }
         this.account = null;
         this.provider = null;
         this.signer = null;
