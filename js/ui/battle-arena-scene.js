@@ -130,6 +130,16 @@ const BattleArenaScene = {
         const cardHand = document.getElementById('card-hand-area');
         if (cardHand) cardHand.style.display = 'none';
 
+        // ===== CANVAS CLICK HANDLER FOR CARDS =====
+        this._cardClickHandler = (e) => this._onCanvasClick(e);
+        this.canvas.addEventListener('click', this._cardClickHandler);
+        this.canvas.style.cursor = 'default';
+        this._hoveredCard = -1;
+        this._cardMouseMove = (e) => this._onCanvasMouseMove(e);
+        this.canvas.addEventListener('mousemove', this._cardMouseMove);
+        this._cardFlyAnims = []; // active card fly animations
+        this._playingCardIndex = -1; // card currently being animated
+
         // Keep only action buttons visible below canvas
         const actionRow = document.querySelector('.battle-action-row');
         const controls = document.querySelector('.battle-controls');
@@ -173,6 +183,16 @@ const BattleArenaScene = {
             this.active = false;
             this.transitioning = false;
             this._stopRenderLoop();
+
+            // Remove canvas event listeners
+            if (this._cardClickHandler && this.canvas) {
+                this.canvas.removeEventListener('click', this._cardClickHandler);
+                this.canvas.removeEventListener('mousemove', this._cardMouseMove);
+                this._cardClickHandler = null;
+                this._cardMouseMove = null;
+            }
+            this._cardFlyAnims = [];
+            this._hoveredCard = -1;
 
             // === RESTORE FROM FULLSCREEN ===
             const wrap = document.querySelector('.battle-canvas-wrap');
@@ -283,6 +303,9 @@ const BattleArenaScene = {
 
         // Draw player hand as 2x2 card grid in bottom area
         this._drawHand(ctx, state.player, layout.hand);
+
+        // Draw card fly animations (on top of everything)
+        this._renderCardFlyAnims(ctx);
 
         // Draw vignette (dramatic edge darkening)
         this._drawVignette(ctx, W, H);
@@ -963,6 +986,8 @@ const BattleArenaScene = {
         ];
 
         for (let i = 0; i < cardsToShow.length; i++) {
+            // Skip card being animated (flying to arena)
+            if (this._playingCardIndex === i) continue;
             const card = cardsToShow[i];
             const pos = positions[i];
             this._drawCard(ctx, card, pos.cx, pos.cy, cardW, cardH, i + 1);
@@ -972,6 +997,8 @@ const BattleArenaScene = {
     _drawCard(ctx, card, x, y, w, h, index) {
         const color = card.pixelColor || '#4488ff';
         const rarity = card.rarity || 'common';
+        const isHovered = this._hoveredCard === (index - 1);
+        const isPlayable = BattleEngine.isPlayerTurn && BattleEngine.currentPhase === 'main' && BattleEngine._cardsPlayedThisTurn < BattleEngine.MAX_CARDS_PER_TURN;
         const rarityColors = {
             common: '#8a8a8a',
             rare: '#4488ff',
@@ -982,13 +1009,25 @@ const BattleArenaScene = {
         const borderColor = rarityColors[rarity] || '#8a8a8a';
 
         // Card background
-        ctx.fillStyle = 'rgba(15, 12, 30, 0.95)';
+        ctx.fillStyle = isHovered && isPlayable ? 'rgba(25, 20, 50, 0.98)' : 'rgba(15, 12, 30, 0.95)';
         ctx.fillRect(x, y, w, h);
 
-        // Card border (rarity color)
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 2;
+        // Card border (rarity color, glow when hovered)
+        if (isHovered && isPlayable) {
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 10;
+        }
+        ctx.strokeStyle = isHovered && isPlayable ? '#ffd700' : borderColor;
+        ctx.lineWidth = isHovered ? 3 : 2;
         ctx.strokeRect(x, y, w, h);
+        ctx.shadowBlur = 0;
+
+        // Playable indicator (subtle glow on non-hovered playable cards)
+        if (isPlayable && !isHovered) {
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
+        }
 
         // Color strip at top
         ctx.fillStyle = color;
@@ -1051,6 +1090,164 @@ const BattleArenaScene = {
         ctx.fillStyle = '#ffcc00';
         ctx.textAlign = 'left';
         ctx.fillText(String(index), x + 4, y + 12);
+    },
+
+    // ===== CARD CLICK & FLY ANIMATION =====
+    _getCardRects() {
+        const layout = this._calcLayout();
+        const { x, y, w, h } = layout.hand;
+        const state = BattleEngine.getFieldState();
+        const hand = state.player.hand || [];
+        if (!hand.length) return [];
+
+        const pad = 8;
+        const gap = 6;
+        const gridTop = y + 22;
+        const gridH = h - 28;
+        const cardW = (w - pad * 2 - gap) / 2;
+        const cardH = (gridH - gap) / 2;
+
+        const positions = [
+            { cx: x + pad, cy: gridTop },
+            { cx: x + pad + cardW + gap, cy: gridTop },
+            { cx: x + pad, cy: gridTop + cardH + gap },
+            { cx: x + pad + cardW + gap, cy: gridTop + cardH + gap },
+        ];
+
+        return hand.slice(0, 4).map((card, i) => ({
+            card, index: i,
+            x: positions[i].cx, y: positions[i].cy,
+            w: cardW, h: cardH
+        }));
+    },
+
+    _onCanvasMouseMove(e) {
+        if (!this.active || this.transitioning) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.W / rect.width;
+        const scaleY = this.H / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        const cards = this._getCardRects();
+        let hovered = -1;
+        for (const c of cards) {
+            if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
+                hovered = c.index;
+                break;
+            }
+        }
+        this._hoveredCard = hovered;
+        this.canvas.style.cursor = hovered >= 0 ? 'pointer' : 'default';
+    },
+
+    _onCanvasClick(e) {
+        if (!this.active || this.transitioning) return;
+        if (!BattleEngine.isRunning || !BattleEngine.isPlayerTurn) return;
+        if (BattleEngine.currentPhase !== 'main') return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.W / rect.width;
+        const scaleY = this.H / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        const cards = this._getCardRects();
+        for (const c of cards) {
+            if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
+                this._playCardAnim(c.index);
+                return;
+            }
+        }
+    },
+
+    _playCardAnim(cardIndex) {
+        // Check if card can be played
+        if (BattleEngine._cardsPlayedThisTurn >= BattleEngine.MAX_CARDS_PER_TURN) {
+            BattleEngine.addLog('❌ Already played a card this turn!', 'info');
+            return;
+        }
+
+        const cards = this._getCardRects();
+        const card = cards[cardIndex];
+        if (!card) return;
+
+        // Calculate target position (player hero zone center)
+        const layout = this._calcLayout();
+        const targetX = layout.fieldPlayer.x + layout.fieldPlayer.w / 2;
+        const targetY = layout.fieldPlayer.y + layout.fieldPlayer.h / 2;
+
+        // Capture card data BEFORE playCard removes it from hand
+        const cardData = { ...card.card };
+
+        // Start fly animation
+        const anim = {
+            card: cardData,
+            index: cardIndex,
+            startX: card.x + card.w / 2,
+            startY: card.y + card.h / 2,
+            startW: card.w,
+            startH: card.h,
+            targetX,
+            targetY,
+            startTime: performance.now(),
+            duration: 500,
+            done: false
+        };
+        this._cardFlyAnims.push(anim);
+
+        // Mark card as "being played" so _drawHand skips it
+        this._playingCardIndex = cardIndex;
+
+        // Play the card after animation completes
+        setTimeout(() => {
+            this._playingCardIndex = -1;
+            BattleEngine.playCard(cardIndex);
+        }, anim.duration + 50);
+    },
+
+    _renderCardFlyAnims(ctx) {
+        if (!this._cardFlyAnims.length) return;
+        const now = performance.now();
+        this._cardFlyAnims = this._cardFlyAnims.filter(anim => {
+            const t = Math.min(1, (now - anim.startTime) / anim.duration);
+            const ease = 1 - Math.pow(1 - t, 3); // ease out cubic
+
+            const cx = anim.startX + (anim.targetX - anim.startX) * ease;
+            const cy = anim.startY + (anim.targetY - anim.startY) * ease;
+            const cw = anim.startW * (1 - ease * 0.7);
+            const ch = anim.startH * (1 - ease * 0.7);
+
+            ctx.save();
+            ctx.globalAlpha = 1 - ease * 0.5;
+
+            // Glow trail
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 20 * (1 - ease);
+
+            // Card body
+            const color = anim.card.pixelColor || '#4488ff';
+            ctx.fillStyle = color;
+            ctx.fillRect(cx - cw / 2, cy - ch / 2, cw, ch);
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx - cw / 2, cy - ch / 2, cw, ch);
+
+            // Card name
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 7px "Press Start 2P", monospace';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText(anim.card.name || 'Card', cx, cy + 3);
+
+            ctx.restore();
+
+            if (t >= 1) {
+                anim.done = true;
+                return false;
+            }
+            return true;
+        });
     },
 
     // ===== ATTACK ANIMATIONS =====
