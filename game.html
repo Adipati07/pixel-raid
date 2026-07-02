@@ -1043,6 +1043,8 @@
         @media (max-width: 1024px) {
             .screen { padding: 20px 24px; }
             .heroes-grid, #inventory-grid, #shop-content { grid-template-columns: repeat(3, 1fr); }
+            .strategy-hero-grid { grid-template-columns: repeat(4, 1fr); }
+            .strategy-skill-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 768px) {
             .game-header { flex-wrap: wrap; gap: 8px; }
@@ -1050,6 +1052,8 @@
             .screen { padding: 16px; }
             #formation-grid { max-width: 280px; gap: 6px; }
             .heroes-grid, #inventory-grid, #shop-content { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .strategy-hero-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .strategy-skill-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
             .nav-btn { font-size: 8px; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
             .card { padding: 8px; }
             .card-name { font-size: 8px; }
@@ -1086,6 +1090,103 @@
         .strategy-hero-card.active {
             border-color: #44ff88 !important;
             box-shadow: 0 0 12px rgba(68,255,136,0.3) !important;
+        }
+
+        /* ===== STRATEGY SCREEN ===== */
+        .strategy-hero-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .strategy-hero-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-pixel);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.15s, border-color 0.15s;
+            min-height: 100px;
+        }
+        .strategy-hero-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--gold);
+        }
+        .strategy-hero-card.locked {
+            opacity: 0.4;
+            filter: grayscale(0.7);
+            cursor: not-allowed;
+        }
+        .strategy-hero-card.locked:hover {
+            transform: none;
+            border-color: var(--border-pixel);
+        }
+        .strategy-hero-sprite {
+            image-rendering: pixelated;
+            display: block;
+            margin: 0 auto 4px;
+        }
+        .strategy-skill-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .strategy-skill-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-pixel);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .strategy-skill-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--gold);
+        }
+        .strategy-skill-card.selected {
+            border-color: #44ff88;
+            box-shadow: 0 0 8px rgba(68,255,136,0.25);
+        }
+        .strategy-skill-desc {
+            font-size: 7px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .strategy-deck-summary {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid var(--border-pixel);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .strategy-summary-hero {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .strategy-summary-skills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .strategy-summary-skill {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border-pixel);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 8px;
+        }
+        .strategy-synergy-info {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.15);
+            border-radius: 6px;
+            font-size: 8px;
+            color: var(--text-dim);
         }
     </style>
     <link rel="stylesheet" href="css/retro-ui.css?v=sprint3">
