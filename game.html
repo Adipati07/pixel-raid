@@ -240,13 +240,14 @@
         }
         #screen-battle.battle-active #battle-deck-preview,
         #screen-battle.battle-active .battle-controls { display: none; }
-        #screen-battle.battle-active .battle-canvas-wrap { flex: 1; }
+        #screen-battle.battle-active .battle-canvas-wrap { flex: 1; min-height: 0; }
+        #screen-battle.battle-active .card-hand-area { flex-shrink: 0; }
         .battle-canvas-wrap { position: relative; overflow: hidden; }
         #battle-canvas-container {
             width: 100%; height: 100%; display: none; margin: 0;
             border: none; box-shadow: none;
         }
-        .battle-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+        .battle-controls { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
         .speed-controls { display: flex; gap: 2px; margin-left: auto; }
         .speed-btn {
             font-family: 'Press Start 2P'; font-size: 8px; padding: 6px 10px;
@@ -293,16 +294,16 @@
         .deck-info, .graveyard-info { font-size: 8px; color: var(--text-dim); }
 
         .card-hand-area {
-            display: flex; justify-content: center; gap: 8px; padding: 8px 12px;
-            min-height: 140px;
-            overflow-x: auto;
+            display: flex; justify-content: center; gap: 6px; padding: 4px 8px;
+            min-height: 100px; max-height: 160px;
+            overflow-x: auto; overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             flex-wrap: nowrap;
             align-items: flex-end;
         }
         .battle-action-row {
-            display: flex; justify-content: center; gap: 8px;
-            padding: 4px 0;
+            display: flex; justify-content: center; gap: 6px;
+            padding: 2px 0;
         }
 
         #btn-end-turn {
@@ -312,7 +313,7 @@
 
         /* Card in hand */
         .hand-card {
-            width: 120px; min-height: 170px; padding: 0; border-radius: 6px; cursor: pointer;
+            width: 110px; min-height: 150px; padding: 0; border-radius: 6px; cursor: pointer;
             background: var(--bg-card); border: 2px solid var(--border-pixel);
             transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease;
             user-select: none; position: relative;
@@ -495,7 +496,7 @@
 
         /* Turn order bar */
         .turn-order-bar {
-            display: flex; gap: 8px; padding: 6px 10px; margin-bottom: 8px;
+            display: flex; gap: 6px; padding: 4px 8px; margin-bottom: 4px;
             background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 9px;
             align-items: center; overflow-x: auto; min-height: 24px;
             font-family: 'Press Start 2P';
@@ -1051,7 +1052,9 @@
             .card-name { font-size: 8px; }
             #battle-canvas-container { width: 100%; height: 100%; }
             .btn { font-size: 8px; padding: 10px 16px; min-height: 44px; }
-            .hand-card { width: 100px; min-height: 140px; }
+            .hand-card { width: 80px; min-height: 110px; }
+            .card-hand-area { gap: 4px; padding: 3px 4px; min-height: 80px; max-height: 130px; }
+            .turn-order-bar { gap: 4px; padding: 3px 6px; margin-bottom: 2px; }
         }
         @media (max-width: 380px) {
             .screen { padding: 12px; }
