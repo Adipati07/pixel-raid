@@ -946,17 +946,17 @@ const UI = {
                 html += `
                     <div class="strategy-hero-card ${isActive ? 'active' : ''}" onclick="UI._selectBattleHero(${card.id})">
                         <canvas class="strategy-hero-sprite" data-hero="${card.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
-                        <div style="font-size:7px;color:${r.color};font-weight:700;">${card.name}</div>
-                        <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
-                        ${isActive ? '<div style="font-size:6px;color:#44ff88;">✅ Active</div>' : ''}
+                        <div style="font-size:9px;color:${r.color};font-weight:700;">${card.name}</div>
+                        <div style="font-size:8px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                        ${isActive ? '<div style="font-size:8px;color:#44ff88;">✅ Active</div>' : ''}
                     </div>
                 `;
             } else {
                 html += `
                     <div class="strategy-hero-card" style="opacity:0.4;filter:grayscale(0.7);cursor:not-allowed;">
                         <div style="font-size:24px;text-align:center;line-height:48px;">🔒</div>
-                        <div style="font-size:7px;color:#666;font-weight:700;">???</div>
-                        <div style="font-size:6px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                        <div style="font-size:9px;color:#666;font-weight:700;">???</div>
+                        <div style="font-size:8px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
                     </div>
                 `;
             }
@@ -994,8 +994,8 @@ const UI = {
             const rarityColor = RARITIES[card.rarity]?.color || '#aaa';
             html += `
                 <div class="strategy-skill-card ${inDeck ? 'selected' : ''}" onclick="UI._toggleSkillCard('${card.id}')">
-                    <div style="font-size:7px;color:${rarityColor};font-weight:700;">${card.name}</div>
-                    <div style="display:flex;gap:6px;font-size:6px;align-items:center;margin-top:2px;">
+                    <div style="font-size:9px;color:${rarityColor};font-weight:700;">${card.name}</div>
+                    <div style="display:flex;gap:6px;font-size:8px;align-items:center;margin-top:2px;">
                         <span style="color:${rarityColor}">${RARITIES[card.rarity]?.name || card.rarity}</span>
                         <span style="color:${cardType.color || '#aaa'}">💎 ${card.manaCost}</span>
                     </div>
