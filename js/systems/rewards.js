@@ -269,7 +269,7 @@ const RewardPopup = {
             document.getElementById('screen-battle').classList.remove('battle-active');
             BattleEngine.stop();
             UI.updateHeader();
-            UI.showScreen('heroes');
+            UI.showScreen('battle');
         } else if (action === 'retry') {
             // Exit battle and restart
             BattlePhaser.exit();

@@ -251,6 +251,7 @@ const BattleEngine = {
         }
 
         const { attacker, side, slot } = attacks[index];
+        if (attacker.hp <= 0) { this._executeAttackSequence(attacks, index + 1); return; }
         const myBoard = side === 'player' ? this.player.board : this.enemy.board;
         const enemyBoard = side === 'player' ? this.enemy.board : this.player.board;
         const enemyCombatant = side === 'player' ? this.enemy : this.player;
@@ -279,6 +280,7 @@ const BattleEngine = {
                     attacker: { ...attacker, side, slot },
                     target: null,
                     targetIsHero: true,
+                    targetSlot: null,
                     targetSide: side === 'player' ? 'enemy' : 'player',
                     damage: dmg,
                 });
@@ -326,6 +328,11 @@ const BattleEngine = {
     _checkWinLose() {
         if (this.enemy.heroHp <= 0) return 'player';
         if (this.player.heroHp <= 0) return 'enemy';
+        // Stalemate — all resources exhausted, whoever has more HP wins
+        if (this.player.deck.length === 0 && this.player.hand.length === 0 && this.player.board.every(u => !u) &&
+            this.enemy.deck.length === 0 && this.enemy.hand.length === 0 && this.enemy.board.every(u => !u)) {
+            return this.player.heroHp >= this.enemy.heroHp ? 'player' : 'enemy';
+        }
         return null;
     },
 

@@ -185,6 +185,7 @@ var BattlePhaser = {
     },
 
     exit: function (onComplete) {
+        if (!this._scene) { if (onComplete) onComplete(); return; }
         this._transitioning = true;
 
         this._scene.showTransition('exit', function () {

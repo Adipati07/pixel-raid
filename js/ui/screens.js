@@ -43,6 +43,9 @@ const UI = {
             case 'formation': this.renderStrategyScreen(); break;
             case 'inventory': this.renderInventoryScreen(); break;
             case 'shop': this.renderShopScreen(); break;
+            case 'market':
+                el.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:32px;margin-bottom:12px;">📈</div><div style="font-family:var(--pixel-font);font-size:10px;color:var(--gold);">MARKETPLACE</div><div style="font-size:8px;color:var(--text-dim);margin-top:8px;">Coming Soon — Trade cards with other players!</div></div>';
+                break;
         }
     },
 
@@ -260,7 +263,9 @@ const UI = {
                 draw: 'DRAW', energy: 'ENERGY', play: 'PLAY',
                 arrange: 'ARRANGE', battle: 'BATTLE', result: 'RESULT'
             };
-            BattlePhaser.showPhaseBanner(phaseNames[phase] || phase.toUpperCase(), true);
+            if (['play', 'arrange', 'battle', 'result'].includes(phase)) {
+                BattlePhaser.showPhaseBanner(phaseNames[phase] || phase.toUpperCase(), true);
+            }
 
             // Update Phaser hero panels
             if (BattleEngine.player && BattleEngine.enemy) {
@@ -286,7 +291,7 @@ const UI = {
             const attacker = data.attacker;
             const isPlayer = attacker.side === 'player';
 
-            BattlePhaser.playAttack(0, 0, isPlayer, data.damage, false);
+            BattlePhaser.playAttack(data.attacker.slot, data.targetSlot || 0, isPlayer, data.damage, false);
 
             // Update hero HP display
             if (data.targetIsHero) {
@@ -491,7 +496,7 @@ const UI = {
         const stage = GameState.player.stage;
         let rewardHTML = '';
         if (isWin) {
-            const goldReward = 50 + stage * 20;
+            const goldReward = 20 + (stage * 10);
             rewardHTML = `
                 <div style="margin:12px 0;font-size:10px;color:#ffd700;">
                     💰 +${goldReward} Gold
