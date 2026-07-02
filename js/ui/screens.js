@@ -675,8 +675,8 @@ const UI = {
 
         // Header: owned counter
         const header = document.createElement('div');
-        header.style.cssText = 'font-family:"Press Start 2P";font-size:9px;color:var(--gold);margin-bottom:12px;text-align:center;';
-        header.innerHTML = `🃏 Collection — <span style="color:#44ff88">${ownedCount}</span>/${totalCount} Heroes`;
+        header.style.cssText = 'font-family:"Press Start 2P";font-size:11px;color:var(--gold);margin-bottom:12px;text-align:center;';
+                header.innerHTML = `🃏 Collection — <span style="color:#44ff88">${ownedCount}</span>/${totalCount} Heroes`;
         grid.appendChild(header);
         // Show all 20 templates: owned cards full detail, locked as silhouettes
         CARD_TEMPLATES.forEach(tmpl => {
@@ -946,17 +946,17 @@ const UI = {
                 html += `
                     <div class="strategy-hero-card ${isActive ? 'active' : ''}" onclick="UI._selectBattleHero(${card.id})">
                         <canvas class="strategy-hero-sprite" data-hero="${card.name}" width="48" height="48" style="image-rendering:pixelated;"></canvas>
-                        <div style="font-size:9px;color:${r.color};font-weight:700;">${card.name}</div>
-                        <div style="font-size:8px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
-                        ${isActive ? '<div style="font-size:8px;color:#44ff88;">✅ Active</div>' : ''}
+                        <div style="font-size:12px;color:${r.color};font-weight:700;">${card.name}</div>
+                        <div style="font-size:10px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                        ${isActive ? '<div style="font-size:10px;color:#44ff88;">✅ Active</div>' : ''}
                     </div>
                 `;
             } else {
                 html += `
                     <div class="strategy-hero-card" style="opacity:0.4;filter:grayscale(0.7);cursor:not-allowed;">
                         <div style="font-size:24px;text-align:center;line-height:48px;">🔒</div>
-                        <div style="font-size:9px;color:#666;font-weight:700;">???</div>
-                        <div style="font-size:8px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
+                        <div style="font-size:12px;color:#666;font-weight:700;">???</div>
+                        <div style="font-size:10px;color:${cls.color};">${cls.emoji} ${cls.name}</div>
                     </div>
                 `;
             }
@@ -994,8 +994,8 @@ const UI = {
             const rarityColor = RARITIES[card.rarity]?.color || '#aaa';
             html += `
                 <div class="strategy-skill-card ${inDeck ? 'selected' : ''}" onclick="UI._toggleSkillCard('${card.id}')">
-                    <div style="font-size:9px;color:${rarityColor};font-weight:700;">${card.name}</div>
-                    <div style="display:flex;gap:6px;font-size:8px;align-items:center;margin-top:2px;">
+                    <div style="font-size:12px;color:${rarityColor};font-weight:700;">${card.name}</div>
+                    <div style="display:flex;gap:6px;font-size:10px;align-items:center;margin-top:2px;">
                         <span style="color:${rarityColor}">${RARITIES[card.rarity]?.name || card.rarity}</span>
                         <span style="color:${cardType.color || '#aaa'}">💎 ${card.manaCost}</span>
                     </div>
@@ -1055,8 +1055,8 @@ const UI = {
             html += `
                 <div class="strategy-summary-hero">
                     <span style="font-size:14px">${cls.emoji || '🦸'}</span>
-                    <span style="color:${r.color};font-size:8px;font-weight:700;">${hero.name}</span>
-                    <span style="color:${cls.color};font-size:7px;">${cls.name}</span>
+                    <span style="color:${r.color};font-size:11px;font-weight:700;">${hero.name}</span>
+                    <span style="color:${cls.color};font-size:9px;">${cls.name}</span>
                 </div>
             `;
         } else {
@@ -1070,8 +1070,8 @@ const UI = {
             html += `
                 <div class="strategy-summary-skill">
                     <span>${typeIcon}</span>
-                    <span style="font-size:7px">${card.name}</span>
-                    <span style="font-size:7px;color:#888">💎${card.manaCost}</span>
+                    <span style="font-size:10px">${card.name}</span>
+                    <span style="font-size:10px;color:#888">💎${card.manaCost}</span>
                 </div>
             `;
         });
